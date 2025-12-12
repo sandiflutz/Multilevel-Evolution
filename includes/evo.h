@@ -26,17 +26,11 @@ void hostDeath(int idh);
 *         returns gillespie's time increment    *
 ************************************************/
 double gillespieTime(double sumprob);
-/***********************************************
-*         Adjust host time step                *
-************************************************/
-double adjustTimeStep(double *event,int size);
 /**************************************************
-*      Adjust host time step: simple version      *
-*      Chooses the maximum vector element @maxe   *
-*      and considers that the maximum probability *
-*      of 2 host events is ~maxe*maxe             *
-**************************************************/
-double adjustTimeStepSimple(double *event,int size);
+*      Adjust host time step: the probability of  *
+*      2 host events in a host timestep os <0.01  *
+***************************************************/
+double adjustTimeStep(double maxprob);
 /*******************************************************
 *                  host dynamics                       *
 ********************************************************/

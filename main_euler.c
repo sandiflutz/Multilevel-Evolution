@@ -48,7 +48,7 @@ int main(void){
 		#endif
 		calcHostEvents(event.ratesE,&spar);
 		cumulProb(event.sizeE,event.ratesE,event.cprobE);
-                dt=adjustTimeStepSimple(event.ratesE,event.sizeE);
+		dt=adjustTimeStep(event.cprobE[event.sizeE-1]);
                 sumprobs=dt*event.cprobE[event.sizeE-1];
                 event.dtE=dt;
                 prob_nev=1.-sumprobs;
@@ -103,6 +103,7 @@ void freeMemory(void){
 #ifdef TMEAS
         free(meas.ftname_pars);
 #endif
+        free(dtVec);
 
 #if (NETWORK!=0)
 	free(alive_viz->vec);

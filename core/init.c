@@ -27,7 +27,9 @@ void allocateMemory(SysParams *spar,Event *event,TimeMeasures *meas){
 
         s=(int *)calloc(TYPES,sizeof(int));
         inv=(double *)calloc(TYPES,sizeof(double));
-
+	
+	dtVec=(double *) calloc(DTVSIZE,sizeof(double));
+	logSpacedVec(dtVec,1e-07,1e-02,DTVSIZE);
         /****structs****/
         //system parameters necessary for the equations of the microbial
 

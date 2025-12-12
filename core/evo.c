@@ -133,63 +133,40 @@ double gillespieTime(double sumprob){
 
         return passive_time;
 }
-/***********************************************
-*         Adjust host time step                *
-************************************************/
-double adjustTimeStep(double *event,int size){
-        int i,idm;
-        double dt,dt_tmp,maxe1,maxe2,p2;
-	DynListF *p;
-
-	p=malloc(sizeof(DynListF));
-	p->vecf=(double *)calloc(size,sizeof(double));
-	p->sizef=size;
-	p->usizef=size;
-
-	for(i=0; i<size; ++i){
-		p->vecf[i]=event[i];
-	}
-
-        dt=Dt_ref;
-
-        idm=findMaxElement(p->usizef,&maxe1,p->vecf);
-	listSimpleSubF(p,idm);
-        
-	idm=findMaxElement(p->usizef,&maxe2,p->vecf);
-	if(maxe2==0.){
-		if(maxe1>0.){
-			dt_tmp=0.1/maxe1;
-			if(dt>dt_tmp)dt=dt_tmp;
-		}
-	}else{
-		p2=maxe1*maxe2;
-		dt_tmp=0.1/sqrt(p2);
-		if(dt>dt_tmp)dt=dt_tmp;
-	}
-
-	free(p->vecf);
-	free(p);
-        return dt;
-}
 /**************************************************
-*      Adjust host time step: simple version      *
-*      Chooses the maximum vector element @maxe   *
-*      and considers that the maximum probability *
-*      of 2 host events is ~maxe*maxe             * 
-**************************************************/
-double adjustTimeStepSimple(double *event,int size){
-        int i,idm;
-        double dt,dt_tmp,maxe;
-
-        dt=Dt_ref;
-
-        idm=findMaxElement(size,&maxe,event);
-	if(maxe>0.){
-        	dt_tmp=0.1/maxe;
-        	if(dt>dt_tmp)dt=dt_tmp;
+*      Adjust host time step: the probability of  *
+*      2 host events in a host timestep os <0.01  *
+***************************************************/
+double adjustTimeStep(double maxprob){
+	int i,ok;
+	double dt,*p0,*p1,*p2,max_p2=0.01;
+	
+	p0=(double *)calloc(DTVSIZE,sizeof(double));
+	p1=(double *)calloc(DTVSIZE,sizeof(double));
+	p2=(double *)calloc(DTVSIZE,sizeof(double));
+	
+	for(i=0; i<DTVSIZE; ++i){
+		p0[i]=exp(-maxprob*dtVec[i]);
+		p1[i]=maxprob*dtVec[i]*p0[i];
+		p2[i]=1.-p0[i]-p1[i];
 	}
+	
+	i=DTVSIZE-1;
+	ok=0;
+	dt=dtVec[0];
+	do{
+		if(p2[i]<max_p2){
+			dt=dtVec[i];
+			ok=1;		
+		}
 
-        return dt;
+		--i;
+	}while(i>0&&ok==0);
+
+	free(p0);
+	free(p1);
+	free(p2);
+	return dt;
 }
 /*******************************************************
 *                  host dynamics                       *

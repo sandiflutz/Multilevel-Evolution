@@ -1,27 +1,3 @@
-/*
- * This file is part of the project Multilevel Evolution.
- *
- * This program uses the GNU Scientific Library (GSL), which is licensed
- * under the GNU GPL v3 or later. Therefore, this file and any binary
- * linked with GSL must be distributed under the terms of the GPL v3+.
- *
- * Copyright (C) 2025 Alessandra F. Lütz
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
-
 #ifndef GLOBALS_H
 #define GLOBALS_H
 #include<assert.h>
@@ -70,6 +46,7 @@
 #define SIGMA     0.05          /*variance of the trucated normal distribution for the inheritance of helpful microbes*/
 #define MEANinv0  0.
 #define STDinv0   0.01
+#define DTVSIZE   29
 /****parameters for measures/sampling and related things****************/
 #define TF        1000.          /*host maximum time (measured using continuous values for the times steps)*/
 #define NTS      10000000       /*maximum number of timesteps*/
@@ -82,7 +59,7 @@
 /***Routine Choices***********************************************/
 #if (TYPES==2)
   #define INV     1         /*(don't change it)! Investment function when there is just 2 types is 0 or 1 (option 1 is inv[j]=j/(TYPES-1) )*/
-  #else
+#else
   #define INV     0         /*investment function:
                                  *0 (paper version): inv[j]=(2(j+1)-1)/(2*TYPES)
                                  *1: inv[j]=j/(TYPES-1)
@@ -144,6 +121,7 @@ extern int **neighbor;
 extern double **bac;
 extern double *micr;
 extern double *inv;
+extern double *dtVec;
 extern FILE *fvarsXt;
 extern FILE *fdensb1Xt;
 extern FILE *finvCumul;

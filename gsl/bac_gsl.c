@@ -14,10 +14,10 @@ int bac_rhs(double t, const double y[], double f[], void *params){
 	double birth,death,migr;
 	SysParams *spar = (SysParams*) params;
 	int idh=spar->idhost;
-        double mu=spar->mu;//mutation rate
-        double cost=spar->cost;//cost of helping for an ideal helper
-        double beta=spar->beta;//birth rate of a neutral bacteria
-        double delta=spar->delta;//bacteria death rate
+	double mu=spar->mu;//mutation rate
+	double cost=spar->cost;//cost of helping for an ideal helper
+	double beta=spar->beta;//birth rate of a neutral bacteria
+	double delta=spar->delta;//bacteria death rate
 	
 	memset(f,0.,sizeof(double)*TYPES);
 	nh=listh->usize;
@@ -49,24 +49,26 @@ int bac_jac(double t, const double y[], double *dfdy,double *dfdt, void *params)
 	int b,bpl,bmi,idj1,idj2,nh,ljac;
 	double diag_par;
 	SysParams *spar = (SysParams*) params;
-	int idh=spar->idhost;
-        double mu=spar->mu;//mutation rate
-        double cost=spar->cost;//cost of helping for an ideal helper
-        double beta=spar->beta;//birth rate of a neutral bacteria
-        double delta=spar->delta;//bacteria death rate
-	
+	int idh=spar->idhost;//index of the host related to this jacobian
+	double mu=spar->mu;//mutation rate
+	double cost=spar->cost;//cost of helping for an ideal helper
+	double beta=spar->beta;//birth rate of a neutral bacteria
+	double delta=spar->delta;//bacteria death rate
 
-	nh=listh->usize;
+	nh=listh->usize;//# of alive hosts
 	ljac=TYPES;//linear size of the jacobian matrix
 	
 	memset(dfdt,0.,sizeof(double)*ljac);	
 	memset(dfdy,0,sizeof(double)*ljac*ljac);
 
+	/*the only nonzero elements of the jacobian of the bacteria function (without the migration terms) 
+	 * are the diagonal and the sub and supra diagonal (because of the mutation terms type->type+1, type->type-1*/
+
 	for(b=0; b<TYPES; ++b){
 		/*diagonal terms:same type for f[] and y[] in the df/dy[] */
 		diag_par=(1.-mu)*(1.-cost*s[b]*inv[b])*beta-delta*micr[idh];
 		
-		idj1=b*TYPES+b;//index of a linearized jacobian matrix
+		idj1=b*TYPES+b;//diagonal index of a linearized jacobian matrix of size TYPESxTYPES
 		dfdy[idj1]=diag_par-y[b];//diagonal jac term
 					     
 		/*sub and supra diagonals: f[b] being derived by types b+1 and b-1*/
@@ -75,10 +77,10 @@ int bac_jac(double t, const double y[], double *dfdy,double *dfdt, void *params)
 	
 		bmi=b-1;
 		idj2=b*TYPES+bmi;
-		if(b==0){
-			bmi=bpl;
+		if(b==0){//if type=0, mutations happen only from type->type+1
+			bmi=bpl;  
 			idj2=idj1;
-		}else if(b==TYPES-1){
+		}else if(b==TYPES-1){//if type=TYPES-1, mutations happen only from type->type-1
 			bpl=bmi;
 			idj1=idj2;
 		}
@@ -121,17 +123,17 @@ int bacDynamics(gsl_odeiv2_driver *driver,SysParams *spar,Event *event){
 		bac_tmp[i]=(double *)calloc(TYPES,sizeof(double));
 	}
 
-	nh=listh->usize;
+	nh=listh->usize;//# of alive hosts
 	for(i=0; i<nh; ++i){
-		idh=listh->vec[i];
+		idh=listh->vec[i];//index of the i-th alive host stored in a list
 		spar->idhost=idh;
 		#if (NETWORK!=0)//not the complete graph
- 	   	searchLiveNeighbors(0,idh,host,neighbor,alive_viz);
-        	nv=alive_viz->usize;
+ 	   	searchLiveNeighbors(0,idh,host,neighbor,alive_viz);//store the indexes of @idh alive neighbors in a list
+        	nv=alive_viz->usize;//# of alive neighbors
                	#endif
 		micr[idh]=0.;
 		for(j=0; j<TYPES; ++j){
-			//migration terms
+			/*migration terms*/
 			migr_in=0.;
 			migr_out=mig*bac[idh][j];	
 			#if (NETWORK==0)//well-mixed
@@ -153,7 +155,7 @@ int bacDynamics(gsl_odeiv2_driver *driver,SysParams *spar,Event *event){
 		}
 		gsl_odeiv2_driver_reset(driver);
 		time_tmp=event->timeE;
-		status=gsl_odeiv2_driver_apply(driver, &time_tmp, time_tmp+dt, bac_tmp[idh]);//evolution due to birth and death
+		status=gsl_odeiv2_driver_apply(driver, &time_tmp, time_tmp+dt, bac_tmp[idh]);//evolution due to birth and death for host @idh
 		if (status != GSL_SUCCESS) {
 				for(j=0; j<N; ++j){
 					free(bac_tmp[j]);

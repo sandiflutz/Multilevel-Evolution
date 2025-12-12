@@ -62,7 +62,7 @@ int main(void){
 		calcHostEvents(event.ratesE,&spar);
 		cumulProb(event.sizeE,event.ratesE,event.cprobE);
 		
-                dt=adjustTimeStepSimple(event.ratesE,event.sizeE);
+                dt=adjustTimeStep(event.cprobE[event.sizeE-1]);
                 sumprobs=dt*event.cprobE[event.sizeE-1];
                 event.dtE=gillespieTime(sumprobs);
 
@@ -71,14 +71,6 @@ int main(void){
 			idh=listh->vec[event.whichE%nh];
                 }while(host[idh]==2);
 		
-		#ifdef DEBUGG
-		if(event.whichE<nh){
-			printf("Birth: numsteps=%d host=%d nh=%d\n",numsteps,listh->vec[event.whichE],listh->usize);
-		}else{
-			printf("Death: numsteps=%d host=%d nh=%d\n",numsteps,listh->vec[event.whichE-nh],listh->usize);
-		}
-		#endif
-
 		dynamicsHost(&event,&spar);
 
 		EXIT_N=bacDynamics(driver,&spar,&event);
@@ -123,6 +115,7 @@ void freeMemory(void){
 #ifdef TMEAS
 	free(meas.ftname_pars);
 #endif
+	free(dtVec);
 
 #if (NETWORK!=0)
 	free(alive_viz->vec);

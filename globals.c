@@ -8,6 +8,7 @@ int *netlink = NULL;
 double **bac = NULL;
 double *micr = NULL;
 double *inv = NULL;
+double *dtVec = NULL;
 FILE *fvarsXt = NULL;
 FILE *fdensb1Xt = NULL;
 FILE *finvCumul = NULL;

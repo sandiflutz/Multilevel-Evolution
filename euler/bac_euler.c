@@ -4,14 +4,23 @@
 
 void bac_euler(double dt,SysParams *spar){
 	int i,j,jpl,jmi,idh1,k,idh2,nv,nh;
-	double birth,death,migr_in,migr_out,func,micr_tmp;
+	double birth,death,migr_in,migr_out,func,**bac_tmp;
 	double mut=spar->mu;//mutation rate
         double cost=spar->cost;//cost of helping for an ideal helper
         double birthr=spar->beta;//birth rate of a neutral bacteria
         double deathr=spar->delta;//bacteria death rate
         double mig=spar->mig;//migration rate
 
+	bac_tmp=(double *)calloc(N,sizeof(double));
+	for(i=0; i<N; ++i){
+		bac_tmp[i]=(double *)calloc(TYPES, sizeof(double));
+	}
+
         nh=listh->usize;
+	
+	for(i=0; i<nh; ++i){
+
+	}
 
         for(i=0; i<nh; ++i){
                 idh1=listh->vec[i];
@@ -56,8 +65,7 @@ void bac_euler(double dt,SysParams *spar){
 
                         func=birth-death-migr_out+migr_in;
 
-			bac[idh1][j]+=func*dt;
-			if(bac[idh1][j]<0.)printf("idh=%d j=%d %0.16f\n",idh1,j,bac[idh1][j]);
+			bac_tmp[idh1][j]=bac[idh1][j]+func*dt;
                 }
 		
         }
@@ -66,9 +74,14 @@ void bac_euler(double dt,SysParams *spar){
 		idh1=listh->vec[i];
 		micr[idh1]=0.;
 		for(j=0;j<TYPES; ++j){
+			bac[idh1][j]=bac_tmp[idh1][j];
 			micr[idh1]+=bac[idh1][j];
 		}
 	}
 
+	for(i=0; i<N; ++i){
+		free(bac_tmp[i]);
+	}
+	free(bac_tmp);
 	return;
 }

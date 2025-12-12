@@ -361,7 +361,7 @@ void cumulProb(int size, double *prob,double *cprob){
 * (vec[k-1]<=nr<=vec[k])                                    *
 *************************************************************/
 int bissectionSearch(double nr,double *vec, int vsize){
-        int ok,i,k,kmin,kmax;
+        int ok,k,kmin,kmax;
 
         kmin=0;
         kmax=vsize;
@@ -445,4 +445,21 @@ int findMaxElement(int size,double *max_e,double *vec){
         }
 
         return idm;
+}
+/****************************************************
+ * Create fill a vector with log spaced elements    *
+ ***************************************************/
+void logSpacedVec(double *vec,double vec0,double vecf,int size){
+	int i;
+	double x0,xi;
+
+	x0=exp(vec0);
+	vec[0]=vec0;
+	vec[size-1]=vecf;
+	for(i=1; i<size-1; ++i){
+		xi=x0+(double)i*(exp(vecf)-exp(vec0))/size;
+		vec[i]=log(xi);
+	}
+
+	return;
 }
