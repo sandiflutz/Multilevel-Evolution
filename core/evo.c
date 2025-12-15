@@ -10,7 +10,7 @@
 *     calculates the accumulated investment in host @index      *
 *****************************************************************/
 double calcAcumInvest(int index,SysParams *spar){
-        int j,nh;
+        int j;
 	double cinv,kbac=spar->kbac;
 
 
@@ -83,7 +83,7 @@ void setMicrKids(int idp, int idk,SysParams *spar){
         while(ns<BSAMPLES){
 		p=selectEventCP(cprob,TYPES);
 		fp=bac[idp][p]/micr[idp];
-                fk=gaussRandNum(fp,spar->sigma,0.,1.);
+                fk=truncGaussRandNum(fp,spar->sigma,0.,1.);
                 bac[idk][p]+=fk;
                 norm+=fk;
                 ++ns;
@@ -135,7 +135,7 @@ double gillespieTime(double sumprob){
 }
 /**************************************************
 *      Adjust host time step: the probability of  *
-*      2 host events in a host timestep os <0.01  *
+*      2 host events in a host timestep is <0.01  *
 ***************************************************/
 double adjustTimeStep(double maxprob){
 	int i,ok;
@@ -172,7 +172,7 @@ double adjustTimeStep(double maxprob){
 *                  host dynamics                       *
 ********************************************************/
 void dynamicsHost(Event *event,SysParams *spar){
-        int id,idh,id_list,idk,ne,nav,nh;
+        int id,idh,id_list,idk,nh;
 	int idev=event->whichE;
 
 	nh=listh->usize;//# of alive hosts
@@ -182,7 +182,7 @@ void dynamicsHost(Event *event,SysParams *spar){
 
         if(idev<nh){//birth of host @list_host[k]
                 #if (NETWORK==0)//well-mixed
-                ne=N-nh;
+                int ne=N-nh;
 		if(ne>0){//there are empty sites in the system
                 	id_list=(int)(FRANDOM*ne)+nh-1;//randomly select an index from the second part of the host list, where empty sites are stored 
               		idk=listh->vec[id_list];//position index of the empy site (that is going to receive the host offspring)
@@ -193,7 +193,7 @@ void dynamicsHost(Event *event,SysParams *spar){
 		}
                 #else 
 		searchLiveNeighbors(0,idh,VIZ,host,neighbors,alive_viz);
-		nav=alive_viz->usize;
+		int nav=alive_viz->usize;
                 if(VIZ-nav>0){//there are empty sites in the neighborhood of host[idh]
                         id_list=(int)(FRANDOM*(VIZ-aviz))+nav-1;
                         idk=alive_viz.vec[id_list];

@@ -1,15 +1,22 @@
 # -------------------------------------------------------
 #  MACRO default name                                    
 # -------------------------------------------------------
-MACRO = NOTHING
-
+MACRO = TMEAS
+# -------------------------------------------------------
+#  List if available macros (for choosing what to measure)                                    
+# -------------------------------------------------------
+MEASURE_MACROS = \
+	AVERINVxT \
+	DENSb1xT \
+	SAVE_CONFIG \
+	TIME_VARS \
 # -------------------------------------------------------
 #  Compiler and flags
 # -------------------------------------------------------
 CC     = gcc
-CFLAGS = -O3 -D$(MACRO) -fsanitize=address -Wall -I includes/
+CFLAGS = -O3 -fsanitize=address -Wall -I includes/
 LDFLAGS_GSL = -lgsl -lgslcblas -lm -fsanitize=address
-LDFLAGS = -lm -fsanitize=address
+LDFLAGS_EULER = -lm -fsanitize=address
 
 # -------------------------------------------------------
 #  Source files and object files
@@ -18,14 +25,17 @@ CORE = core/init.c core/evo.c core/measures.c core/tools.c core/randgen_ufrgs.c 
 
 EULER_SRCS = main_euler.c euler/bac_euler.c $(CORE)
 GSL_SRCS = main_gsl.c gsl/bac_gsl.c $(CORE)
+DEBUG_SRCS = debug.c $(CORE)
 
 EULER_OBJS = $(EULER_SRCS:.c=.o)
 GSL_OBJS = $(GSL_SRCS:.c=.o)
 
+DEBUG_OBJS = $(DEBUG_SRCS:.c=.o)
+
 # -------------------------------------------------------
 #  Final executable name
 # -------------------------------------------------------
-EXEC = exec.out
+EXEC = exec_$(MACRO).out
 
 # -------------------------------------------------------
 #  Default rule:buid the gsl version
@@ -33,12 +43,11 @@ EXEC = exec.out
 all: 
 	@echo "Choose one of: make euler, make gsl"
 	@exit 1
-
 # -------------------------------------------------------
 #  Euler
 # -------------------------------------------------------
 euler:	$(EULER_OBJS)
-	$(CC) $(EULER_OBJS) -o $(EXEC) $(LDFLAGS)
+	$(CC) $(EULER_OBJS) -o $(EXEC) $(LDFLAGS_EULER)
 	@echo "Built EULER executable: $(EXEC)"
 # -------------------------------------------------------
 #  GSL:
@@ -47,21 +56,43 @@ gsl:	$(GSL_OBJS)
 	$(CC) $(GSL_OBJS) -o $(EXEC) $(LDFLAGS_GSL)
 	@echo "Built GSL executable: $(EXEC)"
 # -------------------------------------------------------
+#  DEBUG:
+# -------------------------------------------------------
+debug:	$(DEBUG_OBJS)
+	$(CC) $(DEBUG_OBJS) -o $(EXEC) $(LDFLAGS_GSL)
+	@echo "Built DEBUG executable: $(EXEC)"
+# -------------------------------------------------------
 #  Compilation step for each .c file
 # -------------------------------------------------------
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
+	$(CC) $(CFLAGS) -D$(MACRO) -c $< -o $@
 # -------------------------------------------------------
-#  Clean euler object files
+#  Clean object files
 # -------------------------------------------------------
-cleaneuler:
-	rm -f *.o core/*.o euler/*.o 
+clean:
+	find . -type f -name '*.o' -exec rm -f {} +
 # -------------------------------------------------------
-#  Clean gsl object files
+#  Clean executables
 # -------------------------------------------------------
-cleangsl:
-	rm -f *.o core/*.o gsl/*.o  
+cleanexec:
+	find . -type f -name '*.out' -exec rm -f {} +
+# -------------------------------------------------------
+#  Clean object and executables files
+# -------------------------------------------------------
+cleanall:
+	find . -type f \( -name '*.o' -o -name '*.out' \) -exec rm -f {} +
+# -------------------------------------------------------
+#  Show the Available Macros on the .c files, used to
+#  choose what to measure 
+# -------------------------------------------------------
+help:
+	@echo ""
+	@echo "Available measurement MACRO options:"
+	@$(foreach m,$(MEASURE_MACROS),echo "  - $(m)";)
+	@echo ""
+	@echo "Example:"
+	@echo "  make gsl MACRO=AVERINVxT EXEC=invXt_gsl.out"
+	@echo ""
 # -------------------------------------------------------
 #  Phony targets
 # -------------------------------------------------------

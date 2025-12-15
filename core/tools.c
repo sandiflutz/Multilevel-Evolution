@@ -9,6 +9,23 @@
 #include"tools.h"
 
 /********************************************************
+ *                 Factorial                            *
+ ********************************************************/
+int factorial(int n){
+	int i,fac;
+	
+	if(n<=1){
+		fac=1;
+	}else{
+		fac=n;
+		for(i=n-1; i>0; --i){
+			fac*=i;
+		}
+	}
+		
+	return fac;
+}
+/********************************************************
 *   Normal Distribution: calculates and returns         *
 *   the probability of x in a normal distribution       *
 *   with standard deviation of 1 and mean of 0          *
@@ -23,7 +40,7 @@ double normalProb(double x){
 /****************************************************************
 *     Generate a gaussian random number                         *
 *****************************************************************/
-double gaussRandNum(double mean, double var,double a,double b){
+double truncGaussRandNum(double mean, double var,double a,double b){
         double x,y,r,nr,fac;
 
         do{//reject samples outside of the range [a;b]
@@ -48,6 +65,41 @@ double gaussRandNum(double mean, double var,double a,double b){
         } while( nr<=a || nr >= b);
 
         return nr;
+}
+/****************************************************************
+*      Draw a random integer from a poisson distribution o      *
+*      mean @lambda                                             *
+*****************************************************************/
+int poissonRandNum(double lambda){
+	int i,k,kmax;
+	double nr,eps,eps0,eterm,pterm,*cprob;
+
+	eterm=exp(-lambda);
+	eps0=1e-05;
+	eps=eps0*eterm*lambda;
+	if(eps>eps0)eps=eps0;
+
+	i=0;
+	do{	
+		++i;
+		pterm=eterm*pow(lambda,i)/factorial(i);
+
+	}while(pterm>=eps);
+
+	kmax=i;
+
+	cprob=(double *)calloc(kmax+1,sizeof(double));
+
+	cprob[0]=eterm;
+	for(i=1; i<=kmax; ++i){
+		cprob[i]=cprob[i-1]+eterm*pow(lambda,i)/factorial(i);
+	}
+
+	nr=FRANDOM*cprob[kmax-1];
+	k=bissectionSearch(nr,cprob,kmax+1);
+
+	free(cprob);
+	return k;
 }
 /************************************************************************************
 *  Simple addition of an element to a list: add it at the end of the list and       *

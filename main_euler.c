@@ -17,7 +17,7 @@ SysParams spar;
 TimeMeasures meas;
 /****************Program's Routines*****************************/
 int main(void){
-	int i,idh,numsteps,nh,nb;
+	int i,idh,numsteps,nh,nb,dnumsteps;
 	double dt,sumprobs,prob_nev,time,t_tmp;
         
 	/*setting the system*/
@@ -51,31 +51,30 @@ int main(void){
 		dt=adjustTimeStep(event.cprobE[event.sizeE-1]);
                 sumprobs=dt*event.cprobE[event.sizeE-1];
                 event.dtE=dt;
+		dnumsteps=(int)(Dt_ref/dt);
                 prob_nev=1.-sumprobs;
-                do{
-			event.whichE=selectEventCP(event.cprobE,event.sizeE);
-			idh=listh->vec[event.whichE%nh];
-                }while(host[idh]==2);
-
-                if(FRANDOM>prob_nev){
-			dynamicsHost(&event,&spar);
-                }
-
-		t_tmp+=event.dtE;
-		if(t_tmp>=Dt_ref){
-			bac_euler(Dt_ref,&spar);
-			event.timeE+=t_tmp;
-			/*no newborns anymore*/
-                	nb=listnb->usize;
-               	 	for(i=0; i<nb; ++i){
-                        	host[listnb->vec[i]]=1;//no newborns anymore
-                	}
-                	listnb->usize=0;
-			t_tmp=0.;
+		for(i=0; i<dnumsteps; ++i){
+			do{
+				event.whichE=selectEventCP(event.cprobE,event.sizeE);
+				idh=listh->vec[event.whichE%nh];
+			}while(host[idh]==2);
+                
+			if(FRANDOM>prob_nev){
+				dynamicsHost(&event,&spar);
+			}
 		}
 
-		time=event.timeE;
-                ++numsteps;
+		bac_euler(Dt_ref,&spar);
+		event.timeE+=t_tmp;
+		/*no newborns anymore*/
+               	nb=listnb->usize;
+		for(i=0; i<nb; ++i){
+                       	host[listnb->vec[i]]=1;//no newborns anymore
+               	}
+		listnb->usize=0;
+
+		time+=Dt_ref;
+                numsteps+=dnumsteps;
         }
 
 
