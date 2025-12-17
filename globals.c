@@ -6,6 +6,7 @@ int **neighbor = NULL;
 int *netlink = NULL;
 double **bac = NULL;
 double *dtVec = NULL;
+char *fdatapath;
 DynList *listh = NULL;
 DynList *listnb = NULL;
 DynList *alive_viz = NULL;

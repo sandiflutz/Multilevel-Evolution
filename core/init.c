@@ -27,6 +27,8 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	dtVec=(double *) calloc(DTVSIZE,sizeof(double));
 	logSpacedVec(dtVec,1e-07,1e-02,DTVSIZE);//DTVSIZE,dtVec[0] and dtVec[DTVSIZE-1] are values used in the paper
         
+	fdatapath=(char *)malloc(sizeof(char)*50);
+	sprintf(fdatapath,"data_manipulation/");
 	/****structs****/
         //system parameters necessary for the equations of the microbial
         spar = malloc(sizeof(SysParams));
@@ -93,16 +95,23 @@ void allocateMemory(Event *event,TimeMeasures *meas){
  *  Open Global Files                     *
  ******************************************/
 void openFiles(TimeMeasures *meas){
+	int namelen,dnl;
 
-	char *name=(char *)calloc(250,sizeof(char));
+	dnl=50;
+        namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;
+
+	char *name=(char *)calloc(namelen,sizeof(char));
 
 #ifdef DENSb1xT
-        sprintf(namedXt1,"densb1Xt_%s",meas->ftname_pars);
+        sprintf(namedXt1,"%sdensb1Xt_%s",fdatapath,meas->ftname_pars);
         meas->file_tmeas=fopen(name,"w");
+	if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
+
 #endif
 #ifdef AVERINVxT
-        sprintf(name,"averInvXt_%s",meas->ftname_pars);
+        sprintf(name,"%saverInvXt_%s",fdatapath,meas->ftname_pars);
         meas->file_tmeas=fopen(name,"w");
+	if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
 #endif
 	free(name);
         return;

@@ -58,17 +58,19 @@ void averInvestmentXt(TimeMeasures *meas){
 *  investment of each host            *
 ***************************************/
 void save_config(TimeMeasures *meas){
-        int i,j,k,id,nh;
+        int i,j,k,id,nh,namelen,dnl;
         double pointsize,*w;
         char *name,*namedat,*name_gp;
         FILE *fconfig,*fgp;
 	
 	/****creating files (if there are file with the same names, there are subscribed)********/
-        name=(char *)malloc(sizeof(char)*150);//base name
-        namedat=(char *)malloc(sizeof(char)*180);//data file name
-        name_gp=(char *)malloc(sizeof(char)*180);//name for the gnuplot data file
+	dnl=100;
+        namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;
+        name=(char *)malloc(sizeof(char)*namelen);//base name
+        namedat=(char *)malloc(sizeof(char)*namelen+dnl);//data file name
+        name_gp=(char *)malloc(sizeof(char)*namelen+dnl);//name for the gnuplot data file
 
-        sprintf(name,"snapshot_N%d_Ty%d_Kh%d_Bv%f_Gh%d_cost%0.4f_sigma%0.2f_mu%f_sb%0.1f_mig%f_T%d",N,TYPES,spar->kh,Bacv,spar->gh,spar->cost,spar->sigma,spar->mu,spar->sb,spar->mig,meas->NTf);
+        sprintf(name,"%ssnapshot_%s",fdatapath,meas->ftname_pars);
 
         if(L>=100){
                 pointsize=0.5;
@@ -180,17 +182,19 @@ void calcInvDist(double *hist_inv,double binsize){
  * create a gnuplot script to create graphics        *
  *****************************************************/
 void invDistXt(TimeMeasures *meas){
-	int i,nh,nbins=100;
+	int i,nh,nbins=100,namelen,dnl;
 	double binsize,*hist_inv;
         char *name,*namedat,*name_gp;
         FILE *fhist,*fgp;
 	
 	/****creating files (if there are file with the same names, there are subscribed)********/
-        name=(char *)malloc(sizeof(char)*200);//base name
-        namedat=(char *)malloc(sizeof(char)*250);//data file name
-        name_gp=(char *)malloc(sizeof(char)*250);//name for the gnuplot data file
+	dnl=100;
+	namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;
+        name=(char *)malloc(sizeof(char)*namelen);//base name
+        namedat=(char *)malloc(sizeof(char)*namelen+dnl);//data file name
+        name_gp=(char *)malloc(sizeof(char)*namelen+dnl);//name for the gnuplot data file
         
-	sprintf(name,"invDistXt_N%d_Ty%d_Kh%d_Bv%f_Gh%d_cost%0.4f_sigma%0.2f_mu%f_sb%0.1f_mig%f",N,TYPES,spar->kh,Bacv,spar->gh,spar->cost,spar->sigma,spar->mu,spar->sb,spar->mig);
+	sprintf(name,"%sinvDistXt_%s",fdatapath,meas->ftname_pars);
 
 #if (FIG_EXT==0)
         sprintf(namedat,"%s_idt%f.dat",name,(double)meas->NTnow/meas->NTf);

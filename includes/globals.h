@@ -53,14 +53,14 @@
 #define DTVSIZE   29
 /****parameters for measures/sampling and related things****************/
 #define TF        1000.          /*host maximum time (measured using continuous values for the times steps)*/
-#define NTS       10e6       /*maximum number of timesteps*/
+#define NTS       10e4       /*maximum number of timesteps*/
 #define FIG_EXT   0              /*Extension of the figure files (for the routines that create gnuplot scripts):
 				 * 0:png (good for creating animations later)
                                  * 1:eps 
                                  */
 #define NF       100             /*number of files creater for the routines that create one file per timestep (interval between file=(Tf_me-T0_me)/NF)*/
 #define NTf_me   NTS            /*time to stop a measure*/
-#define NT0_me   10e4            /*time to start a measure*/
+#define NT0_me   10e3            /*time to start a measure*/
 /***Routine Choices***********************************************/
 #if (TYPES==2)
   #define INV     1         /*(don't change it)! Investment function when there is just 2 types is 0 or 1 (option 1 is inv[j]=j/(TYPES-1) )*/
@@ -127,9 +127,7 @@ extern int *host;
 extern int **neighbor;
 extern double **bac;
 extern double *dtVec;
-extern FILE *fvarsXt;
-extern FILE *fdensb1Xt;
-extern FILE *finvCumul;
+extern char *fdatapath;
 extern DynList *listh;
 extern DynList *listnb;
 extern DynList *alive_viz;

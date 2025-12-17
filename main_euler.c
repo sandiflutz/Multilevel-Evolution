@@ -92,6 +92,7 @@ void freeMemory(void){
 	}
 	free(bac);
         free(dtVec);
+	free(fdatapath);
 
 	//Structs and their arrays
 	free(spar->s);
