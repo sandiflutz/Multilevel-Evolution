@@ -44,6 +44,7 @@ int main(void){
 	
 	nh=listh->usize;
 	numsteps=0;
+
 	event.timeE=0.;
 	while((numsteps<=NTS)&&(nh>0)){
 		#ifdef TMEAS
@@ -102,6 +103,7 @@ void freeMemory(void){
 	}
 	free(bac);
 	free(dtVec);
+	free(fdatapath);
 	
 	//Structs and their arrays
 	free(spar->s);
