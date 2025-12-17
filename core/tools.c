@@ -11,7 +11,7 @@
 /********************************************************
  *                 Factorial                            *
  ********************************************************/
-int factorial(int n){
+long int factorial(int n){
 	int i,fac;
 	
 	if(n<=1){
@@ -70,33 +70,28 @@ double truncGaussRandNum(double mean, double var,double a,double b){
 *      Draw a random integer from a poisson distribution o      *
 *      mean @lambda                                             *
 *****************************************************************/
-int poissonRandNum(double lambda){
-	int i,k,kmax;
-	double nr,eps,eps0,eterm,pterm,*cprob;
+int poissonRandNum(double lambda,int maxk){
+	int i,k;
+	long int fac;
+	double nr,eps,eps0,eterm,pterm,*cprob,power;
 
+
+	cprob=(double *)calloc(maxk+1,sizeof(double));
+	
 	eterm=exp(-lambda);
-	eps0=1e-05;
-	eps=eps0*eterm*lambda;
-	if(eps>eps0)eps=eps0;
-
-	i=0;
-	do{	
-		++i;
-		pterm=eterm*pow(lambda,i)/factorial(i);
-
-	}while(pterm>=eps);
-
-	kmax=i;
-
-	cprob=(double *)calloc(kmax+1,sizeof(double));
 
 	cprob[0]=eterm;
-	for(i=1; i<=kmax; ++i){
-		cprob[i]=cprob[i-1]+eterm*pow(lambda,i)/factorial(i);
+	for(i=1; i<=maxk; ++i){
+		fac=factorial(i);
+		power=pow(lambda,i);
+
+		cprob[i]=cprob[i-1]+eterm*power/(double)fac;
+		printf("%d %f\n",i,cprob[i]);
 	}
 
-	nr=FRANDOM*cprob[kmax-1];
-	k=bissectionSearch(nr,cprob,kmax+1);
+	nr=FRANDOM*cprob[maxk];
+	k=bissectionSearch(nr,cprob,maxk+1);
+	printf("k=%d\n",k);
 
 	free(cprob);
 	return k;

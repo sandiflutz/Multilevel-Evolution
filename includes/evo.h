@@ -3,21 +3,29 @@
 /****************************************************************
 *     calculates the accumulated investment in host @index      *
 *****************************************************************/
-double calcAcumInvest(int index,SysParams *spar);
+double calcAcumInvest(int index);
 /****************************************************
 * Calculates the host event rates: birth and death  *
 *****************************************************/
-void calcHostEvents(double *event, SysParams *spar);
+void calcHostEvents(double *event);
 /***************************************************************
-*     Set microbial frequencies of the offspring of a host     *
-*     located. The parent and the kid hosts are located at     *
-*     sites idp and idk, respectively                          *
+*     Set microbial frequencies for the offspring of hosr @idp *
+*     Bacteria types and their frequencies are randomly        *
+*     selected using a normal distrution around the bacteria   *
+*     frequencies on the parent                                *
 ****************************************************************/
-void setMicrKids(int idp, int idk,SysParams *spar);
+void setMicrKidsNorm(int idp, int idk);
+/***************************************************************
+*     Set microbial frequencies for the offspring of hosr @idp *
+*     Bacteria types and their frequencies are randomly        *
+*     selected using a poisson distribution for the number of  *
+*     bacteria types in the offspring                          *
+****************************************************************/
+void setMicrKidsPoiss(int idp, int idk);
 /******************************************************
  *      birth of a new host                           *
  *****************************************************/
-void hostBirth(int idp, int idk,SysParams *spar);
+void hostBirth(int idp, int idk);
 /******************************************************
 *       death of a host                               *
 *******************************************************/
@@ -32,7 +40,11 @@ double gillespieTime(double sumprob);
 ***************************************************/
 double adjustTimeStep(double maxprob);
 /*******************************************************
+ *      calculate the number of times steps            *
+ *******************************************************/
+void calcNumSteps(int *dnt_h,int *dnt_b,int *dnt,double dt_h,double dt_b);
+/*******************************************************
 *                  host dynamics                       *
 ********************************************************/
-void dynamicsHost(Event *event,SysParams *spar);
+void dynamicsHost(Event *event);
 #endif

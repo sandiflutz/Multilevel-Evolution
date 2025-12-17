@@ -15,26 +15,25 @@ void freeMemory(void);
 /******global variables*********************************************/
 int EXIT_N=0;
 Event event;
-SysParams spar;
 TimeMeasures meas;
 gsl_odeiv2_driver *driver=NULL;
 gsl_odeiv2_system sys;
 /****************Program's Routines*****************************/
 int main(void){
-	int i,idh,numsteps,nh,nb;
-	double dt,sumprobs,time,t_tmp;
+	int i,idh,numsteps,nh,nb,dnt_h,dnt_b,dnt;
+	double dt,sumprobs;
         
 	/*setting the system*/
-	setSystem(&spar,&event,&meas);
+	setSystem(&event,&meas);
 	
         /*Open Files for time measures*/
 	#ifdef TMEAS
 	strncat(meas.ftname_pars, "_gil.dat",meas.ftnpars_size-strlen(meas.ftname_pars)-1);
-        openFiles(&spar,&meas);
+        openFiles(&meas);
         #endif
 
         /*setting microbial solver*/
-        bac_make_system(&sys, &spar);
+        bac_make_system(&sys, spar);
         driver =
                 gsl_odeiv2_driver_alloc_y_new(&sys,gsl_odeiv2_step_msbdf,
                 1e-6,// initial step size guess
@@ -43,51 +42,44 @@ int main(void){
         );
 	/**********/
 	
-	dt=Dt_ref;
 	numsteps=0;
-	time=0.;
-	t_tmp=0.;
-	meas.Ti=0.;
-	meas.NTi=0;
-	meas.NTf=NTS;
+	event.timeE=0.;
 	while(numsteps<=meas.NTf){
 		meas.NTnow=numsteps;
-		meas.Tnow=time;
+		meas.Tnow=event.timeE;
 		nh=listh->usize;
-		event.timeE=time;
 		event.sizeE=nh*2;
 		#ifdef TMEAS
-		measures(meas,spar);
+		measures(meas);
 		#endif
-		calcHostEvents(event.ratesE,&spar);
+		calcHostEvents(event.ratesE);
 		cumulProb(event.sizeE,event.ratesE,event.cprobE);
 		
-                dt=adjustTimeStep(event.cprobE[event.sizeE-1]);
+                dt=adjustTimeStep(event.cprobE[event.sizeE-1]);//adjust dt to calculate host event probabilities
                 sumprobs=dt*event.cprobE[event.sizeE-1];
-                event.dtE=gillespieTime(sumprobs);
+                event.dtE=gillespieTime(sumprobs);//use sum of event probs. to calculate gillespie time
 
-                do{
-			event.whichE=selectEventCP(event.cprobE,event.sizeE);
-			idh=listh->vec[event.whichE%nh];
-                }while(host[idh]==2);
+		calcNumSteps(&dnt_h,&dnt_b,&dnt,event.dtE,Dt_ref);
+		for(i=0; i<dnt_h; ++i){
+			do{
+				event.whichE=selectEventCP(event.cprobE,event.sizeE);
+				idh=listh->vec[event.whichE%nh];
+			}while(host[idh]==2);
 		
-		dynamicsHost(&event,&spar);
-
-		EXIT_N=bacDynamics(driver,&spar,&event);
-
-		t_tmp+=event.dtE;
-		if(t_tmp>=Dt_ref){
-			/*no newborns anymore*/
-                	nb=listnb->usize;
-               	 	for(i=0; i<nb; ++i){
-                        	host[listnb->vec[i]]=1;//no newborns anymore
-                	}
-                	listnb->usize=0;
-			t_tmp=0.;
+			dynamicsHost(&event);
 		}
+		EXIT_N=bacDynamics(driver,&event);
+			
+		/*no newborns anymore*/
+		nb=listnb->usize;
+		for(i=0; i<nb; ++i){
+			host[listnb->vec[i]]=1;//no newborns anymore
+		}
+		listnb->usize=0;
 
-		time=event.timeE;
-                ++numsteps;
+		event.timeE+=event.dtE;
+		
+                numsteps+=dnt;
         }
 
 
@@ -100,7 +92,6 @@ int main(void){
 void freeMemory(void){
 	int i;
 
-	free(s);
 	free(host);
 	for(i=0; i<VIZ; ++i){
 		free(neighbor[i]);
@@ -110,8 +101,13 @@ void freeMemory(void){
 		free(bac[i]);
 	}
 	free(bac);
-	free(micr);
-	free(inv);
+	free(dtVec);
+	
+	//Structs and their arrays
+	free(spar->s);
+	free(spar->inv);
+	free(spar->micr);
+	free(spar);
 #ifdef TMEAS
 	free(meas.ftname_pars);
 #endif

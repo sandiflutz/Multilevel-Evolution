@@ -39,10 +39,15 @@ void averInvestmentXt(int ntnow,double tnow,int nti);
 *  The colors indicate the acumulated *
 *  investment of each host            *
 ***************************************/
-void save_config(int t, int tf,SysParams spar);
+void save_config(int t, int tf);
+/**********************************************
+ * calculates investment distribution among   *
+ * hosts                                      *
+ **********************************************/
+void calcInvDist(double *hist_inv);
 /**********************************************
 *   this routine united all time measures     *
 *   done inside the time loop                 *
 **********************************************/
-void measures(TimeMeasures meas,SysParams spar);
+void measures(TimeMeasures meas);
 #endif

@@ -11,7 +11,7 @@
 *     allocate memory for global arrays and structs        *
 *     initialize system parameters                         *
 ************************************************************/
-void allocateMemory(SysParams *spar,Event *event,TimeMeasures *meas){
+void allocateMemory(Event *event,TimeMeasures *meas){
         int i;
 
         host=(int *)calloc(N,sizeof(int));
@@ -23,16 +23,14 @@ void allocateMemory(SysParams *spar,Event *event,TimeMeasures *meas){
 	for(i=0; i<N; ++i){
         	bac[i]=(double *)calloc(TYPES,sizeof(double));
 	}
-        micr=(double *)calloc(N,sizeof(double));
-
-        s=(int *)calloc(TYPES,sizeof(int));
-        inv=(double *)calloc(TYPES,sizeof(double));
 	
 	dtVec=(double *) calloc(DTVSIZE,sizeof(double));
-	logSpacedVec(dtVec,1e-07,1e-02,DTVSIZE);
-        /****structs****/
+	logSpacedVec(dtVec,1e-07,1e-02,DTVSIZE);//DTVSIZE,dtVec[0] and dtVec[DTVSIZE-1] are values used in the paper
+        
+	/****structs****/
         //system parameters necessary for the equations of the microbial
-
+        spar = malloc(sizeof(SysParams));
+        if (!spar) { perror("malloc"); exit(1);}
 	spar->kh=K_H;
 	spar->gh=Gh;
 	spar->kbac=K_bac;
@@ -44,11 +42,17 @@ void allocateMemory(SysParams *spar,Event *event,TimeMeasures *meas){
 	spar->sb=Sb;
 	spar->sd=Sd;
 	spar->sigma=SIGMA;
+        spar->micr=(double *)calloc(N,sizeof(double));
+        spar->s=(double *)calloc(TYPES,sizeof(double));
+        spar->inv=(double *)calloc(TYPES,sizeof(double));
 
         //host events struct
 	event->sizeE=2*N;
+	event->usizeE=0;
         event->ratesE=(double *)calloc(event->sizeE,sizeof(int));
         event->cprobE=(double *)calloc(event->sizeE,sizeof(int));
+	event->timeE=0.;
+	event->dtE=Dt_ref;
 
         //lists structs
         listh = malloc(sizeof(DynList));
@@ -90,23 +94,22 @@ void allocateMemory(SysParams *spar,Event *event,TimeMeasures *meas){
 /******************************************
  *  Open Global Files                     *
  ******************************************/
-void openFiles(SysParams *spar,TimeMeasures *meas){
-        char *name;
+void openFiles(TimeMeasures *meas){
 
 #ifdef TIME_VARS
-        name=(char *)calloc(200,sizeof(char));
+        char *name=(char *)calloc(200,sizeof(char));
         sprintf(name,"varsXt_%s",meas->ftname_pars);
         fvarsXt=fopen(name,"w");
         free(name);
 #endif
 #ifdef DENSb1xT
-        name=(char *)calloc(100,sizeof(char));
+        char *name=(char *)calloc(100,sizeof(char));
         sprintf(namedXt1,"densb1Xt_%s",meas->ftname_pars);
         fdensb1Xt=fopen(namedXt1,"w");
         free(name);
 #endif
 #ifdef AVERINVxT
-        name=(char *)calloc(250,sizeof(char));
+        char *name=(char *)calloc(250,sizeof(char));
         sprintf(name,"averInvXt_%s",meas->ftname_pars);
         finvCumul=fopen(name,"w");
         free(name);
@@ -118,7 +121,7 @@ void openFiles(SysParams *spar,TimeMeasures *meas){
 *   Bacterial layer: types of bacteria               *
 *   are uniformly distributed                        *
 *****************************************************/
-void initialStateUniD(SysParams *spar){
+void initialStateUniD(void){
        int i,j,nh=0,ne=0,kh;
         double norm,p_oc;
 
@@ -133,7 +136,7 @@ void initialStateUniD(SysParams *spar){
                         host[i]=1;
 			listh->vec[nh]=i;
 			++nh;
-			micr[i]=Bac0;
+			spar->micr[i]=Bac0;
                         norm=0.;
                         for(j=0; j<TYPES; ++j){
                                 bac[i][j]=FRANDOM;
@@ -146,7 +149,7 @@ void initialStateUniD(SysParams *spar){
 			listh->vec[N-1-ne]=i;//empty sites are stored at the end of the list of hosts;
 			++ne;
 			memset(bac[i],0.,sizeof(double)*TYPES);
-			micr[i]=0.;
+			spar->micr[i]=0.;
 		}
         }
 
@@ -160,7 +163,7 @@ void initialStateUniD(SysParams *spar){
 * 	is the probability of normal                      *
 * 	distribution with x=(investment[j]-mean)/stdinv   *
 ***********************************************************/
-void initialStateNormD(SysParams *spar){
+void initialStateNormD(void){
        int i,j,nh=0,ne=0,kh;
         double x;
         double norm,p_oc;
@@ -173,10 +176,10 @@ void initialStateNormD(SysParams *spar){
                         host[i]=1;
 			listh->vec[nh]=i;
 			++nh;
-			micr[i]=Bac0;
+			spar->micr[i]=Bac0;
                         norm=0.;
                         for(j=0; j<TYPES; ++j){
-                                x=(inv[j]-MEANinv0)/STDinv0;
+                                x=(spar->inv[j]-MEANinv0)/STDinv0;
                                 bac[i][j]=normalProb(x);
                                 norm+=bac[i][j];//for normalization
                         }
@@ -187,7 +190,7 @@ void initialStateNormD(SysParams *spar){
 			listh->vec[N-1-ne]=i;//empty sites are stored at the end of the list of hosts;
 			++ne;
 			memset(bac[i],0.,sizeof(double)*TYPES);
-			micr[i]=0.;
+			spar->micr[i]=0.;
 		}
         }
 
@@ -200,19 +203,19 @@ void initialStateNormD(SysParams *spar){
 *   Populates Host layer with a single host          *
 *   Bacteria yypes are uniformly distributed         *
 *****************************************************/
-void initialStateSingleH(SysParams *spar,TimeMeasures *meas){
+void initialStateSingleH(TimeMeasures *meas){
        int i,old;
         double norm;
 
         
 	for(i=0; i<N; ++i){
 		memset(bac[i],0.,sizeof(double)*TYPES);
-		micr[i]=0.;
+		spar->micr[i]=0.;
 	}
 	
 	meas->idh_h1=0;
 	host[meas->idh_h1]=1;
-	micr[meas->idh_h1]=Bac0;
+	spar->micr[meas->idh_h1]=Bac0;
 	norm=0.;
         for(i=0; i<TYPES; ++i){
                 bac[meas->idh_h1][i]=FRANDOM;
@@ -241,8 +244,8 @@ void setInvestmentsPaper(void){
         int i;
 
         for(i=0; i<TYPES; ++i){
-                inv[i]=(2.*(i+1)-1)/(2.*TYPES);
-		s[i]=1;
+                spar->inv[i]=(2.*(i+1)-1)/(2.*TYPES);
+		spar->s[i]=1.;
         }
 
         return;
@@ -253,11 +256,11 @@ void setInvestmentsPaper(void){
 void setInvestments(void){
         int i,tymi;
 
-	memset(s,1,sizeof(int)*TYPES);
+	memset(spar->s,1.,sizeof(double)*TYPES);
 	tymi=TYPES-1-Tplus;
         for(i=0; i<TYPES; ++i){
-                inv[i]=(double)(i-tymi)/Tplus;
-		if(i-tymi<0)s[i]=-1;
+                spar->inv[i]=(double)(i-tymi)/Tplus;
+		if(i-tymi<0)spar->s[i]=-1;
         }
 
         return;
@@ -265,13 +268,12 @@ void setInvestments(void){
 /****************************************************************************
  *                     Build System                                         *
  ***************************************************************************/
-void setSystem(SysParams *spar,Event *event,TimeMeasures *meas){
-	unsigned long seed;
-
-        seed=start_randomic(0);
+void setSystem(Event *event,TimeMeasures *meas){
+	
+        (void)start_randomic(0);
 
 	/*Allocating memory*/
-	allocateMemory(spar,event,meas);
+	allocateMemory(event,meas);
 	/*setting investment vector*/
 	#if (INV==0) 
 		setInvestmentsPaper();
@@ -287,11 +289,11 @@ void setSystem(SysParams *spar,Event *event,TimeMeasures *meas){
 
 	/*initial state*/
 	#if (CI==0)//uniform distribution
-		initialStateUniD(spar);
+		initialStateUniD();
 	#elif(CI==1)//frequencies come from normal distribution
-		initialStateNormD(spar);
+		initialStateNormD();
 	#else//single host
-		initialStateSingleH(spar);
+		initialStateSingleH();
 	#endif
 
 	return;

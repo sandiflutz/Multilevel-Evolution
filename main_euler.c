@@ -2,6 +2,7 @@
 
 #include<stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include"globals.h"
 #include"randgen_ufrgs.h"
 #include"init.h"
@@ -13,7 +14,6 @@ void freeMemory(void);
 /******global variables*********************************************/
 int EXIT_N=0;
 Event event;
-SysParams spar;
 TimeMeasures meas;
 /****************Program's Routines*****************************/
 int main(void){
@@ -21,12 +21,12 @@ int main(void){
 	double dt,sumprobs,prob_nev,time,t_tmp;
         
 	/*setting the system*/
-	setSystem(&spar,&event,&meas);
+	setSystem(&event,&meas);
         
 	/*Open Files for time measures*/
 	#ifdef TMEAS
         strncat(meas.ftname_pars, "_eu.dat",meas.ftnpars_size-strlen(meas.ftname_pars)-1);
-        openFiles(&spar,&meas);
+        openFiles(&meas);
         #endif
 	/**********/
 	
@@ -44,14 +44,14 @@ int main(void){
 		event.timeE=time;
 		event.sizeE=nh*2;
 		#ifdef TMEAS
-		measures(meas,spar);
+		measures(meas);
 		#endif
-		calcHostEvents(event.ratesE,&spar);
+		calcHostEvents(event.ratesE);
 		cumulProb(event.sizeE,event.ratesE,event.cprobE);
 		dt=adjustTimeStep(event.cprobE[event.sizeE-1]);
                 sumprobs=dt*event.cprobE[event.sizeE-1];
                 event.dtE=dt;
-		dnumsteps=(int)(Dt_ref/dt);
+		dnumsteps=ceil(Dt_ref/dt);
                 prob_nev=1.-sumprobs;
 		for(i=0; i<dnumsteps; ++i){
 			do{
@@ -60,11 +60,11 @@ int main(void){
 			}while(host[idh]==2);
                 
 			if(FRANDOM>prob_nev){
-				dynamicsHost(&event,&spar);
+				dynamicsHost(&event);
 			}
 		}
 
-		bac_euler(Dt_ref,&spar);
+		bac_euler(Dt_ref,spar);
 		event.timeE+=t_tmp;
 		/*no newborns anymore*/
                	nb=listnb->usize;
@@ -87,7 +87,6 @@ int main(void){
 void freeMemory(void){
 	int i;
 
-	free(s);
 	free(host);
 	for(i=0; i<VIZ; ++i){
 		free(neighbor[i]);
@@ -97,12 +96,16 @@ void freeMemory(void){
 		free(bac[i]);
 	}
 	free(bac);
-	free(micr);
-	free(inv);
+        free(dtVec);
+
+	//Structs and their arrays
+	free(spar->s);
+	free(spar->inv);
+	free(spar->micr);
+	free(spar);
 #ifdef TMEAS
         free(meas.ftname_pars);
 #endif
-        free(dtVec);
 
 #if (NETWORK!=0)
 	free(alive_viz->vec);

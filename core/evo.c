@@ -8,15 +8,16 @@
 
 /****************************************************************
 *     calculates the accumulated investment in host @index      *
+*     (related to host birth rate)                              *
 *****************************************************************/
-double calcAcumInvest(int index,SysParams *spar){
+double calcAcumInvest(int index){
         int j;
 	double cinv,kbac=spar->kbac;
 
 
         cinv=0.;
        	for(j=0; j<TYPES; ++j){
-		cinv+=bac[index][j]*inv[j]/kbac;
+		cinv+=bac[index][j]*spar->inv[j]/kbac;
         }
 
         return cinv;
@@ -24,7 +25,7 @@ double calcAcumInvest(int index,SysParams *spar){
 /****************************************************
 * Calculates the host event rates: birth and death  *
 *****************************************************/
-void calcHostEvents(double *event, SysParams *spar){
+void calcHostEvents(double *event){
         int i,idh,idmax,nh;
 	int gh=spar->gh;
 	int kh=spar->kh;
@@ -42,7 +43,7 @@ void calcHostEvents(double *event, SysParams *spar){
 
 	for(i=0; i<nh; ++i){
 		idh=listh->vec[i];
-		w[i]=calcAcumInvest(idh,spar);
+		w[i]=calcAcumInvest(idh);
 	}
 
         //birth events
@@ -63,26 +64,27 @@ void calcHostEvents(double *event, SysParams *spar){
         return;
 }
 /***************************************************************
-*     Set microbial frequencies of the offspring of a host     *
-*     located. The parent and the kid hosts are located at     *
-*     sites idp and idk, respectively                          *
+*     Set microbial frequencies for the offspring of hosr @idp *
+*     Bacteria types and their frequencies are randomly        *
+*     selected using a normal distrution around the bacteria   *
+*     frequencies on the parent                                *
 ****************************************************************/
-void setMicrKids(int idp, int idk,SysParams *spar){
+void setMicrKidsNorm(int idp, int idk){
         int i,ns,p;
         double fk,fp,norm,*cprob=NULL;
 
 
         cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
-	cprob[0]=bac[idp][0]/micr[idp];
+	cprob[0]=bac[idp][0]/spar->micr[idp];
         for(i=1; i<TYPES; ++i){
-                cprob[i]=cprob[i-1]+bac[idp][i]/micr[idp];
+                cprob[i]=cprob[i-1]+bac[idp][i]/spar->micr[idp];
         }
 
         norm=0.;
         ns=0;
         while(ns<BSAMPLES){
 		p=selectEventCP(cprob,TYPES);
-		fp=bac[idp][p]/micr[idp];
+		fp=bac[idp][p]/spar->micr[idp];
                 fk=truncGaussRandNum(fp,spar->sigma,0.,1.);
                 bac[idk][p]+=fk;
                 norm+=fk;
@@ -93,7 +95,38 @@ void setMicrKids(int idp, int idk,SysParams *spar){
                 bac[idk][i]=bac[idk][i]*Bacv/norm;//normalizing bac so the sum of microbes in host idk is bv
         }
 
-	micr[idk]=Bacv;
+	spar->micr[idk]=Bacv;
+
+        free(cprob);
+        return;
+}
+/***************************************************************
+*     Set microbial frequencies for the offspring of hosr @idp *
+*     Bacteria types and their frequencies are randomly        *
+*     selected using a poisson distribution for the number of  *
+*     bacteria types in the offspring                          *
+****************************************************************/
+void setMicrKidsPoiss(int idp, int idk){
+        int i,ns,p,sample;
+        double fk,fp,norm,mean,*cprob=NULL;
+
+
+        cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
+	cprob[0]=bac[idp][0]/spar->micr[idp];
+        for(i=1; i<TYPES; ++i){
+                cprob[i]=cprob[i-1]+bac[idp][i]/spar->micr[idp];
+        }
+
+        norm=0.;
+        ns=0;
+	mean=10e03*Bacv;
+	sample=poissonRandNum(mean,15);
+        while(ns<sample){
+		p=selectEventCP(cprob,TYPES);
+                bac[idk][p]+=(double)Bacv/sample;
+        }
+
+	spar->micr[idk]=Bacv;
 
         free(cprob);
         return;
@@ -101,10 +134,14 @@ void setMicrKids(int idp, int idk,SysParams *spar){
 /******************************************************
  *      birth of a new host                           *
  *****************************************************/
-void hostBirth(int idp, int idk,SysParams *spar){
+void hostBirth(int idp, int idk){
 
         host[idk]=2;//newborn
-	setMicrKids(idp,idk,spar);//set new host microbiome
+	#if (TV==0)//vertical transmission using a normal dist.
+	setMicrKidsNorm(idp,idk);//set new host microbiome
+	#else//vertical transmission using a poisson dist.
+	setMicrKidsPoiss(idp,idk);//set new host microbiome
+	#endif
 
 
         return;
@@ -119,7 +156,7 @@ void hostDeath(int idh){
         for(i=0; i<TYPES; ++i){
                 bac[idh][i]=0.;
         }
-	micr[idh]=0.;
+	spar->micr[idh]=0.;
 
         return;
 }
@@ -169,9 +206,29 @@ double adjustTimeStep(double maxprob){
 	return dt;
 }
 /*******************************************************
+ *  	calculate the number of times steps            *
+ *******************************************************/
+void calcNumSteps(int *dnt_h,int *dnt_b,int *dnt,double dt_h,double dt_b){
+	
+	*dnt_h=(int)(dt_b/dt_h);
+
+	if(*dnt_h==0){
+		*dnt_h = 1;
+		*dnt_b = round(dt_h/dt_b);
+		*dnt = *dnt_b;
+
+	}else{
+		*dnt_b=1;
+		*dnt_h=round(dt_b/dt_h);
+		*dnt = *dnt_h;
+	}
+
+	return;
+}
+/*******************************************************
 *                  host dynamics                       *
 ********************************************************/
-void dynamicsHost(Event *event,SysParams *spar){
+void dynamicsHost(Event *event){
         int id,idh,id_list,idk,nh;
 	int idev=event->whichE;
 
@@ -180,30 +237,30 @@ void dynamicsHost(Event *event,SysParams *spar){
         id=idev%nh;/*If idev<nh, id=idev:birth event; otherwise nh<=idev<2nh, id=idev-nh:death event*/
         idh=listh->vec[id];
 
-        if(idev<nh){//birth of host @list_host[k]
+        if(idev<nh){//reproduction of host @idh
                 #if (NETWORK==0)//well-mixed
                 int ne=N-nh;
 		if(ne>0){//there are empty sites in the system
                 	id_list=(int)(FRANDOM*ne)+nh-1;//randomly select an index from the second part of the host list, where empty sites are stored 
               		idk=listh->vec[id_list];//position index of the empy site (that is going to receive the host offspring)
-			hostBirth(idh,idk,spar);
+			hostBirth(idh,idk);
 			//updating host's lists
 			listAdd(listh,idk,id_list);
 			listSimpleAdd(listnb,idk);
 		}
-                #else 
+                #else//square-lattice 
 		searchLiveNeighbors(0,idh,VIZ,host,neighbors,alive_viz);
 		int nav=alive_viz->usize;
                 if(VIZ-nav>0){//there are empty sites in the neighborhood of host[idh]
                         id_list=(int)(FRANDOM*(VIZ-aviz))+nav-1;
                         idk=alive_viz.vec[id_list];
-			hostBirth(idh,idk,spar);
+			hostBirth(idh,idk);
                 	//updating host's lists
 			listAdd(listh,idk,id_list);
 			listSimpleAdd(listnb,idk);
                 }
                 #endif
-        }else{//death of host @list_host[k-num_host]
+        }else{//death of host @idh
 		hostDeath(idh);
 		listSub(listh,idh,id);/*exchange elements @idh, position @id (which is in the fisrt part of the list of 
 					alive hosts: elements from 0 to @nh-1 on the vector that is part of the struct @listh), 

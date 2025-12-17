@@ -16,10 +16,9 @@ void densB1Xt(double tnow,double ti,int idh){
 		fprintf(fdensb1Xt,"#1:time 2:bac[single host,most helpful type] 3:dens_host \n");
 	}
 	
-	fprintf(fdensb1Xt,"%f %f %f\n",tnow,bac[idh][TYPES-1]/micr[idh],(double)nh/N);
+	fprintf(fdensb1Xt,"%f %f %f\n",tnow,bac[idh][TYPES-1]/spar->micr[idh],(double)nh/N);
        	fflush(fdensb1Xt);
-       	printf("%f %f %f\n",tnow,bac[idh][TYPES-1]/micr[idh],(double)nh/N);
-	
+       	printf("%f %f %f\n",tnow,bac[idh][TYPES-1]/spar->micr[idh],(double)nh/N);
         return;
 }
 /**********************************************
@@ -28,7 +27,7 @@ void densB1Xt(double tnow,double ti,int idh){
 **********************************************/
 void averInvestmentXt(int ntnow,double tnow,int nti){
 	int i,j,idh,nh;
-	double averinv,averinvH;
+	double averinv,averinvH,tot_micr;
 	
 	nh=listh->usize;
 
@@ -37,18 +36,21 @@ void averInvestmentXt(int ntnow,double tnow,int nti){
 	}
 
 	averinv=0.;
+	tot_micr=0.;
         for(i=0; i<nh; ++i){
                 idh=listh->vec[i];
+
+		tot_micr+=spar->micr[idh];
                 averinvH=0.;
                 for(j=0; j<TYPES; ++j){
-                        averinvH+=inv[j]*bac[idh][j]/micr[idh];//the investment for strategy j=0 (neutral bacteria) is 0, so only helpers are being acounted for here
+                        averinvH+=spar->inv[j]*bac[idh][j];//the investment for strategy j=0 (neutral bacteria) is 0, so only helpers are being acounted for here
                 }
                 averinv+=averinvH;
         }
-        averinv/=(double)nh;
-        fprintf(finvCumul,"%f %f %f %d\n",tnow,averinv,(double)nh/N,ntnow);
+        averinv/=tot_micr;
+        fprintf(finvCumul,"%f %f %f %f %d\n",tnow,averinv,(double)tot_micr/nh,(double)nh/N,ntnow);
         fflush(finvCumul);
-        printf("t=%f averinv=%f nh/N=%f numsteps=%d\n",tnow,averinv,(double)nh/N,ntnow);
+        printf("t=%f averinv=%f avmicrdens=%f nh/N=%f numsteps=%d\n",tnow,averinv,(double)tot_micr/nh,(double)nh/N,ntnow);
 
         return;
 }
@@ -57,7 +59,7 @@ void averInvestmentXt(int ntnow,double tnow,int nti){
 *  The colors indicate the acumulated *
 *  investment of each host            *
 ***************************************/
-void save_config(int tf,int tnow,SysParams spar){
+void save_config(int tf,int tnow){
         int i,j,k,id;
         double pointsize,*w;
         char *name,*namedat,*name_gp;
@@ -69,7 +71,7 @@ void save_config(int tf,int tnow,SysParams spar){
 
         w=(double *)calloc(N,sizeof(double));
 
-        sprintf(name,"snapshot_N%d_Ty%d_Kh%d_Bv%f_Gh%d_cost%0.4f_sigma%0.2f_mu%f_sb%0.1f_mig%f_T%d",N,TYPES,spar.kh,Bacv,spar.gh,spar.cost,spar.sigma,spar.mu,spar.sb,spar.mig,tf);
+        sprintf(name,"snapshot_N%d_Ty%d_Kh%d_Bv%f_Gh%d_cost%0.4f_sigma%0.2f_mu%f_sb%0.1f_mig%f_T%d",N,TYPES,spar->kh,Bacv,spar->gh,spar->cost,spar->sigma,spar->mu,spar->sb,spar->mig,tf);
 
         if(L>=100){
                 pointsize=0.5;
@@ -95,15 +97,15 @@ void save_config(int tf,int tnow,SysParams spar){
                 for(j = 0; j < L; ++j){//coluna
                         id=j+i*L;
                         w[id]=-1.;
-                        if(micr[id]>0.){
+                        if(spar->micr[id]>0.){
                                 w[id]=0.;
                                 for(k=0; k<TYPES; ++k){
-                                        w[id]+=inv[k]*bac[id][k]/micr[id];
+                                        w[id]+=spar->inv[k]*spar->s[k]*bac[id][k]/spar->micr[id];
                                 }
                         }
 
-                        if(micr[id]>0.){
-                                fprintf(fconfig,"%d %d %f %f\n",i,j,w[id],inv[0]*bac[id][0]/micr[id]);
+                        if(spar->micr[id]>0.){
+                                fprintf(fconfig,"%d %d %f %f\n",i,j,w[id],spar->inv[TYPES-1]*bac[id][TYPES-1]/spar->micr[id]);
                         }else{
                                 fprintf(fconfig,"%d %d %f %f\n",i,j,w[id],-1.);
                         }
@@ -142,33 +144,51 @@ void save_config(int tf,int tnow,SysParams spar){
         return;
 }
 /**********************************************
+ * calculates investment distribution among   *
+ * hosts                                      *
+ **********************************************/
+void calcInvDist(double *hist_inv,double binsize){
+	int i,j,nh;
+	double avinvH;
+
+	nh=listh->usize;
+	for(i=0; i<nh; ++i){
+		aveinvH=0.;
+		for(j=0; j<TYPES; ++j){
+			avinvH+=bac[i][j]*spar->inv[j]/spar->micr[j];
+		}
+		id=(int)(avinvH/binsize);
+		++hist_inv[id]
+	}
+
+
+	return;
+}
+/**********************************************
 *   this routine united all time measures     *
 *   done inside the time loop                 *
 **********************************************/
-void measures(TimeMeasures meas,SysParams spar){
-        int i,j,idh,nh;
-	double lowinv,medinv,highinv;
-
-	nh=listh->usize;
+void measures(TimeMeasures meas){
 	
 	#ifdef TIME_VARS	
-	for(i=0; i<nh; ++i){
-		idh=listh->vec[i];
-		lowinv=0.;
-		medinv=0.;
-		highinv=0.;
-		for(j=0; j<TYPES;++j){
-			if(inv[j]<=0.1){
+	int nh=listh->usize;
+	for(int i=0; i<nh; ++i){
+		int idh=listh->vec[i];
+		double lowinv=0.;
+		double medinv=0.;
+		double highinv=0.;
+		for(int j=0; j<TYPES;++j){
+			if(spar->inv[j]<=0.1){
 				lowinv+=bac[idh][j];
-			}else if(inv[j]<=0.5){
+			}else if(spar->inv[j]<=0.5){
 				medinv+=bac[idh][j];
 			}else{
 				highinv+=bac[idh][j];
 			}
 		}
-		fprintf(fvarsXt,"%f %f %f %f %f\n",meas->Tnow,micr[idh],lowinv,medinv,highinv);
+		fprintf(fvarsXt,"%f %f %f %f %f\n",meas->Tnow,spar->micr[idh],lowinv,medinv,highinv);
 		fflush(fvarsXt);
-		printf("%f %f %f %f %f\n",meas->Tnow,micr[idh],lowinv,medinv,highinv);
+		printf("%f %f %f %f %f\n",meas->Tnow,spar->micr[idh],lowinv,medinv,highinv);
 	}
 	#endif
         #ifdef DENSb1xT
@@ -184,7 +204,7 @@ void measures(TimeMeasures meas,SysParams spar){
         #ifdef SAVE_CONFIG
 	if(meas.NTnow==meas.saveT){
 		meas.saveT+=meas.interv;
-		save_config(meas.NTnow,meas.NTf,spar);
+		save_config(meas.NTnow,meas.NTf);
 
 	}
         #endif

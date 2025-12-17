@@ -1,17 +1,19 @@
 /* bac_euler.c */
+#include"randgen_ufrgs.h"
 #include"globals.h"
+#include"tools.h"
 #include"bac_euler.h"
 
-void bac_euler(double dt,SysParams *spar){
-	int i,j,jpl,jmi,idh1,k,idh2,nv,nh;
+void bac_euler(double dt,SysParams *sp){
+	int i,j,jpl,jmi,idh1,k,idh2,nh;
 	double birth,death,migr_in,migr_out,func,**bac_tmp;
-	double mut=spar->mu;//mutation rate
-        double cost=spar->cost;//cost of helping for an ideal helper
-        double birthr=spar->beta;//birth rate of a neutral bacteria
-        double deathr=spar->delta;//bacteria death rate
-        double mig=spar->mig;//migration rate
+	double mut=sp->mu;//mutation rate
+        double cost=sp->cost;//cost of helping for an ideal helper
+        double birthr=sp->beta;//birth rate of a neutral bacteria
+        double deathr=sp->delta;//bacteria death rate
+        double mig=sp->mig;//migration rate
 
-	bac_tmp=(double *)calloc(N,sizeof(double));
+	bac_tmp=(double **)calloc(N,sizeof(double *));
 	for(i=0; i<N; ++i){
 		bac_tmp[i]=(double *)calloc(TYPES, sizeof(double));
 	}
@@ -27,12 +29,12 @@ void bac_euler(double dt,SysParams *spar){
                 
 		#if (NETWORK!=0)
                 searchLiveNeighbors(0,idh1,host,neighbor,alive_viz);
-		nv=alive_viz->usize;
+		int nv=alive_viz->usize;
                 #endif
 
                 for(j=0; j<TYPES;++j){
                         /*births*/
-                        birth=(1.-mut)*(1.-cost*s[j]*inv[j])*birthr*bac[idh1][j];//division of type j
+                        birth=(1.-mut)*(1.-cost*sp->s[j]*sp->inv[j])*birthr*bac[idh1][j];//division of type j
                         jpl=j+1;
                         jmi=j-1;
                         if(j==0){
@@ -40,10 +42,10 @@ void bac_euler(double dt,SysParams *spar){
                         }else if(j==TYPES-1){
                                 jpl=jmi;
                         }
-                        birth+=0.5*mut*(1.-cost*s[jpl]*inv[jpl])*birthr*bac[idh1][jpl];//division of type j+1 -> mutation into j
-                        birth+=0.5*mut*(1.-cost*s[jmi]*inv[jmi])*birthr*bac[idh1][jmi];//division of type j-1 -> mutation into j
+                        birth+=0.5*mut*(1.-cost*sp->s[jpl]*sp->inv[jpl])*birthr*bac[idh1][jpl];//division of type j+1 -> mutation into j
+                        birth+=0.5*mut*(1.-cost*sp->s[jmi]*sp->inv[jmi])*birthr*bac[idh1][jmi];//division of type j-1 -> mutation into j
                         /*death*/
-                        death=deathr*micr[idh1]*bac[idh1][j];
+                        death=deathr*sp->micr[idh1]*bac[idh1][j];
                         /*migrations*/
                         migr_out=mig*bac[idh1][j];//emmigration
 
@@ -72,10 +74,10 @@ void bac_euler(double dt,SysParams *spar){
 
 	for(i=0; i<nh; ++i){
 		idh1=listh->vec[i];
-		micr[idh1]=0.;
+		sp->micr[idh1]=0.;
 		for(j=0;j<TYPES; ++j){
 			bac[idh1][j]=bac_tmp[idh1][j];
-			micr[idh1]+=bac[idh1][j];
+			sp->micr[idh1]+=bac[idh1][j];
 		}
 	}
 

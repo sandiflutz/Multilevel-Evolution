@@ -12,8 +12,8 @@
 /**paramenters to define the structure of the system*********/
 #define L               100       /*linear number of sites (square lattice case*/
 #define N               (L*L)    /*number of sites*/
-#define TYPES           100      /*number of types of microbe*/
-#define Tplus           TYPES-1  /*number of types of microbe*/
+#define TYPES           2      /*number of types of microbe*/
+#define Tplus           (TYPES-1)  /*number of types of microbe*/
 #define IDBH            0        /*type of the bacteria that helps other bacteria*/  
 #define NETWORK         0        /*0: well-mixed
                                   *1: square-lattice
@@ -23,14 +23,18 @@
 #elif
         #define VIZ    4         /*number of neighbors in the square-lattice: 4 or 8*/
 #endif
-#define CI             1         /*0: system starts with types being randomly distributed with a uniform distribution
+#if (TYPES==2)
+	#define CI             0         /*0:uniforme distribution (don't change it!)*/
+#else
+	#define CI             1 /*0: system starts with types being randomly distributed with a uniform distribution
                                   *1: system starts with types being randomly distributed using a normal distribution for the frequencies of each type
                                   *2: system starts with only the 1 host
                                   */
+#endif
 
 /**dynamics parameters*************/
 #define Mu        0.01  /*mutation rate*/
-#define Theta     0.00001       /*migration rate*/
+#define Theta     1e-05       /*migration rate*/
 #define Beta      1.            /*birth rate for neutral bacteria*/
 #define Delta     1.            /*death rate for microbes*/
 #define K_bac     1.            /*bacteria carrying capacity*/
@@ -40,7 +44,7 @@
 #define Sb        1.            /*strength of the dependence of hosts births on their microbial content*/
 #define Sd        0.            /*strength of the dependence of hosts deaths on their microbial content*/
 #define Dt_ref    0.05          /*time step for bacteria evolution*/
-#define Bacv      0.001         /*initial density of vertically transmitted microbes in a new host*/
+#define Bacv      1e-03         /*initial density of vertically transmitted microbes in a new host*/
 #define Bac0      1.             /*initial bacteria density in each host (t=0)*/
 #define BSAMPLES  10            /*number of bacteria samples passed from a parent host to its offspring*/
 #define SIGMA     0.05          /*variance of the trucated normal distribution for the inheritance of helpful microbes*/
@@ -54,8 +58,8 @@
                                 *1:eps
                                 */
 #define INT     100            /*interval between measures*/
-#define Tf_me   10000          /*time to stop a measure*/
-#define T0_me   0              /*time to start a measure*/
+#define Tf_me   TF          /*time to stop a measure*/
+#define T0_me   0.              /*time to start a measure*/
 /***Routine Choices***********************************************/
 #if (TYPES==2)
   #define INV     1         /*(don't change it)! Investment function when there is just 2 types is 0 or 1 (option 1 is inv[j]=j/(TYPES-1) )*/
@@ -65,6 +69,7 @@
                                  *1: inv[j]=j/(TYPES-1)
                                  */
 #endif
+#define TV        1         /*rule for vertical transmission: 0=normal dist. (around parent bac. type freq.),1=poisson dist. for the sample size */
 #if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(TIME_VARS)
 	#define TMEAS
 #endif
@@ -85,6 +90,9 @@ typedef struct{
 	double sb;
 	double sd;
 	double sigma;
+	double *s;
+	double *inv;
+	double *micr;
 } SysParams;
 
 typedef struct{
@@ -115,12 +123,9 @@ typedef struct{
 /***************************************************
  *            Global Variables                     *
  ***************************************************/
-extern int *s;
 extern int *host;
 extern int **neighbor;
 extern double **bac;
-extern double *micr;
-extern double *inv;
 extern double *dtVec;
 extern FILE *fvarsXt;
 extern FILE *fdensb1Xt;
@@ -128,4 +133,5 @@ extern FILE *finvCumul;
 extern DynList *listh;
 extern DynList *listnb;
 extern DynList *alive_viz;
+extern SysParams *spar;
 #endif

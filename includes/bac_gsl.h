@@ -40,5 +40,5 @@ void bac_make_system(gsl_odeiv2_system *sys, SysParams *P);
 /*************************************************************
  *          Bacteria Dynamics                                *
  *************************************************************/
-int bacDynamics(gsl_odeiv2_driver *driver,SysParams *spar,Event *event);
+int bacDynamics(gsl_odeiv2_driver *driver,Event *event);
 #endif

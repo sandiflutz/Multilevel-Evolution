@@ -18,7 +18,7 @@ typedef struct{
 /********************************************************
  *                 Factorial                            *
  ********************************************************/
-int factorial(int n);
+long int factorial(int n);
 /********************************************************
 *   Normal Distribution: calculates and returns         *
 *   the probability of x in a normal distribution       *
@@ -33,7 +33,7 @@ double truncGaussRandNum(double mean, double var,double a,double b);
 *      Draw a random integer from a poisson distribution o      *
 *      mean @lambda                                             *
 *****************************************************************/
-int poissonRandNum(double lambda);
+int poissonRandNum(double lambda,int maxk);
 /************************************************************************************
 *  Simple addition of an element to a list: add it at the end of the list and       *
 *  increment the size of the list                                                   *

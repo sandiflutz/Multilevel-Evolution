@@ -28,29 +28,29 @@
 *     allocate memory for global arrays and structs        *
 *     initialize system parameters                         *
 ************************************************************/
-void allocateMemory(SysParams *spar,Event *event,TimeMeasures *meas);
+void allocateMemory(Event *event,TimeMeasures *meas);
 /******************************************
  *  Open Global Files                     *
  ******************************************/
-void openFiles(SysParams *spar,TimeMeasures *meas);
+void openFiles(TimeMeasures *meas);
 /*****************************************************
 *   Populates Host and Microbial layer               *
 *   Bacterial layer: types of bacteria               *
 *   are uniformly distributed                        *
 *****************************************************/
-void initialStateUniD(SysParams *spar);
+void initialStateUniD(void);
 /**********************************************************
 *       Populates Host and Microbial layer                *
 *       Bacterial layer: frequencies of each type j       *
 *       is the probability of normal                      *
 *       distribution with x=(investment[j]-mean)/stdinv   *
 ***********************************************************/
-void initialStateNormD(SysParams *spar);
+void initialStateNormD(void);
 /*****************************************************
 *   Populates Host layer with a single host          *
 *   Bacteria yypes are uniformly distributed         *
 *****************************************************/
-void initialStateSingleH(SysParams *spar,TimeMeasures *meas);
+void initialStateSingleH(TimeMeasures *meas);
 /*************************************************
 * Set Investments for a System with only helpers *
 * (different types of helpers,  0<investment<1   *
@@ -64,5 +64,5 @@ void setInvestments(void);
 /****************************************************************************
 *                     Build System                                          *
 *****************************************************************************/
-void setSystem(SysParams *spar,Event *event,TimeMeasures *meas);
+void setSystem(Event *event,TimeMeasures *meas);
 #endif
