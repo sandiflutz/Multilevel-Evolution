@@ -28,26 +28,31 @@
 *   stores the frequency of beneficial       *
 *   bacteria in a single host                *
 **********************************************/
-void densB1Xt(double tnow,double ti,int idh);
+void densB1Xt(TimeMeasures *meas);
 /**********************************************
 *   stores the frequency of beneficial       *
 *   bacteria in a single host                *
 **********************************************/
-void averInvestmentXt(int ntnow,double tnow,int nti);
+void averInvestmentXt(TimeMeasures *meas);
 /**************************************
 *  snapshot of host network           *
 *  The colors indicate the acumulated *
 *  investment of each host            *
 ***************************************/
-void save_config(int t, int tf);
+void save_config(TimeMeasures *meas);
 /**********************************************
  * calculates investment distribution among   *
  * hosts                                      *
  **********************************************/
 void calcInvDist(double *hist_inv, double binsize);
+/***********************************************
+ * store investment distribution among and     *
+ * create a gnuplot script to create graphics  *
+ ***********************************************/
+void invDistXt(TimeMeasures *meas);
 /**********************************************
 *   this routine united all time measures     *
 *   done inside the time loop                 *
 **********************************************/
-void measures(TimeMeasures meas);
+void measures(TimeMeasures *meas);
 #endif

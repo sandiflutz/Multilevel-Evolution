@@ -42,27 +42,26 @@ int main(void){
         );
 	/**********/
 	
+	nh=listh->usize;
 	numsteps=0;
 	event.timeE=0.;
-	while(numsteps<=meas.NTf){
+	while((numsteps<=NTS)&&(nh>0)){
+		#ifdef TMEAS
 		meas.NTnow=numsteps;
 		meas.Tnow=event.timeE;
-		nh=listh->usize;
-		event.sizeE=nh*2;
-		#ifdef TMEAS
-		measures(meas);
+		measures(&meas);
 		#endif
-		calcHostEvents(event.ratesE);
-		cumulProb(event.sizeE,event.ratesE,event.cprobE);
 		
-                dt=adjustTimeStep(event.cprobE[event.sizeE-1]);//adjust dt to calculate host event probabilities
-                sumprobs=dt*event.cprobE[event.sizeE-1];
+		calcHostEvents(&event);
+		
+                dt=adjustTimeStep(event.cprobE[event.usizeE-1]);//adjust dt to calculate host event probabilities
+                sumprobs=dt*event.cprobE[event.usizeE-1];
                 event.dtE=gillespieTime(sumprobs);//use sum of event probs. to calculate gillespie time
 
 		calcNumSteps(&dnt_h,&dnt_b,&dnt,event.dtE,Dt_ref);
 		for(i=0; i<dnt_h; ++i){
 			do{
-				event.whichE=selectEventCP(event.cprobE,event.sizeE);
+				event.whichE=selectEventCP(event.cprobE,event.usizeE);
 				idh=listh->vec[event.whichE%nh];
 			}while(host[idh]==2);
 		
@@ -76,9 +75,10 @@ int main(void){
 			host[listnb->vec[i]]=1;//no newborns anymore
 		}
 		listnb->usize=0;
+		/*******************/
 
+		nh=listh->usize;
 		event.timeE+=event.dtE;
-		
                 numsteps+=dnt;
         }
 
@@ -110,6 +110,9 @@ void freeMemory(void){
 	free(spar);
 #ifdef TMEAS
 	free(meas.ftname_pars);
+	#if  defined(DENSb1xT)||defined(AVERINVxT)
+	fclose(meas.file_tmeas);
+	#endif
 #endif
 	free(dtVec);
 
@@ -127,17 +130,6 @@ void freeMemory(void){
 	free(listh);
 	free(listnb);
 	free(driver);
-
-	/*close files*/
-#ifdef TIME_VARS
-	fclose(fvarsXt);
-#endif
-#ifdef DENSb1xT 
-	fclose(fdensb1Xt);
-#endif
-#ifdef AVERINVxT
-	fclose(finvCumul);
-#endif
 	
 	return;
 }

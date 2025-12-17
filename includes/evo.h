@@ -7,7 +7,7 @@ double calcAcumInvest(int index);
 /****************************************************
 * Calculates the host event rates: birth and death  *
 *****************************************************/
-void calcHostEvents(double *event);
+void calcHostEvents(Event *event);
 /***************************************************************
 *     Set microbial frequencies for the offspring of hosr @idp *
 *     Bacteria types and their frequencies are randomly        *

@@ -49,8 +49,8 @@ void allocateMemory(Event *event,TimeMeasures *meas){
         //host events struct
 	event->sizeE=2*N;
 	event->usizeE=0;
-        event->ratesE=(double *)calloc(event->sizeE,sizeof(int));
-        event->cprobE=(double *)calloc(event->sizeE,sizeof(int));
+        event->ratesE=(double *)calloc(event->sizeE,sizeof(double));
+        event->cprobE=(double *)calloc(event->sizeE,sizeof(double));
 	event->timeE=0.;
 	event->dtE=Dt_ref;
 
@@ -70,11 +70,9 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	//Time measures structs
 	#ifdef TMEAS
 	meas->idh_h1=0.;
-	meas->Ti=T0_me;
-        meas->Tf=Tf_me;
-        meas->interv=INT;
-        meas->NTi=0;
-        meas->NTf=NTS;
+        meas->nfiles=0;
+        meas->NTi=NT0_me;
+        meas->NTf=NTf_me;
         meas->saveT=0;
 	meas->ftnpars_size=250;
 	meas->ftname_pars=(char *)calloc(meas->ftnpars_size,sizeof(char));
@@ -96,24 +94,17 @@ void allocateMemory(Event *event,TimeMeasures *meas){
  ******************************************/
 void openFiles(TimeMeasures *meas){
 
-#ifdef TIME_VARS
-        char *name=(char *)calloc(200,sizeof(char));
-        sprintf(name,"varsXt_%s",meas->ftname_pars);
-        fvarsXt=fopen(name,"w");
-        free(name);
-#endif
+	char *name=(char *)calloc(250,sizeof(char));
+
 #ifdef DENSb1xT
-        char *name=(char *)calloc(100,sizeof(char));
         sprintf(namedXt1,"densb1Xt_%s",meas->ftname_pars);
-        fdensb1Xt=fopen(namedXt1,"w");
-        free(name);
+        meas->file_tmeas=fopen(name,"w");
 #endif
 #ifdef AVERINVxT
-        char *name=(char *)calloc(250,sizeof(char));
         sprintf(name,"averInvXt_%s",meas->ftname_pars);
-        finvCumul=fopen(name,"w");
-        free(name);
+        meas->file_tmeas=fopen(name,"w");
 #endif
+	free(name);
         return;
 }
 /*****************************************************
@@ -257,7 +248,7 @@ void setInvestments(void){
         int i,tymi;
 
 	memset(spar->s,1.,sizeof(double)*TYPES);
-	tymi=TYPES-1-Tplus;
+	tymi=TYPES-1-Tplus;//# of negative types
         for(i=0; i<TYPES; ++i){
                 spar->inv[i]=(double)(i-tymi)/Tplus;
 		if(i-tymi<0)spar->s[i]=-1;

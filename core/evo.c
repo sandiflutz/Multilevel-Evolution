@@ -25,8 +25,8 @@ double calcAcumInvest(int index){
 /****************************************************
 * Calculates the host event rates: birth and death  *
 *****************************************************/
-void calcHostEvents(double *event){
-        int i,idh,idmax,nh;
+void calcHostEvents(Event *event){
+        int i,idh,nh;
 	int gh=spar->gh;
 	int kh=spar->kh;
 	double beta=spar->beta;
@@ -34,31 +34,27 @@ void calcHostEvents(double *event){
 	double sd=spar->sd;
 	double *w=NULL;
 
-	nh=listh->usize;
+	nh=listh->usize;//number of hosts
 
 	w=(double *)calloc(nh,sizeof(double));
 
-        idmax=2*nh;
-        memset(event,0.,sizeof(double)*idmax);
+        event->usizeE=2*nh;//# of possible host events (birth or death for each host)
+        memset(event->ratesE,0.,sizeof(double)*event->sizeE);
 
+        //birth events
 	for(i=0; i<nh; ++i){
 		idh=listh->vec[i];
 		w[i]=calcAcumInvest(idh);
+		event->ratesE[i]=(double)beta*(1.+sb*w[i])/gh;
 	}
 
-        //birth events
-        if(nh<N){//there are empty site
-                for(i=0; i<nh; ++i){
-                        event[i]=(double)beta*(1.+sb*w[i])/gh;
-                }
-        }
-
         //death events
-        if(nh>0){//there are alive hosts
-                for(i=nh; i<idmax; ++i){
-                        event[i]=beta*(1.-sd*w[i-nh])*nh/((double)kh*gh);
-                }
-        }
+	for(i=nh; i<event->usizeE; ++i){
+		event->ratesE[i]=beta*(1.-sd*w[i-nh])*nh/((double)kh*gh);
+	}
+
+	//calculate cumulative rates (that are gonna be used in a bissection method to randomly select an event)
+	cumulProb(event->usizeE,event->ratesE,event->cprobE);
 
 	free(w);
         return;

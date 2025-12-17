@@ -18,7 +18,7 @@ TimeMeasures meas;
 /****************Program's Routines*****************************/
 int main(void){
 	int i,idh,numsteps,nh,nb,dnumsteps;
-	double dt,sumprobs,prob_nev,time,t_tmp;
+	double dt,sumprobs,prob_nev;
         
 	/*setting the system*/
 	setSystem(&event,&meas);
@@ -32,22 +32,16 @@ int main(void){
 	
 	dt=Dt_ref;
 	numsteps=0;
-	time=0.;
-	t_tmp=0.;
-	meas.Ti=0.;
-	meas.NTi=0;
-	meas.NTf=NTS;
-	while(numsteps<=meas.NTf){
-		meas.NTnow=numsteps;
-		meas.Tnow=time;
-		nh=listh->usize;
-		event.timeE=time;
-		event.sizeE=nh*2;
+	event.timeE=0.;
+	nh=listh->usize;
+	while((numsteps<=NTS)&&(nh>0)){
 		#ifdef TMEAS
+		meas.NTnow=numsteps;
+		meas.Tnow=event.timeE;
 		measures(meas);
 		#endif
-		calcHostEvents(event.ratesE);
-		cumulProb(event.sizeE,event.ratesE,event.cprobE);
+		calcHostEvents(&event);
+
 		dt=adjustTimeStep(event.cprobE[event.sizeE-1]);
                 sumprobs=dt*event.cprobE[event.sizeE-1];
                 event.dtE=dt;
@@ -55,7 +49,7 @@ int main(void){
                 prob_nev=1.-sumprobs;
 		for(i=0; i<dnumsteps; ++i){
 			do{
-				event.whichE=selectEventCP(event.cprobE,event.sizeE);
+				event.whichE=selectEventCP(event.cprobE,event.usizeE);
 				idh=listh->vec[event.whichE%nh];
 			}while(host[idh]==2);
                 
@@ -65,16 +59,17 @@ int main(void){
 		}
 
 		bac_euler(Dt_ref,spar);
-		event.timeE+=t_tmp;
+		
 		/*no newborns anymore*/
                	nb=listnb->usize;
 		for(i=0; i<nb; ++i){
                        	host[listnb->vec[i]]=1;//no newborns anymore
                	}
 		listnb->usize=0;
-
-		time+=Dt_ref;
+		/**************/
+		event.timeE+=Dt_ref;
                 numsteps+=dnumsteps;
+		nh=listh->usize;
         }
 
 
@@ -105,6 +100,9 @@ void freeMemory(void){
 	free(spar);
 #ifdef TMEAS
         free(meas.ftname_pars);
+	#if  defined(DENSb1xT)||defined(AVERINVxT)
+        fclose(meas.file_tmeas);
+        #endif
 #endif
 
 #if (NETWORK!=0)

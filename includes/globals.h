@@ -53,13 +53,14 @@
 #define DTVSIZE   29
 /****parameters for measures/sampling and related things****************/
 #define TF        1000.          /*host maximum time (measured using continuous values for the times steps)*/
-#define NTS      10000000       /*maximum number of timesteps*/
-#define SAVE_CONFIG_ID     0   /*0:png
-                                *1:eps
-                                */
-#define INT     100            /*interval between measures*/
-#define Tf_me   TF          /*time to stop a measure*/
-#define T0_me   0.              /*time to start a measure*/
+#define NTS       10e6       /*maximum number of timesteps*/
+#define FIG_EXT   0              /*Extension of the figure files (for the routines that create gnuplot scripts):
+				 * 0:png (good for creating animations later)
+                                 * 1:eps 
+                                 */
+#define NF       100             /*number of files creater for the routines that create one file per timestep (interval between file=(Tf_me-T0_me)/NF)*/
+#define NTf_me   NTS            /*time to stop a measure*/
+#define NT0_me   10e4            /*time to start a measure*/
 /***Routine Choices***********************************************/
 #if (TYPES==2)
   #define INV     1         /*(don't change it)! Investment function when there is just 2 types is 0 or 1 (option 1 is inv[j]=j/(TYPES-1) )*/
@@ -70,7 +71,7 @@
                                  */
 #endif
 #define TV        1         /*rule for vertical transmission: 0=normal dist. (around parent bac. type freq.),1=poisson dist. for the sample size */
-#if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(TIME_VARS)
+#if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)
 	#define TMEAS
 #endif
 /********************************************
@@ -108,17 +109,16 @@ typedef struct{
 *  Structs related to Measures             *
 *******************************************/
 typedef struct{
-        double Ti;
-        double Tf;
         double Tnow;
 	double saveT;
 	int NTi;
 	int NTf;
 	int NTnow;
-        int interv;
+        int nfiles;
         int idh_h1;
 	char *ftname_pars;
 	int ftnpars_size;
+	FILE *file_tmeas;
 } TimeMeasures;
 /***************************************************
  *            Global Variables                     *

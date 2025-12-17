@@ -7,32 +7,31 @@
 *   stores the frequency of beneficial        *
 *   bacteria in a single host                 *
 **********************************************/
-void densB1Xt(double tnow,double ti,int idh){
+void densB1Xt(TimeMeasures *meas){
 	int nh;
 
 	nh=listh->usize;
 
-	if(tnow==ti){
-		fprintf(fdensb1Xt,"#1:time 2:bac[single host,most helpful type] 3:dens_host \n");
+	if(meas->NTnow==meas->NTi){
+		fprintf(meas->file_tmeas,"#1:time 2:bac[single host,most helpful type] 3:dens_host \n");
 	}
 	
-	fprintf(fdensb1Xt,"%f %f %f\n",tnow,bac[idh][TYPES-1]/spar->micr[idh],(double)nh/N);
-       	fflush(fdensb1Xt);
-       	printf("%f %f %f\n",tnow,bac[idh][TYPES-1]/spar->micr[idh],(double)nh/N);
+	fprintf(meas->file_tmeas,"%f %f %f\n",meas->Tnow,bac[meas->idh_h1][TYPES-1]/spar->micr[meas->idh_h1],(double)nh/N);
+       	printf("%f %f %f\n",meas->Tnow,bac[meas->idh_h1][TYPES-1]/spar->micr[meas->idh_h1],(double)nh/N);
         return;
 }
 /**********************************************
 *   stores the frequency of beneficial       *
 *   bacteria in a single host                *
 **********************************************/
-void averInvestmentXt(int ntnow,double tnow,int nti){
+void averInvestmentXt(TimeMeasures *meas){
 	int i,j,idh,nh;
 	double averinv,averinvH,tot_micr;
 	
 	nh=listh->usize;
 
-	if(ntnow==nti){
-		fprintf(finvCumul,"#1:time 2:average cumulative investment 3:dens_host 4:number of time steps\n");
+	if(meas->NTnow==meas->NTi){
+		fprintf(meas->file_tmeas,"#1:time 2:average cumulative investment 3:dens_host 4:number of time steps\n");
 	}
 
 	averinv=0.;
@@ -48,9 +47,8 @@ void averInvestmentXt(int ntnow,double tnow,int nti){
                 averinv+=averinvH;
         }
         averinv/=tot_micr;
-        fprintf(finvCumul,"%f %f %f %f %d\n",tnow,averinv,(double)tot_micr/nh,(double)nh/N,ntnow);
-        fflush(finvCumul);
-        printf("t=%f averinv=%f avmicrdens=%f nh/N=%f numsteps=%d\n",tnow,averinv,(double)tot_micr/nh,(double)nh/N,ntnow);
+        fprintf(meas->file_tmeas,"%f %f %f %f %d\n",meas->Tnow,averinv,(double)tot_micr/nh,(double)nh/N,meas->NTnow);
+        printf("t=%f averinv=%f avmicrdens=%f nh/N=%f numsteps=%d\n",meas->Tnow,averinv,(double)tot_micr/nh,(double)nh/N,meas->NTnow);
 
         return;
 }
@@ -59,19 +57,18 @@ void averInvestmentXt(int ntnow,double tnow,int nti){
 *  The colors indicate the acumulated *
 *  investment of each host            *
 ***************************************/
-void save_config(int tf,int tnow){
-        int i,j,k,id;
+void save_config(TimeMeasures *meas){
+        int i,j,k,id,nh;
         double pointsize,*w;
         char *name,*namedat,*name_gp;
         FILE *fconfig,*fgp;
 	
-        name=(char *)malloc(sizeof(char)*150);
-        namedat=(char *)malloc(sizeof(char)*180);
-        name_gp=(char *)malloc(sizeof(char)*180);
+	/****creating files (if there are file with the same names, there are subscribed)********/
+        name=(char *)malloc(sizeof(char)*150);//base name
+        namedat=(char *)malloc(sizeof(char)*180);//data file name
+        name_gp=(char *)malloc(sizeof(char)*180);//name for the gnuplot data file
 
-        w=(double *)calloc(N,sizeof(double));
-
-        sprintf(name,"snapshot_N%d_Ty%d_Kh%d_Bv%f_Gh%d_cost%0.4f_sigma%0.2f_mu%f_sb%0.1f_mig%f_T%d",N,TYPES,spar->kh,Bacv,spar->gh,spar->cost,spar->sigma,spar->mu,spar->sb,spar->mig,tf);
+        sprintf(name,"snapshot_N%d_Ty%d_Kh%d_Bv%f_Gh%d_cost%0.4f_sigma%0.2f_mu%f_sb%0.1f_mig%f_T%d",N,TYPES,spar->kh,Bacv,spar->gh,spar->cost,spar->sigma,spar->mu,spar->sb,spar->mig,meas->NTf);
 
         if(L>=100){
                 pointsize=0.5;
@@ -80,18 +77,22 @@ void save_config(int tf,int tnow){
         }else{
                 pointsize=2;
         }
-#if (SAVE_CONFIG_ID==0)
-        sprintf(namedat,"%s_idt%f.dat",name,(double)tnow/tf);
-        sprintf(name_gp,"%s_idt%f.gp",name,(double)tnow/tf);
-#endif
-#if (SAVE_CONFIG_ID==1)
-        sprintf(namedat,"%s_Tf%d.dat",name,tnow);
-        sprintf(name_gp,"%s_Tf%d.gp",name,tnow);
+#if (FIG_EXT==0)
+        sprintf(namedat,"%s_idt%f.dat",name,(double)meas->NTnow/meas->NTf);
+        sprintf(name_gp,"%s_idt%f.gp",name,(double)meas->NTnow/meas->NTf);
+#elif
+        sprintf(namedat,"%s_Tf%d.dat",name,meas->NTnow);
+        sprintf(name_gp,"%s_Tf%d.gp",name,meas->NTnow);
 #endif
 
         fconfig = fopen(namedat,"w");
         fgp = fopen(name_gp,"w");
+	
 
+	/*******setting average investment per host vector and filling data file***********************/
+
+	nh=listh->usize;
+        w=(double *)calloc(nh,sizeof(double));
 
         for(i = 0; i < L; ++i){//linha
                 for(j = 0; j < L; ++j){//coluna
@@ -113,13 +114,20 @@ void save_config(int tf,int tnow){
                 fprintf(fconfig,"\n");
         }
 
-#if (SAVE_CONFIG_ID==0)
+	/*********filling gnuplot file**********************************************/
+        if(L>=100){
+                pointsize=0.5;
+        }else if(L>=50){
+                pointsize=1.5;
+        }else{
+                pointsize=2;
+        }
+#if (FIG_EXT==0)
         fprintf(fgp,"set term png size 720,540\n");
-       fprintf(fgp,"set output'%s_idt%f.png'\n",name,(double)tnow/tf);
-#endif
-#if (SAVE_CONFIG_ID==1)
+	fprintf(fgp,"set output'%s_idt%f.png'\n",name,(double)meas->NTnow/meas->NTf);
+#elif
         fprintf(fgp,"set term post eps enha color 20\n");
-        fprintf(fgp,"set output'%s_Tf%d_fm.eps'\n",name,tnow);
+        fprintf(fgp,"set output'%s_Tf%d_fm.eps'\n",name,meas->NTnow);
 #endif
 
         fprintf(fgp,"unset key\n");
@@ -134,6 +142,8 @@ void save_config(int tf,int tnow){
         fprintf(fgp,"plot '%s' u 1:(($3>=0)?$2:1/0):(rgb(255*(1-$3),0,255*$3)) w p pt 5 lc rgb variable,\\\n",namedat);
         fprintf(fgp,"'%s' u 1:(($3<0)?$2:1/0):(rgb(0,0,0)) w p pt 5 lc rgb variable\n",namedat);
 
+
+	/***freeing allocated memory and closing files******/
         fclose(fconfig);
         fclose(fgp);
         free(name_gp);
@@ -148,14 +158,15 @@ void save_config(int tf,int tnow){
  * hosts                                      *
  **********************************************/
 void calcInvDist(double *hist_inv,double binsize){
-	int i,j,nh,id;
+	int i,idh,j,nh,id;
 	double avinvH;
 
 	nh=listh->usize;
 	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
 		avinvH=0.;
 		for(j=0; j<TYPES; ++j){
-			avinvH+=bac[i][j]*spar->inv[j]/spar->micr[j];
+			avinvH+=bac[idh][j]*spar->inv[j]/spar->micr[idh];
 		}
 		id=(int)(avinvH/binsize);
 		++hist_inv[id];
@@ -164,48 +175,108 @@ void calcInvDist(double *hist_inv,double binsize){
 
 	return;
 }
-/**********************************************
-*   this routine united all time measures     *
-*   done inside the time loop                 *
-**********************************************/
-void measures(TimeMeasures meas){
+/*****************************************************
+ * store investment distribution among hosts and     *
+ * create a gnuplot script to create graphics        *
+ *****************************************************/
+void invDistXt(TimeMeasures *meas){
+	int i,nh,nbins=100;
+	double binsize,*hist_inv;
+        char *name,*namedat,*name_gp;
+        FILE *fhist,*fgp;
 	
-	#ifdef TIME_VARS	
-	int nh=listh->usize;
-	for(int i=0; i<nh; ++i){
-		int idh=listh->vec[i];
-		double lowinv=0.;
-		double medinv=0.;
-		double highinv=0.;
-		for(int j=0; j<TYPES;++j){
-			if(spar->inv[j]<=0.1){
-				lowinv+=bac[idh][j];
-			}else if(spar->inv[j]<=0.5){
-				medinv+=bac[idh][j];
-			}else{
-				highinv+=bac[idh][j];
-			}
-		}
-		fprintf(fvarsXt,"%f %f %f %f %f\n",meas->Tnow,spar->micr[idh],lowinv,medinv,highinv);
-		fflush(fvarsXt);
-		printf("%f %f %f %f %f\n",meas->Tnow,spar->micr[idh],lowinv,medinv,highinv);
+	/****creating files (if there are file with the same names, there are subscribed)********/
+        name=(char *)malloc(sizeof(char)*200);//base name
+        namedat=(char *)malloc(sizeof(char)*250);//data file name
+        name_gp=(char *)malloc(sizeof(char)*250);//name for the gnuplot data file
+        
+	sprintf(name,"invDistXt_N%d_Ty%d_Kh%d_Bv%f_Gh%d_cost%0.4f_sigma%0.2f_mu%f_sb%0.1f_mig%f",N,TYPES,spar->kh,Bacv,spar->gh,spar->cost,spar->sigma,spar->mu,spar->sb,spar->mig);
+
+#if (FIG_EXT==0)
+        sprintf(namedat,"%s_idt%f.dat",name,(double)meas->NTnow/meas->NTf);
+        sprintf(name_gp,"%s_idt%f.gp",name,(double)meas->NTnow/meas->NTf);
+#elif
+        sprintf(namedat,"%s_Tf%d.dat",name,meas->NTnow);
+        sprintf(name_gp,"%s_Tf%d.gp",name,meas->NTnow);
+#endif
+        fhist = fopen(namedat,"w");
+        fgp = fopen(name_gp,"w");
+	
+	/*******setting histogram vector***********************/
+	
+	hist_inv=(double *)calloc(nbins,sizeof(double));
+	memset(hist_inv,0.,sizeof(double)*nbins);
+	binsize=1./(double)nbins;
+
+	calcInvDist(hist_inv,binsize);
+
+	/*******************filling data file*****************************/
+	nh=listh->usize;
+
+	if(meas->NTnow==meas->NTi)fprintf(meas->file_tmeas,"#1:time 2:hist_inv[type] 3:type 4:numsteps\n");
+	for(i=0; i<nbins; ++i){
+		fprintf(fhist,"%f %f %d\n",(double)i*binsize,(double)hist_inv[i]/nh,meas->NTnow);
 	}
-	#endif
+	
+	/*******************filling gnuplot file*****************************/
+
+#if (FIG_EXT==0)
+       fprintf(fgp,"set term png size 720,540\n");
+       fprintf(fgp,"set output'%s_idt%f.png'\n",name,(double)meas->NTnow/meas->NTf);
+#elif
+        fprintf(fgp,"set term post eps enha color 20\n");
+        fprintf(fgp,"set output'%s_Tf%d_fm.eps'\n",name,meas->NTnow);
+#endif
+
+	fprintf(fgp,"set title'{/=15 time steps=%d}'\n",meas->NTnow);
+	fprintf(fgp,"set xr[0:1]\n");
+	fprintf(fgp,"set yr[0:1]\n");
+	fprintf(fgp,"set xlabel'{/=25 av. inv. in host}'\n");
+	fprintf(fgp,"set ylabel'{/=25 frac. of hosts}'\n");
+	fprintf(fgp,"plot '%s' u 1:2 w l lw 3 lc 1\n",namedat);
+
+	/**freeing allocated memory and closing files**/
+
+	free(hist_inv);
+	free(name);
+	free(namedat);
+	free(name_gp);
+	fclose(fhist);
+	fclose(fgp);
+	return;
+}
+/***************************************************
+*  call routines that measure and store measures   *
+*  during the time loop                            *
+****************************************************/
+void measures(TimeMeasures *meas){
+	
         #ifdef DENSb1xT
-	if((meas.Tnow>=meas.Ti)&&(meas.NTnow<=meas.NTf)){
-		densB1XtXt(meas.NTnow,meas.Ti,meas.idh_h);
+	if((meas->NTnow>=meas->Ti)&&(meas->NTnow<=meas->NTf)){
+		densB1XtXt(meas);
 	}
         #endif
         #ifdef AVERINVxT
-	if((meas.NTnow>=meas.NTi)&&(meas.NTnow<=meas.NTf)){
-		averInvestmentXt(meas.NTnow,meas.Tnow,meas.NTi);
+	if((meas->NTnow>=meas->NTi)&&(meas->NTnow<=meas->NTf)){
+		averInvestmentXt(meas);
 	}
         #endif
         #ifdef SAVE_CONFIG
-	if(meas.NTnow==meas.saveT){
-		meas.saveT+=meas.interv;
-		save_config(meas.NTnow,meas.NTf);
+	if((meas->NTnow>=meas->NTi)&&(meas->nfiles<NF)){
+		printf("Time (measuring):%d\n",meas->NTnow);
+		save_config(meas);
+		++meas->nfiles;
+	}
+	printf("Time (before measuring starts):%d\n",meas->NTnow);
+        #endif
+        #ifdef INV_DIST
 
+	if((meas->NTnow>=meas->NTi)&&(meas->nfiles<NF)){
+		printf("Time (measuring):%d\n",meas->NTnow);
+		invDistXt(meas);
+		++meas->nfiles;
+	}else{
+		printf("Time (before measuring starts):%d\n",meas->NTnow);
 	}
         #endif
 
