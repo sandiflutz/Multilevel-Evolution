@@ -44,7 +44,7 @@ void save_config(int t, int tf);
  * calculates investment distribution among   *
  * hosts                                      *
  **********************************************/
-void calcInvDist(double *hist_inv);
+void calcInvDist(double *hist_inv, double binsize);
 /**********************************************
 *   this routine united all time measures     *
 *   done inside the time loop                 *

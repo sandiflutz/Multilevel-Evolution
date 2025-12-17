@@ -148,17 +148,17 @@ void save_config(int tf,int tnow){
  * hosts                                      *
  **********************************************/
 void calcInvDist(double *hist_inv,double binsize){
-	int i,j,nh;
+	int i,j,nh,id;
 	double avinvH;
 
 	nh=listh->usize;
 	for(i=0; i<nh; ++i){
-		aveinvH=0.;
+		avinvH=0.;
 		for(j=0; j<TYPES; ++j){
 			avinvH+=bac[i][j]*spar->inv[j]/spar->micr[j];
 		}
 		id=(int)(avinvH/binsize);
-		++hist_inv[id]
+		++hist_inv[id];
 	}
 
 

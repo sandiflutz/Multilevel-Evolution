@@ -108,7 +108,7 @@ void setMicrKidsNorm(int idp, int idk){
 ****************************************************************/
 void setMicrKidsPoiss(int idp, int idk){
         int i,ns,p,sample;
-        double fk,fp,norm,mean,*cprob=NULL;
+        double fk,fp,mean,*cprob=NULL;
 
 
         cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
@@ -117,10 +117,9 @@ void setMicrKidsPoiss(int idp, int idk){
                 cprob[i]=cprob[i-1]+bac[idp][i]/spar->micr[idp];
         }
 
-        norm=0.;
         ns=0;
 	mean=10e03*Bacv;
-	sample=poissonRandNum(mean,15);
+	sample=poissonRandNum(mean);
         while(ns<sample){
 		p=selectEventCP(cprob,TYPES);
                 bac[idk][p]+=(double)Bacv/sample;

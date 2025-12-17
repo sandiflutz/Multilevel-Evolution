@@ -33,7 +33,7 @@ double truncGaussRandNum(double mean, double var,double a,double b);
 *      Draw a random integer from a poisson distribution o      *
 *      mean @lambda                                             *
 *****************************************************************/
-int poissonRandNum(double lambda,int maxk);
+int poissonRandNum(double lambda);
 /************************************************************************************
 *  Simple addition of an element to a list: add it at the end of the list and       *
 *  increment the size of the list                                                   *

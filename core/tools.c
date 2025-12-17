@@ -70,31 +70,20 @@ double truncGaussRandNum(double mean, double var,double a,double b){
 *      Draw a random integer from a poisson distribution o      *
 *      mean @lambda                                             *
 *****************************************************************/
-int poissonRandNum(double lambda,int maxk){
+int poissonRandNum(double lambda){
 	int i,k;
-	long int fac;
-	double nr,eps,eps0,eterm,pterm,*cprob,power;
+	double l,p,nr;
 
-
-	cprob=(double *)calloc(maxk+1,sizeof(double));
-	
-	eterm=exp(-lambda);
-
-	cprob[0]=eterm;
-	for(i=1; i<=maxk; ++i){
-		fac=factorial(i);
-		power=pow(lambda,i);
-
-		cprob[i]=cprob[i-1]+eterm*power/(double)fac;
-		printf("%d %f\n",i,cprob[i]);
+	k=0;
+	p=1.;
+	l=exp(-lambda);
+	while(p>l){
+		++k;
+		nr=FRANDOM;
+		p*=nr;
 	}
 
-	nr=FRANDOM*cprob[maxk];
-	k=bissectionSearch(nr,cprob,maxk+1);
-	printf("k=%d\n",k);
-
-	free(cprob);
-	return k;
+	return k-1;
 }
 /************************************************************************************
 *  Simple addition of an element to a list: add it at the end of the list and       *
