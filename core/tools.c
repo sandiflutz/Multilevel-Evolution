@@ -40,6 +40,33 @@ double normalProb(double x){
 /****************************************************************
 *     Generate a gaussian random number                         *
 *****************************************************************/
+double gaussRandNum(double mean, double var){
+        double x,y,r,nr,fac;
+
+               	
+	do{
+		x=2.*FRANDOM-1.;//random number between -1 and 1
+		y=2.*FRANDOM-1.;
+		r=x*x+y*y;
+                
+	}while(r>1. || r==0.);
+                
+	fac=var*sqrt(-2.*log(r)/r);
+                
+	x=fac*x+mean;
+	y=fac*y+mean;
+
+	if(FRANDOM<0.5){
+ 		nr=x;
+	}else{
+		nr=y;
+	}
+	
+	return nr;
+}
+/******************************************************************
+*     Generate a gaussian random number (from a truncated dist.)  *
+*******************************************************************/
 double truncGaussRandNum(double mean, double var,double a,double b){
         double x,y,r,nr,fac;
 
@@ -70,8 +97,8 @@ double truncGaussRandNum(double mean, double var,double a,double b){
 *      Draw a random integer from a poisson distribution o      *
 *      mean @lambda                                             *
 *****************************************************************/
-int poissonRandNum(double lambda){
-	int i,k;
+int poissonRandKnuth(double lambda){
+	int k;
 	double l,p,nr;
 
 	k=0;
@@ -481,6 +508,21 @@ int findMaxElement(int size,double *max_e,double *vec){
         }
 
         return idm;
+}
+/********************************************************
+ * return the smallest number between the @a and @b     *
+ ********************************************************/
+double minNum(double a, double b){
+	double min;
+
+	if(a<=b){
+		min=a;
+	}else{
+		min=b;
+	}
+
+
+	return min;
 }
 /****************************************************
  * Create fill a vector with log spaced elements    *

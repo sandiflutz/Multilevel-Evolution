@@ -28,12 +28,16 @@ double normalProb(double x);
 /****************************************************************
 *     Generate a gaussian random number                         *
 *****************************************************************/
+double gaussRandNum(double mean, double var);
+/*******************************************************************
+*     Generate a gaussian random number (from a truncated dist.)   *
+******************************************************************/
 double truncGaussRandNum(double mean, double var,double a,double b);
 /****************************************************************
 *      Draw a random integer from a poisson distribution o      *
 *      mean @lambda                                             *
 *****************************************************************/
-int poissonRandNum(double lambda);
+int poissonRandKnuth(double lambda);
 /************************************************************************************
 *  Simple addition of an element to a list: add it at the end of the list and       *
 *  increment the size of the list                                                   *
@@ -133,6 +137,10 @@ int selectEventCP(double *cprob,int size);
 *           its position in the vector         *
 ************************************************/
 int findMaxElement(int size,double *max_e,double *vec);
+/********************************************************
+ * return the smallest number  between @a and @b         *
+ ********************************************************/
+double minNum(double a, double b);
 /****************************************************
  * Create fill a vector with log spaced elements    *
  ***************************************************/
