@@ -25,13 +25,26 @@
 #ifndef MEASURES_H
 #define MEASURES_H
 /**********************************************
-*   stores the frequency of beneficial       *
-*   bacteria in a single host                *
-**********************************************/
+ * calculate investment density per Host     *
+ **********************************************/
+void calcInvDens(double *densInvH);
+/**********************************************
+ * calculate investment frequency per Host    *
+ **********************************************/
+void calcInvFreq(double *freqInvH);
+/**********************************************************************
+ * calculate investment distribution among                            *
+ * hosts                                                              *
+ **********************************************************************/
+void calcInvDist(double binsize, double *hist_inv, double *freqInvH); 
+/************************************************
+*   store the current average investment level  *
+*   in an isolate host                          *
+**************************************************/
 void densB1Xt(TimeMeasures *meas);
 /**********************************************
-*   stores the frequency of beneficial       *
-*   bacteria in a single host                *
+*   store the frequency of beneficial         *
+*   bacteria in a single host                 *
 **********************************************/
 void averInvestmentXt(TimeMeasures *meas);
 /**************************************
@@ -40,19 +53,14 @@ void averInvestmentXt(TimeMeasures *meas);
 *  investment of each host            *
 ***************************************/
 void save_config(TimeMeasures *meas);
-/**********************************************
- * calculates investment distribution among   *
- * hosts                                      *
- **********************************************/
-void calcInvDist(double *hist_inv, double binsize);
 /***********************************************
  * store investment distribution among and     *
  * create a gnuplot script to create graphics  *
  ***********************************************/
 void invDistXt(TimeMeasures *meas);
-/**********************************************
-*   this routine united all time measures     *
-*   done inside the time loop                 *
-**********************************************/
+/***************************************************
+*  call routines that measure and store measures   *
+*  during the time loop                            *
+****************************************************/
 void measures(TimeMeasures *meas);
 #endif

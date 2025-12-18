@@ -91,7 +91,7 @@ help:
 	@$(foreach m,$(MEASURE_MACROS),echo "  - $(m)";)
 	@echo ""
 	@echo "Example:"
-	@echo "  make gsl MACRO=AVERINVxT EXEC=invXt_gsl.out"
+	@echo "make gsl MACRO=AVERINVxT EXEC=invXt_gsl.out"
 	@echo ""
 # -------------------------------------------------------
 #  Phony targets

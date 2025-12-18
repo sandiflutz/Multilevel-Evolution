@@ -4,52 +4,115 @@
 #include"tools.h"
 #include"measures.h"
 /**********************************************
-*   stores the frequency of beneficial        *
-*   bacteria in a single host                 *
-**********************************************/
-void densB1Xt(TimeMeasures *meas){
-	int nh;
+ * calculate investment density per Host     *
+ **********************************************/
+void calcInvDens(double *densInvH){
+	int i,idh,j,nh;
+	
+	nh=listh->usize;
+	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
+		densInvH[i]=0.;
+		for(j=0; j<TYPES; ++j){
+			densInvH[i]+=bac[idh][j]*spar->s[j]*spar->inv[j];
+		}
+	}
+
+	return;
+}
+/**********************************************
+ * calculate investment frequency per Host    *
+ **********************************************/
+void calcInvFreq(double *freqInvH){
+	int i,idh,j,nh;
+	
+	nh=listh->usize;
+	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
+		freqInvH[i]=0.;
+		for(j=0; j<TYPES; ++j){
+			freqInvH[i]+=bac[idh][j]*spar->s[j]*spar->inv[j]/spar->micr[idh];
+		}
+	}
+
+	return;
+}
+/*******************************************************************
+ * calculate investment distribution among                         *
+ * hosts                                                           *
+ *******************************************************************/
+void calcInvDist(double binsize,double *hist_inv,double *freqInvH){
+	int i,nh,id;
 
 	nh=listh->usize;
 
+	calcInvFreq(freqInvH);
+	for(i=0; i<nh; ++i){
+		id=(int)(freqInvH[i]/binsize);
+		hist_inv[id]+=1.;
+	}
+
+
+	return;
+}
+/************************************************
+*   store the current average investment level  *
+*   in an isolate host                          *
+**************************************************/
+void densB1Xt(TimeMeasures *meas){
+	int j;
+	double averinv;
+
 	if(meas->NTnow==meas->NTi){
-		fprintf(meas->file_tmeas,"#1:time 2:bac[single host,most helpful type] 3:dens_host \n");
+		fprintf(meas->file_tmeas,"#1:time 2:average investment level on an isolated host\n");
 	}
 	
-	fprintf(meas->file_tmeas,"%f %f %f\n",meas->Tnow,bac[meas->idh_h1][TYPES-1]/spar->micr[meas->idh_h1],(double)nh/N);
-       	printf("%f %f %f\n",meas->Tnow,bac[meas->idh_h1][TYPES-1]/spar->micr[meas->idh_h1],(double)nh/N);
-        return;
+	averinv=0.;
+	for(j=0; j<TYPES; ++j){
+		averinv+=bac[meas->idh_h1][j]*spar->s[j]*spar->inv[j]/spar->micr[meas->idh_h1];
+	}
+	
+	fprintf(meas->file_tmeas,"%f %f %f %f %f\n",meas->Tnow,averinv,bac[meas->idh_h1][0]/spar->micr[meas->idh_h1],bac[meas->idh_h1][1]/spar->micr[meas->idh_h1],spar->micr[meas->idh_h1]);
+	printf("time=%f averinv=%f fbac0=%f fbac1=%f micr=%f\n",meas->Tnow,averinv,bac[meas->idh_h1][0]/spar->micr[meas->idh_h1],bac[meas->idh_h1][1]/spar->micr[meas->idh_h1],spar->micr[meas->idh_h1]);
+       	printf("%f %f\n",meas->Tnow,averinv);
+        
+	return;
 }
 /**********************************************
 *   stores the frequency of beneficial       *
 *   bacteria in a single host                *
 **********************************************/
 void averInvestmentXt(TimeMeasures *meas){
-	int i,j,idh,nh;
-	double averinv,averinvH,tot_micr;
+	int i,idh,nh;
+	double averinv,*densInvH,tot_micr;
 	
-	nh=listh->usize;
-
 	if(meas->NTnow==meas->NTi){
 		fprintf(meas->file_tmeas,"#1:time 2:average cumulative investment 3:dens_host 4:number of time steps\n");
 	}
 
+	/****setting investiment density per host vector*****/
+	nh=listh->usize;
+	densInvH=(double *)calloc(nh,sizeof(double));/*indexes are the same as in @listh->vec[] 
+						      * (real host indexes are idh=listh->vec[i] (for 0<=i<nh)) */
+	calcInvDens(densInvH);
+
+	/*********calculating average investment is the system***********/
 	averinv=0.;
 	tot_micr=0.;
         for(i=0; i<nh; ++i){
                 idh=listh->vec[i];
-
 		tot_micr+=spar->micr[idh];
-                averinvH=0.;
-                for(j=0; j<TYPES; ++j){
-                        averinvH+=spar->inv[j]*bac[idh][j];//the investment for strategy j=0 (neutral bacteria) is 0, so only helpers are being acounted for here
-                }
-                averinv+=averinvH;
+		averinv+=densInvH[i];
         }
-        averinv/=tot_micr;
-        fprintf(meas->file_tmeas,"%f %f %f %f %d\n",meas->Tnow,averinv,(double)tot_micr/nh,(double)nh/N,meas->NTnow);
-        printf("t=%f averinv=%f avmicrdens=%f nh/N=%f numsteps=%d\n",meas->Tnow,averinv,(double)tot_micr/nh,(double)nh/N,meas->NTnow);
+	averinv/=tot_micr;//averaging over the whole microbe population
+	
 
+	/*storing data*/
+        fprintf(meas->file_tmeas,"%f %f %f %d %f %d\n",meas->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,meas->NTnow);
+        printf("t=%f averinv=%f avmicrdens=%f nh=%d nh/N=%f numsteps=%d\n",meas->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,meas->NTnow);
+
+	/*freeing allocated memory*/
+	free(densInvH);
         return;
 }
 /**************************************
@@ -58,14 +121,15 @@ void averInvestmentXt(TimeMeasures *meas){
 *  investment of each host            *
 ***************************************/
 void save_config(TimeMeasures *meas){
-        int i,j,k,id,nh,namelen,dnl;
-        double pointsize,*w;
-        char *name,*namedat,*name_gp;
+        int i,j,id,idlisth,nh,namelen,dnl;
+        double pointsize,*freqInvH;
+        char *name,*namedat,*name_gp,*nt_format;
         FILE *fconfig,*fgp;
 	
 	/****creating files (if there are file with the same names, there are subscribed)********/
 	dnl=100;
         namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;
+        nt_format=(char *)malloc(sizeof(char)*dnl);//format of the time term, on the name (files for animations have to be ordered: better to use a 0<t<1 format)
         name=(char *)malloc(sizeof(char)*namelen);//base name
         namedat=(char *)malloc(sizeof(char)*namelen+dnl);//data file name
         name_gp=(char *)malloc(sizeof(char)*namelen+dnl);//name for the gnuplot data file
@@ -80,12 +144,12 @@ void save_config(TimeMeasures *meas){
                 pointsize=2;
         }
 #if (FIG_EXT==0)
-        sprintf(namedat,"%s_idt%f.dat",name,(double)meas->NTnow/meas->NTf);
-        sprintf(name_gp,"%s_idt%f.gp",name,(double)meas->NTnow/meas->NTf);
+        sprintf(nt_format,"idt%f",(double)meas->NTnow/meas->NTf);
 #elif
-        sprintf(namedat,"%s_Tf%d.dat",name,meas->NTnow);
-        sprintf(name_gp,"%s_Tf%d.gp",name,meas->NTnow);
+        sprintf(nt_format,"Tf%d",meas->NTnow);
 #endif
+        sprintf(namedat,"%s%s_%s.dat",fdatapath,name,nt_format);
+        sprintf(name_gp,"%s%s_%s.gp",fdatapath,name,nt_format);
 
         fconfig = fopen(namedat,"w");
         fgp = fopen(name_gp,"w");
@@ -94,24 +158,20 @@ void save_config(TimeMeasures *meas){
 	/*******setting average investment per host vector and filling data file***********************/
 
 	nh=listh->usize;
-        w=(double *)calloc(nh,sizeof(double));
-
+	freqInvH=(double *)calloc(nh,sizeof(double));/*indexes are the same as in @listh->vec 
+						      * (real host indexes are idh=listh->vec[i] (for 0<=i<nh)) */
+	calcInvFreq(freqInvH);
+	
+	idlisth=0;
         for(i = 0; i < L; ++i){//linha
                 for(j = 0; j < L; ++j){//coluna
                         id=j+i*L;
-                        w[id]=-1.;
-                        if(spar->micr[id]>0.){
-                                w[id]=0.;
-                                for(k=0; k<TYPES; ++k){
-                                        w[id]+=spar->inv[k]*spar->s[k]*bac[id][k]/spar->micr[id];
-                                }
-                        }
-
-                        if(spar->micr[id]>0.){
-                                fprintf(fconfig,"%d %d %f %f\n",i,j,w[id],spar->inv[TYPES-1]*bac[id][TYPES-1]/spar->micr[id]);
-                        }else{
-                                fprintf(fconfig,"%d %d %f %f\n",i,j,w[id],-1.);
-                        }
+			if(id<listh->vec[idlisth]){//@id not on the list of alive hosts
+                                fprintf(fconfig,"%d %d %d\n",i,j,-1);
+			}else{//id==listh->vec[idlisth], @id is alive
+                                fprintf(fconfig,"%d %d %f\n",i,j,freqInvH[idlisth]);
+				++idlisth;
+			}
                 }
                 fprintf(fconfig,"\n");
         }
@@ -141,41 +201,24 @@ void save_config(TimeMeasures *meas){
         fprintf(fgp,"set size square\n");
         fprintf(fgp,"set pointsize %0.2lf\n",pointsize);
         fprintf(fgp,"rgb(r,g,b) = 65536 * int(r) + 256 * int(g) + int(b)\n");
-        fprintf(fgp,"plot '%s' u 1:(($3>=0)?$2:1/0):(rgb(255*(1-$3),0,255*$3)) w p pt 5 lc rgb variable,\\\n",namedat);
-        fprintf(fgp,"'%s' u 1:(($3<0)?$2:1/0):(rgb(0,0,0)) w p pt 5 lc rgb variable\n",namedat);
+        fprintf(fgp,"plot '%s_%s.dat' u 1:(($3>=0)?$2:1/0):(rgb(255*(1-$3),0,255*$3)) w p pt 5 lc rgb variable,\\\n",name,nt_format);
+        fprintf(fgp,"'%s_%s.dat' u 1:(($3<0)?$2:1/0):(rgb(0,0,0)) w p pt 5 lc rgb variable\n",name,nt_format);
 
 
 	/***freeing allocated memory and closing files******/
-        fclose(fconfig);
-        fclose(fgp);
+        
+	
+        free(freqInvH);
+	
+	free(nt_format);
+        free(name);
         free(name_gp);
         free(namedat);
-        free(name);
-        free(w);
+	
+	fclose(fconfig);
+        fclose(fgp);
 
         return;
-}
-/**********************************************
- * calculates investment distribution among   *
- * hosts                                      *
- **********************************************/
-void calcInvDist(double *hist_inv,double binsize){
-	int i,idh,j,nh,id;
-	double avinvH;
-
-	nh=listh->usize;
-	for(i=0; i<nh; ++i){
-		idh=listh->vec[i];
-		avinvH=0.;
-		for(j=0; j<TYPES; ++j){
-			avinvH+=bac[idh][j]*spar->inv[j]/spar->micr[idh];
-		}
-		id=(int)(avinvH/binsize);
-		++hist_inv[id];
-	}
-
-
-	return;
 }
 /*****************************************************
  * store investment distribution among hosts and     *
@@ -183,41 +226,45 @@ void calcInvDist(double *hist_inv,double binsize){
  *****************************************************/
 void invDistXt(TimeMeasures *meas){
 	int i,nh,nbins=100,namelen,dnl;
-	double binsize,*hist_inv;
-        char *name,*namedat,*name_gp;
+	double binsize,*hist_inv,*freqInvH;
+        char *name,*namedat,*name_gp,*nt_format;
         FILE *fhist,*fgp;
 	
 	/****creating files (if there are file with the same names, there are subscribed)********/
 	dnl=100;
 	namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;
-        name=(char *)malloc(sizeof(char)*namelen);//base name
+        nt_format=(char *)malloc(sizeof(char)*dnl);//base name
+        name=(char *)malloc(sizeof(char)*namelen);//format of the time term, on the name (files for animations have to be ordered: better to use a 0<t<1 format)
         namedat=(char *)malloc(sizeof(char)*namelen+dnl);//data file name
         name_gp=(char *)malloc(sizeof(char)*namelen+dnl);//name for the gnuplot data file
         
-	sprintf(name,"%sinvDistXt_%s",fdatapath,meas->ftname_pars);
+	sprintf(name,"invDistXt_%s",meas->ftname_pars);
 
 #if (FIG_EXT==0)
-        sprintf(namedat,"%s_idt%f.dat",name,(double)meas->NTnow/meas->NTf);
-        sprintf(name_gp,"%s_idt%f.gp",name,(double)meas->NTnow/meas->NTf);
+        sprintf(nt_format,"idt%f",(double)meas->NTnow/meas->NTf);
 #elif
-        sprintf(namedat,"%s_Tf%d.dat",name,meas->NTnow);
-        sprintf(name_gp,"%s_Tf%d.gp",name,meas->NTnow);
+        sprintf(nt_format,"Tf%d",meas->NTnow);
 #endif
-        fhist = fopen(namedat,"w");
+        sprintf(namedat,"%s%s_%s.dat",fdatapath,name,nt_format);
+        sprintf(name_gp,"%s%s_%s.gp",fdatapath,name,nt_format);
+        
+	fhist = fopen(namedat,"w");
         fgp = fopen(name_gp,"w");
 	
-	/*******setting histogram vector***********************/
+	/*******setting histogram and investment frequency per host vectors***********************/
 	
 	hist_inv=(double *)calloc(nbins,sizeof(double));
 	memset(hist_inv,0.,sizeof(double)*nbins);
 	binsize=1./(double)nbins;
-
-	calcInvDist(hist_inv,binsize);
+	
+	nh=listh->usize;
+	freqInvH=(double *)calloc(nh,sizeof(double));/*indexes are the same as in @listh->vec 
+						      * (real host indexes are idh=listh->vec[i] (for 0<=i<nh)) */
+	calcInvDist(binsize,hist_inv,freqInvH);
 
 	/*******************filling data file*****************************/
-	nh=listh->usize;
-
-	if(meas->NTnow==meas->NTi)fprintf(meas->file_tmeas,"#1:time 2:hist_inv[type] 3:type 4:numsteps\n");
+	
+	if(meas->NTnow==meas->NTi)fprintf(fhist,"#1:average inv. in hosts 2:frac. of hosts 3:numsteps\n");
 	for(i=0; i<nbins; ++i){
 		fprintf(fhist,"%f %f %d\n",(double)i*binsize,(double)hist_inv[i]/nh,meas->NTnow);
 	}
@@ -237,14 +284,16 @@ void invDistXt(TimeMeasures *meas){
 	fprintf(fgp,"set yr[0:1]\n");
 	fprintf(fgp,"set xlabel'{/=25 av. inv. in host}'\n");
 	fprintf(fgp,"set ylabel'{/=25 frac. of hosts}'\n");
-	fprintf(fgp,"plot '%s' u 1:2 w l lw 3 lc 1\n",namedat);
+	fprintf(fgp,"plot '%s_%s.dat' u 1:2 w l lw 3 lc 1\n",name,nt_format);
 
 	/**freeing allocated memory and closing files**/
 
+	free(freqInvH);
 	free(hist_inv);
 	free(name);
 	free(namedat);
 	free(name_gp);
+	free(nt_format);
 	fclose(fhist);
 	fclose(fgp);
 	return;
@@ -256,8 +305,8 @@ void invDistXt(TimeMeasures *meas){
 void measures(TimeMeasures *meas){
 	
         #ifdef DENSb1xT
-	if((meas->NTnow>=meas->Ti)&&(meas->NTnow<=meas->NTf)){
-		densB1XtXt(meas);
+	if((meas->NTnow>=meas->NTi)&&(meas->NTnow<=meas->NTf)){
+		densB1Xt(meas);
 	}
         #endif
         #ifdef AVERINVxT
@@ -279,8 +328,10 @@ void measures(TimeMeasures *meas){
 		printf("Time (measuring):%d\n",meas->NTnow);
 		invDistXt(meas);
 		++meas->nfiles;
-	}else{
+	}else if(meas->NTnow<meas->NTi){
 		printf("Time (before measuring starts):%d\n",meas->NTnow);
+	}else{
+		printf("Time (after measuring finishes):%d\n",meas->NTnow);
 	}
         #endif
 

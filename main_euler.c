@@ -25,7 +25,7 @@ int main(void){
         
 	/*Open Files for time measures*/
 	#ifdef TMEAS
-        strncat(meas.ftname_pars, "_eu.dat",meas.ftnpars_size-strlen(meas.ftname_pars)-1);
+        strncat(meas.ftname_pars, "_eu",meas.ftnpars_size-strlen(meas.ftname_pars)-1);
         openFiles(&meas);
         #endif
 	/**********/

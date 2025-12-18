@@ -15,6 +15,7 @@ void allocateMemory(Event *event,TimeMeasures *meas){
         int i;
 
         host=(int *)calloc(N,sizeof(int));
+	memset(host,0,sizeof(int)*N);
         neighbor=(int **)calloc(VIZ,sizeof(int *));
         for(i=0; i<VIZ; ++i){
                 neighbor[i]=(int *)calloc(N,sizeof(int));
@@ -52,7 +53,9 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	event->sizeE=2*N;
 	event->usizeE=0;
         event->ratesE=(double *)calloc(event->sizeE,sizeof(double));
+	memset(event->ratesE,0.,sizeof(double)*event->sizeE);
         event->cprobE=(double *)calloc(event->sizeE,sizeof(double));
+	memset(event->cprobE,0.,sizeof(double)*event->sizeE);
 	event->timeE=0.;
 	event->dtE=Dt_ref;
 
@@ -97,19 +100,19 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 void openFiles(TimeMeasures *meas){
 	int namelen,dnl;
 
-	dnl=50;
+	dnl=100;
         namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;
 
 	char *name=(char *)calloc(namelen,sizeof(char));
 
 #ifdef DENSb1xT
-        sprintf(namedXt1,"%sdensb1Xt_%s",fdatapath,meas->ftname_pars);
+        sprintf(name,"%sdensb1Xt_%s.dat",fdatapath,meas->ftname_pars);
         meas->file_tmeas=fopen(name,"w");
 	if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
 
 #endif
 #ifdef AVERINVxT
-        sprintf(name,"%saverInvXt_%s",fdatapath,meas->ftname_pars);
+        sprintf(name,"%saverInvXt_%s.dat",fdatapath,meas->ftname_pars);
         meas->file_tmeas=fopen(name,"w");
 	if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
 #endif
@@ -222,7 +225,7 @@ void initialStateSingleH(TimeMeasures *meas){
                 norm+=bac[meas->idh_h1][i];
         }
         for(i=0; i<TYPES; ++i){
-                bac[meas->idh_h1][i]=bac[meas->idh_h1][i]*Bac0/norm;
+                bac[meas->idh_h1][i]*=Bac0/norm;
         }
         for(i=0; i<N; ++i){
                 listh->vec[i]=i;
@@ -256,11 +259,15 @@ void setInvestmentsPaper(void){
 void setInvestments(void){
         int i,tymi;
 
-	memset(spar->s,1.,sizeof(double)*TYPES);
 	tymi=TYPES-1-Tplus;//# of negative types
         for(i=0; i<TYPES; ++i){
                 spar->inv[i]=(double)(i-tymi)/Tplus;
-		if(i-tymi<0)spar->s[i]=-1;
+		
+		if(i-tymi>=0){
+			spar->s[i]=1.;
+		}else{
+			spar->s[i]=-1.;
+		}
         }
 
         return;
@@ -293,7 +300,7 @@ void setSystem(Event *event,TimeMeasures *meas){
 	#elif(CI==1)//frequencies come from normal distribution
 		initialStateNormD();
 	#else//single host
-		initialStateSingleH();
+		initialStateSingleH(meas);
 	#endif
 
 	return;

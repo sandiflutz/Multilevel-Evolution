@@ -115,70 +115,91 @@ int bacDynamics(gsl_odeiv2_driver *driver,Event *event){
 	double dt=event->dtE;
         double mig=spar->mig;//migration rate
 
-	//allocating space for a tempory bacteria abundance vector (so the abundances can be updated synchronously)
-	bac_tmp=(double **)calloc(N,sizeof(double *));
-	for(i=0; i<N; ++i){
-		bac_tmp[i]=(double *)calloc(TYPES,sizeof(double));
-	}
 
 	nh=listh->usize;//# of alive hosts
-	for(i=0; i<nh; ++i){
-		idh=listh->vec[i];//index of the i-th alive host stored in a list
-		spar->idhost=idh;
-		#if (NETWORK!=0)//not the complete graph
- 	   	searchLiveNeighbors(0,idh,host,neighbor,alive_viz);//store the indexes of @idh alive neighbors in a list
-        	int nv=alive_viz->usize;//# of alive neighbors
-               	#endif
-		spar->micr[idh]=0.;
-		for(j=0; j<TYPES; ++j){
-			/*migration terms*/
-			migr_in=0.;
-			migr_out=mig*bac[idh][j];	
-			#if (NETWORK==0)//well-mixed
-			for(k=0; k<nh; ++k){
-				idk=listh->vec[k];
-				migr_in+=mig*bac[idk][j];
-			}
-			migr_in=(migr_in-mig*bac[idh][j])/nh;
-               		#else
-			for(k=0; k<nv; ++k){
-				idk=alive_viz->vec[k];
-				migr_in+=mig*bac[idk][j];
-			}
-			migr_in/=nv;
-			#endif
-			//evolution due just to the migrations terms
-			bac_tmp[idh][j]=bac[idh][j]+(migr_in-migr_out)*dt;
-			spar->micr[idh]+=bac_tmp[idh][j];
+	if(nh>1){
+		//allocating space for a tempory bacteria abundance vector (so the abundances can be updated synchronously)
+		bac_tmp=(double **)calloc(N,sizeof(double *));
+		for(i=0; i<N; ++i){
+			bac_tmp[i]=(double *)calloc(TYPES,sizeof(double));
 		}
-		gsl_odeiv2_driver_reset(driver);
-		time_tmp=event->timeE;
-		status=gsl_odeiv2_driver_apply(driver, &time_tmp, time_tmp+dt, bac_tmp[idh]);//evolution due to birth and death for host @idh
-		if (status != GSL_SUCCESS) {
+		/*************/
+		for(i=0; i<nh; ++i){
+			idh=listh->vec[i];//index of the i-th alive host stored in a list
+			spar->idhost=idh;
+			#if (NETWORK!=0)//not the complete graph
+			searchLiveNeighbors(0,idh,host,neighbor,alive_viz);//store the indexes of @idh alive neighbors in a list
+			int nv=alive_viz->usize;//# of alive neighbors
+			#endif
+			spar->micr[idh]=0.;
+			for(j=0; j<TYPES; ++j){
+				/*migration terms*/
+				migr_in=0.;
+				migr_out=mig*bac[idh][j];	
+				#if (NETWORK==0)//well-mixed
+				for(k=0; k<nh; ++k){
+					idk=listh->vec[k];
+					migr_in+=mig*bac[idk][j];
+				}
+				migr_in=(migr_in-mig*bac[idh][j])/nh;
+				#else
+				for(k=0; k<nv; ++k){
+					idk=alive_viz->vec[k];
+					migr_in+=mig*bac[idk][j];
+				}
+				migr_in/=nv;
+				#endif
+				//evolution due just to the migrations terms
+				bac_tmp[idh][j]=bac[idh][j]+(migr_in-migr_out)*dt;
+				spar->micr[idh]+=bac_tmp[idh][j];
+			}
+			gsl_odeiv2_driver_reset(driver);
+			time_tmp=event->timeE;
+			status=gsl_odeiv2_driver_apply(driver, &time_tmp, time_tmp+dt, bac_tmp[idh]);//evolution due to birth and death for host @idh
+			if (status != GSL_SUCCESS) {
 				for(j=0; j<N; ++j){
 					free(bac_tmp[j]);
 				}
 				free(bac_tmp);
-                                printf("Error in ODE integration: %s\n", gsl_strerror(status));
-                                return 1;
+				printf("Error in ODE integration: %s\n", gsl_strerror(status));
+				return 1;
+			}
+
+	
 		}
-
-	}
-
-	//synchronously updating hosts microbiome abundances and bacteria abundances
-	for(i=0; i<nh; ++i){
-		idh=listh->vec[i];
+	
+		/*synchronously updating hosts microbiome abundances and bacteria abundances*/
+		for(i=0; i<nh; ++i){
+			idh=listh->vec[i];
+			spar->micr[idh]=0.;
+			for(j=0; j<TYPES; ++j){
+				bac[idh][j]=bac_tmp[idh][j];
+				spar->micr[idh]+=bac[idh][j];
+			}
+		}
+	
+		/*freeing temporary array for bacteria state*/
+		for(i=0; i<N; ++i){
+			free(bac_tmp[i]);
+		}
+		free(bac_tmp);
+	}else{
+		idh=listh->vec[0];
+		spar->idhost=idh;
+		gsl_odeiv2_driver_reset(driver);
+		time_tmp=event->timeE;
+		status=gsl_odeiv2_driver_apply(driver, &time_tmp, time_tmp+dt, bac[idh]);//evolution due to birth and death for host @idh
+		if (status != GSL_SUCCESS) {
+			printf("Error in ODE integration: %s\n", gsl_strerror(status));
+			return 1;
+			
+		}
 		spar->micr[idh]=0.;
 		for(j=0; j<TYPES; ++j){
-			bac[idh][j]=bac_tmp[idh][j];
 			spar->micr[idh]+=bac[idh][j];
 		}
 	}
 
 
-	for(i=0; i<N; ++i){
-		free(bac_tmp[i]);
-	}
-	free(bac_tmp);
 	return 0;
 }

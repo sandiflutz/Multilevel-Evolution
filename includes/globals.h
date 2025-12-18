@@ -12,7 +12,7 @@
 /**paramenters to define the structure of the system*********/
 #define L               100       /*linear number of sites (square lattice case*/
 #define N               (L*L)    /*number of sites*/
-#define TYPES           2      /*number of types of microbe*/
+#define TYPES           2        /*number of types of microbe*/
 #define Tplus           (TYPES-1)  /*number of types of microbe*/
 #define IDBH            0        /*type of the bacteria that helps other bacteria*/  
 #define NETWORK         0        /*0: well-mixed
@@ -23,21 +23,17 @@
 #elif
         #define VIZ    4         /*number of neighbors in the square-lattice: 4 or 8*/
 #endif
-#if (TYPES==2)
-	#define CI             0         /*0:uniforme distribution (don't change it!)*/
-#else
-	#define CI             1 /*0: system starts with types being randomly distributed with a uniform distribution
+#define CI             2 /*0: system starts with types being randomly distributed with a uniform distribution
                                   *1: system starts with types being randomly distributed using a normal distribution for the frequencies of each type
                                   *2: system starts with only the 1 host
                                   */
-#endif
 
 /**dynamics parameters*************/
-#define Mu        0.01  /*mutation rate*/
-#define Theta     1e-05       /*migration rate*/
+#define Mu        0.01          /*mutation rate*/
+#define Theta     1e-05         /*migration rate*/
 #define Beta      1.            /*birth rate for neutral bacteria*/
 #define Delta     1.            /*death rate for microbes*/
-#define K_bac     1.            /*bacteria carrying capacity*/
+#define K_bac     (Beta/Delta)  /*bacteria carrying capacity*/
 #define K_H       500
 #define Gamma     0.01          /*cost for helping when the investment is 1*/
 #define Gh        100           /*number of microbial generations per host generation*/
@@ -47,30 +43,30 @@
 #define Bacv      1e-03         /*initial density of vertically transmitted microbes in a new host*/
 #define Bac0      1.             /*initial bacteria density in each host (t=0)*/
 #define BSAMPLES  10            /*number of bacteria samples passed from a parent host to its offspring*/
-#define SIGMA     0.05          /*variance of the trucated normal distribution for the inheritance of helpful microbes*/
+#define SIGMA     0.01          /*variance of the trucated normal distribution for the inheritance of helpful microbes*/
 #define MEANinv0  0.
 #define STDinv0   0.01
 #define DTVSIZE   29
 /****parameters for measures/sampling and related things****************/
 #define TF        1000.          /*host maximum time (measured using continuous values for the times steps)*/
-#define NTS       10e4       /*maximum number of timesteps*/
+#define NTS       10000           /*maximum number of timesteps*/
 #define FIG_EXT   0              /*Extension of the figure files (for the routines that create gnuplot scripts):
 				 * 0:png (good for creating animations later)
                                  * 1:eps 
                                  */
 #define NF       100             /*number of files creater for the routines that create one file per timestep (interval between file=(Tf_me-T0_me)/NF)*/
 #define NTf_me   NTS            /*time to stop a measure*/
-#define NT0_me   10e3            /*time to start a measure*/
+#define NT0_me   0              /*time to start a measure*/
 /***Routine Choices***********************************************/
 #if (TYPES==2)
   #define INV     1         /*(don't change it)! Investment function when there is just 2 types is 0 or 1 (option 1 is inv[j]=j/(TYPES-1) )*/
 #else
   #define INV     0         /*investment function:
                                  *0 (paper version): inv[j]=(2(j+1)-1)/(2*TYPES)
-                                 *1: inv[j]=j/(TYPES-1)
+                                 *1: inv[j]=j/Tplus
                                  */
 #endif
-#define TV        1         /*rule for vertical transmission: 0=normal dist. (around parent bac. type freq.),1=poisson dist. for the sample size */
+#define TV        0         /*rule for vertical transmission: 0=normal dist. (around parent bac. type freq.),1=poisson dist. for the sample size */
 #if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)
 	#define TMEAS
 #endif
