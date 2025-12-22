@@ -4,7 +4,7 @@
 #define Pi 3.14159265358979323846  
 /********structs*********************************************/
 typedef struct{
-        int *vec;//list of integers
+        int *vec;//list of integers: vec[i]=id 
         int size;//real size
         int usize;//size of the part being used (usize<=size)
 }DynList;//(fake) dynamic list
@@ -14,6 +14,14 @@ typedef struct{
         int sizef;//real size
         int usizef;//size of the part being used (usize<=size)
 }DynListF;//(fake) dynamic list of fluctuating point numbers 
+
+typedef struct{
+        double **array;//list of integers
+        int ncol;//# number of columns
+        int nlin;//# number of lines
+        int *ucol;//# of columns being used 
+        int ulin;//# of lines being used 
+}Dyn2DList;//(fake) 2D dynamic list of fluctuating
 /**************************************************************/
 /********************************************************
  *                 Factorial                            *
@@ -73,6 +81,10 @@ void listAddF(DynListF *list,double add_elem,int id_e);
 void listSub(DynList *list,int sub_elem,int id_e);
 /**************Double List Version***********************************/
 void listSubF(DynListF *list,double sub_elem,int id_e);
+/************************************************************
+*               exchange 2 elements of a list               *
+*************************************************************/
+void exchange(int *list, int id1, int id2);
 /************************************************************************************
 *    find the number of live neighbors of a specific host using the neighbors       *
 *    matrix and the list of live hosts. Store live neighbors positions              *
@@ -101,6 +113,16 @@ void squareLattice(int **neighbor,int viz,int sites);
 *               (without self-neighboring)                *
 ***********************************************************/
 void setCompleteGraph(int **neighbor,int sites);
+/***********************************************************
+*       Set a neighbors classification vector:             *
+*       clneighbor[i][j]=k: j is the k-th neighbor of i    *
+************************************************************/
+void classifyNeighbors(int **neighbor,int **clneighbor,int nviz,int sites);
+/**************************************************
+*       Randomly select a neighbor from           *
+*       a neighbors list, from indexes 1d1 to id2 *
+***************************************************/
+int randNeighbor(int id,int *vec,int id1,int id2,int size);
 /*************************************************
 *       Set network links between sites          *
 **************************************************/

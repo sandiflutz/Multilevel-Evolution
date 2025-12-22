@@ -20,10 +20,6 @@ void bac_euler(double dt,SysParams *sp){
 
         nh=listh->usize;
 	
-	for(i=0; i<nh; ++i){
-
-	}
-
         for(i=0; i<nh; ++i){
                 idh1=listh->vec[i];
                 

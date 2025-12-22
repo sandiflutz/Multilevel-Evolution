@@ -52,7 +52,7 @@ void callSetSystem(void){
         bac_make_system(&sys, spar);
         driver =
                 gsl_odeiv2_driver_alloc_y_new(&sys,gsl_odeiv2_step_msbdf,
-                1e-6,// initial step size guess
+                Dt_ref,// initial step size guess
                 1e-6,// absolute tolerance
                 1e-6// relative tolerance
         );
@@ -64,8 +64,12 @@ void callSetSystem(void){
  *          time loop                     *
  ******************************************/
 void callSysDynamics(int nst){
-	int i,idh,numsteps,nh,nb,dnt_h,dnt_b,dnt;
+	int i,idh,id_list,numsteps,nh,dnt_h,dnt_b,dnt;
 	double dt,sumprobs;
+	int *inverselisth_tmp=(int *)calloc(N,sizeof(int));
+	DynList listh_tmp;
+	listh_tmp.vec=(int *)calloc(N,sizeof(int));
+	listh_tmp.size=listh->size;
 	
 	nh=listh->usize;
 	
@@ -88,21 +92,35 @@ void callSysDynamics(int nst){
                 event.dtE=gillespieTime(sumprobs);//use sum of event probs. to calculate gillespie time
 
 		calcNumSteps(&dnt_h,&dnt_b,&dnt,event.dtE,Dt_ref);
+		/*temporary host list (to keep track of the changes in the real time changes in the host list, that have to be update after host time substeps)*/
+		listh_tmp.usize=listh->usize;
+		for(i=0; i<N; ++i){
+			listh_tmp.vec[i]=listh->vec[i];
+			inverselisth_tmp[i]=inverselisth[i];
+		}
+		/******/
 		for(i=0; i<dnt_h; ++i){
-			do{
-				event.whichE=selectEventCP(event.cprobE,event.usizeE);
-				idh=listh->vec[event.whichE%nh];
-			}while(host[idh]==2);
+			event.whichE=selectEventCP(event.cprobE,event.usizeE);
+			id_list=event.whichE%nh;
+			idh=listh->vec[id_list];
 		
-			dynamicsHost(&event);
+			if(host[idh]==1){
+				switch(event.whichE%nh){
+					case 0:	dynamicsHost(0,idh,&listh_tmp,inverselisth_tmp);	
+						break;
+					case 1: dynamicsHost(1,idh,&listh_tmp,inverselisth_tmp);
+						break;
+				}
+			}
 		}
+
+		//updating hosts dynamic list
+		for(i=0; i<N; ++i){
+			listh->vec[i]=listh_tmp.vec[i];
+			inverselisth[i]=inverselisth_tmp[i];
+		}
+		listh->usize=listh_tmp.usize;
 		nh=listh->usize;
-		/*no newborns anymore*/
-		nb=listnb->usize;
-		for(i=0; i<nb; ++i){
-			host[listnb->vec[i]]=1;//no newborns anymore
-		}
-		listnb->usize=0;
 		/*******************/
 		#endif
 	
@@ -112,6 +130,8 @@ void callSysDynamics(int nst){
                 numsteps+=dnt;
         }
 
+	free(inverselisth_tmp);
+	free(listh_tmp.vec);
 	return;
 }
 /******************************************
@@ -121,14 +141,13 @@ void freeMemory(void){
 	int i;
 
 	free(host);
-	for(i=0; i<VIZ; ++i){
-		free(neighbor[i]);
-	}
-	free(neighbor);
 	for(i=0; i<N; ++i){
 		free(bac[i]);
 	}
 	free(bac);
+
+	free(inverselisth);
+
 	free(dtVec);
 	free(fdatapath);
 	
@@ -145,18 +164,20 @@ void freeMemory(void){
 #endif
 
 #if (NETWORK!=0)
+	for(i=0; i<N; ++i){
+		free(neighbor[i]);
+	}
+	free(neighbor);
 	free(alive_viz->vec);
 	free(alive_viz);
 #endif
 
 	free(event.ratesE);
 	free(event.cprobE);
-	free(listnb->vec);
 	free(listh->vec);
 
 	/*structs*/
 	free(listh);
-	free(listnb);
 	
 	if (driver!=NULL) {
 		gsl_odeiv2_driver_free(driver);

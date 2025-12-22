@@ -46,5 +46,5 @@ void calcNumSteps(int *dnt_h,int *dnt_b,int *dnt,double dt_h,double dt_b);
 /*******************************************************
 *                  host dynamics                       *
 ********************************************************/
-void dynamicsHost(Event *event);
+void dynamicsHost(int type_event,int idh,DynList *lhost, int *ilhost);
 #endif

@@ -38,7 +38,7 @@ void calcHostEvents(Event *event){
 
 	w=(double *)calloc(nh,sizeof(double));
 
-        event->usizeE=2*nh;//# of possible host events (birth or death for each host)
+        event->usizeE=(2*nh);//# of possible host events (birth or death for each host)
         memset(event->ratesE,0.,sizeof(double)*event->sizeE);
 
         //birth events
@@ -49,7 +49,7 @@ void calcHostEvents(Event *event){
 	}
 
         //death events
-	for(i=nh; i<event->usizeE; ++i){
+	for(i=nh; i<(2*nh); ++i){
 		event->ratesE[i]=beta*(1.-sd*w[i-nh])*nh/((double)kh*gh);
 	}
 
@@ -229,45 +229,36 @@ void calcNumSteps(int *dnt_h,int *dnt_b,int *dnt,double dt_h,double dt_b){
 /*******************************************************
 *                  host dynamics                       *
 ********************************************************/
-void dynamicsHost(Event *event){
-        int id,idh,id_list,idk,nh;
-	int idev=event->whichE;
-
-	nh=listh->usize;//# of alive hosts
-
-        id=idev%nh;/*If idev<nh, id=idev:birth event; otherwise nh<=idev<2nh, id=idev-nh:death event*/
-        idh=listh->vec[id];
-
-        if(idev<nh){//reproduction of host @idh
-                #if (NETWORK==0)//well-mixed
-                int ne=N-nh;
-		if(ne>0){//there are empty sites in the system
-                	id_list=(int)(FRANDOM*ne)+nh-1;//randomly select an index from the second part of the host list, where empty sites are stored 
-              		idk=listh->vec[id_list];//position index of the empy site (that is going to receive the host offspring)
+void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
+        int idlist_h,idlist_k,idk,nh;
+	
+	idlist_h=ilhost[idh];
+	nh=lhost->usize;
+	switch(type_event){
+		case 0:
+			#if (NETWORK==0)//complete graph
+			idlist_k=randNeighbor(idlist_h,lhost->vec,lhost->usize,N-1,N);/*sending: 1-focus id,2-neighbors vector,
+											 *3 and 4-randomly select neighbors between these 2 ids,
+											 *5-neighbors vector size*/
+                        idk=lhost->vec[idlist_k];			
+			#else
+			searchLiveNeighbors(0,idh,VIZ,host,neighbors,alive_viz);
+			nav=alive_viz->usize;//# of alive neighbors
+			idk=randNeighbor(idlist_h,neighbor[idh],nav,VIZ-1,VIZ);
+			idlist_k=ilhost[idk];
+			#endif
+			exchange(ilhost,idk,lhost->vec[nh]);
+			exchange(lhost->vec,idlist_k,nh);
+			++lhost->usize;
 			hostBirth(idh,idk);
-			//updating host's lists
-			listAdd(listh,idk,id_list);
-			listSimpleAdd(listnb,idk);
-		}
-                #else//square-lattice 
-		searchLiveNeighbors(0,idh,VIZ,host,neighbors,alive_viz);
-		int nav=alive_viz->usize;
-                if(VIZ-nav>0){//there are empty sites in the neighborhood of host[idh]
-                        id_list=(int)(FRANDOM*(VIZ-aviz))+nav-1;
-                        idk=alive_viz.vec[id_list];
-			hostBirth(idh,idk);
-                	//updating host's lists
-			listAdd(listh,idk,id_list);
-			listSimpleAdd(listnb,idk);
-                }
-                #endif
-        }else{//death of host @idh
-		hostDeath(idh);
-		listSub(listh,idh,id);/*exchange elements @idh, position @id (which is in the fisrt part of the list of 
-					alive hosts: elements from 0 to @nh-1 on the vector that is part of the struct @listh), 
-					with the (@nh-1)-ith element, then decrement @nh
-					*/
-        }
+			break;
+		case 1: hostDeath(idh);
+			exchange(ilhost,idh,lhost->vec[nh-1]);
+			exchange(lhost->vec,idlist_h,nh-1);
+			--lhost->usize;
+			break;
+	}
+
 
         return;
 }

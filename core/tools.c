@@ -242,6 +242,18 @@ void listSubF(DynListF *list,double sub_elem,int id_e){
 
         return;
 }
+/************************************************************
+*  		exchange 2 elements of a list               *
+*************************************************************/
+void exchange(int *list, int id1, int id2){
+	int old;
+
+	old=list[id1];
+	list[id1]=list[id2];
+	list[id2]=old;
+
+	return;
+}
 /************************************************************************************
 *    find the number of live neighbors of a specific host using the neighbors       *
 *    matrix and the list of live hosts. Store live neighbors positions              *
@@ -254,7 +266,7 @@ void searchLiveNeighbors(int dead,int idh,int *host,int **neighbor,DynList *aliv
 
 	viz=alive_viz->size;
 	for(j=0;j<viz;++j){
-		idv=neighbor[j][idh];
+		idv=neighbor[idh][j];
 		if(host[idv]!=dead){
 			alive_viz->vec[nviz]=idv;
 			++nviz;
@@ -283,7 +295,7 @@ void searchAllLiveNeighbors(int dead,int sites,int nh,int maxviz,int *listh,int 
 		idh=listh[i];
 		ne=0;
 		for(j=0;j<maxviz;++j){
-			idv=neighbor[j][idh];
+			idv=neighbor[idh][j];
 			if(host[idv]!=dead){
 				list_aviz[idh*sites+nviz[idh]]=idv;
 				++nviz[idh];
@@ -323,9 +335,10 @@ void searchAllLiveLinks(int sites,int nh,int *listh,int *netlink,int *nviz,int *
 
 	return;
 }
-/*************************************************
-* Set neighbors for a square lattice network     *
-**************************************************/
+/***************************************************
+* Set neighbors for a square lattice network.      *
+* Indexes order: neighbors[site_id][k-th neighbor] *
+****************************************************/
 void squareLattice(int **neighbor,int viz,int sites){
         int i,k=0,l,base;
 
@@ -339,25 +352,25 @@ void squareLattice(int **neighbor,int viz,int sites){
                 for(i=0; i<sites; ++i){
                         base=(i/l)*l;
                         switch(k){
-                                case 0: neighbor[k][i]= (i-l+sites)%sites;//up
+                                case 0: neighbor[i][k]= (i-l+sites)%sites;//up
                                         break;
-                                case 1: neighbor[k][i]= base + (i+1)%l;//right
+                                case 1: neighbor[i][k]= base + (i+1)%l;//right
                                         break;
-                                case 2: neighbor[k][i]= (i+l)%sites;//down
+                                case 2: neighbor[i][k]= (i+l)%sites;//down
                                         break;
-                                case 3: neighbor[k][i]= base + (i-1+l)%l;//left
+                                case 3: neighbor[i][k]= base + (i-1+l)%l;//left
                                         break;
-                                case 4: neighbor[k][i]= base + (i-1+l)%l;//(left) left-up
-                                        neighbor[k][i]= (neighbor[k][i]-l+sites)%sites;//(up)
+                                case 4: neighbor[i][k]= base + (i-1+l)%l;//(left) left-up
+                                        neighbor[i][k]= (neighbor[k][i]-l+sites)%sites;//(up)
                                         break;
-                                case 5: neighbor[k][i]= base + (i+1)%l;//(right) right-up
-                                        neighbor[k][i]=(neighbor[k][i]-l+sites)%sites;//(up)
+                                case 5: neighbor[i][k]= base + (i+1)%l;//(right) right-up
+                                        neighbor[i][k]=(neighbor[k][i]-l+sites)%sites;//(up)
                                         break;
-                                case 6: neighbor[k][i]= base + (i+1)%l;//(right) right-down
-                                        neighbor[k][i]= (neighbor[k][i]+l)%sites;//(down)
+                                case 6: neighbor[i][k]= base + (i+1)%l;//(right) right-down
+                                        neighbor[i][k]= (neighbor[k][i]+l)%sites;//(down)
                                         break;
-                                case 7: neighbor[k][i]= base + (i-1+l)%l;//(left)  left-down
-                                        neighbor[k][i]= (neighbor[k][i]+l)%sites;//(down)
+                                case 7: neighbor[i][k]= base + (i-1+l)%l;//(left)  left-down
+                                        neighbor[i][k]= (neighbor[k][i]+l)%sites;//(down)
                                         break;
                         }
                 }
@@ -378,15 +391,61 @@ void setCompleteGraph(int **neighbor,int sites){
 
         for(i=0; i<sites-1; ++i){
                 for(j=i+1; j<sites; ++j){
-                        neighbor[nviz[i]][i]=j;
+                        neighbor[i][nviz[i]]=j;
                         ++nviz[i];
-                        neighbor[nviz[j]][j]=i;
+                        neighbor[j][nviz[j]]=i;
                         ++nviz[j];
                 }
         }
 
         free(nviz);
         return;
+}
+/***********************************************************
+*       Set a neighbors classification vector:             *
+*       clneighbor[i][j]=k: j is the k-th neighbor of i    *
+************************************************************/
+void classifyNeighbors(int **neighbor,int **clneighbor,int nviz,int sites){
+	int i,k;
+
+	if(neighbor!=NULL){
+		for(i=0; i<sites; ++i){
+			for(k=0; k<nviz; ++k){
+				clneighbor[i][neighbor[i][k]]=k;
+			}
+		}
+	}else{
+		 exit(1);
+	}
+	
+
+        return;
+}
+/**************************************************
+*       Randomly select a neighbor from           *
+*       a neighbors list, from indexes 1d1 to id2 *
+***************************************************/
+int randNeighbor(int id,int *vec,int id1,int id2,int size){
+	int id_viz,idmax,idmin;
+
+	if(id1<id2){
+		idmin=id1;
+		if(id2>=size)id2=size-1;
+		idmax=id2;
+	}else if(id2<id1){
+		idmin=id2;
+		if(id1>=size)id1=size-1;
+		idmax=id1;
+	}else{
+		idmin=id1;
+		idmax=idmin;
+	}
+
+	do{
+		id_viz=(int)(FRANDOM*(idmax-idmin))+idmin;
+	}while(id_viz==id);
+
+	return id_viz;
 }
 /*************************************************
 *       Set network links between sites          *
@@ -397,7 +456,7 @@ void setNetLinks(int **neighbor,int *netlink,int nviz,int sites){
         memset(netlink,0,sizeof(int)*sites*sites);
         for(i=0; i<sites; ++i){
                 for(j=0; j<nviz; ++j){
-                        viz=neighbor[j][i];
+                        viz=neighbor[i][j];
                         netlink[i*sites+viz]=1;
                 }
         }
@@ -431,29 +490,23 @@ int bissectionSearch(double nr,double *vec, int vsize){
 
         if(nr>vec[0]){
 		ok=0;
-               	while(ok==0){
+		while(ok==0){
 			k=(kmin+kmax)/2;
-		
 			if(vec[k]<nr){
-			
 				kmin=k;
-		
 			}else if(vec[k-1]>nr){
-			
 				kmax=k;
-		
 			}else{
-			
 				ok=1;
-	
 			}
 		}
 
-        }else{
-                k=0;
-        }
+        
+	}else{
+		k=0;
+	}
 
-        return k;
+	return k;
 }
 /*********************************************************
 *         randomly selects and event (towering method):  *
