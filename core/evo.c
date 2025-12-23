@@ -137,7 +137,7 @@ void setMicrKidsPoiss(int idp, int idk){
  *****************************************************/
 void hostBirth(int idp, int idk){
 
-        host[idk]=2;//newborn
+        host[idk]=1;
 	#if (TV==0)//vertical transmission using a normal dist.
 	setMicrKidsNorm(idp,idk);//set new host microbiome
 	#else//vertical transmission using a poisson dist.
@@ -153,7 +153,7 @@ void hostBirth(int idp, int idk){
 void hostDeath(int idh){
         int i;
 
-        host[idh]=0;//newborn
+        host[idh]=0;
         for(i=0; i<TYPES; ++i){
                 bac[idh][i]=0.;
         }
@@ -165,9 +165,11 @@ void hostDeath(int idh){
 *         returns gillespie's time increment    *
 ************************************************/
 double gillespieTime(double sumprob){
-        double passive_time;
+        double nr,passive_time;
 
-        passive_time=exp(sumprob);
+	nr=FRANDOM;
+
+        passive_time=-log(nr)/sumprob;
 
         return passive_time;
 }
@@ -244,11 +246,11 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
 			#else
 			searchLiveNeighbors(0,idh,VIZ,host,neighbors,alive_viz);
 			nav=alive_viz->usize;//# of alive neighbors
-			idk=randNeighbor(idlist_h,neighbor[idh],nav,VIZ-1,VIZ);
+			idk=randNeighbor(idh,alive_viz->vec,nav,VIZ-1,VIZ);
 			idlist_k=ilhost[idk];
 			#endif
-			exchange(ilhost,idk,lhost->vec[nh]);
-			exchange(lhost->vec,idlist_k,nh);
+			exchange(ilhost,lhost->vec[nh],idk);
+			exchange(lhost->vec,nh,idlist_k);
 			++lhost->usize;
 			hostBirth(idh,idk);
 			break;

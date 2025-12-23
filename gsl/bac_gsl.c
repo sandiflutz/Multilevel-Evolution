@@ -110,7 +110,7 @@ void bac_make_system(gsl_odeiv2_system *sys, SysParams *P){
  *          Bacteria Dynamics                     *
  **************************************************/
 int bacDynamics(gsl_odeiv2_driver *driver,Event *event){
-	int i,j,k,idh,idk,nh,status;
+	int i,j,k,idh,idk,nh,status,nv;
 	double migr_in,migr_out,time_tmp,**bac_tmp=NULL;
 	double dt=event->dtE;
         double mig=spar->mig;//migration rate
@@ -129,7 +129,7 @@ int bacDynamics(gsl_odeiv2_driver *driver,Event *event){
 			spar->idhost=idh;
 			#if (NETWORK!=0)//not the complete graph
 			searchLiveNeighbors(0,idh,host,neighbor,alive_viz);//store the indexes of @idh alive neighbors in a list
-			int nv=alive_viz->usize;//# of alive neighbors
+			nv=alive_viz->usize;//# of alive neighbors
 			#endif
 			spar->micr[idh]=0.;
 			for(j=0; j<TYPES; ++j){

@@ -53,7 +53,7 @@ void callSetSystem(void){
 ******************************************/
 void callSysDynamics(int nst){
 	int i,idh,numsteps,nh,dnumsteps;
-	double dt,sumprobs,prob_nev;
+	double dt,sumprobs;
 	int *inverselisth_tmp=(int *)calloc(N,sizeof(int));
 	DynList listh_tmp;
 	listh_tmp.vec=(int *)calloc(N,sizeof(int));
@@ -76,10 +76,11 @@ void callSysDynamics(int nst){
 		calcHostEvents(&event);
 
 		dt=adjustTimeStep(event.cprobE[event.usizeE-1]);
-                sumprobs=dt*event.cprobE[event.usizeE-1];
-                event.dtE=dt;
 		dnumsteps=ceil(Dt_ref/dt);
-                prob_nev=1.-sumprobs;
+		dt=Dt_ref/(double)dnumsteps;
+		sumprobs=dt*event.cprobE[event.usizeE-1];
+		printf("ns=%d sumprobs=%f\n",numsteps,sumprobs);
+                event.dtE=dt;
 		/*temporary host list (to keep track of the changes in the real time changes in the host list, that have to be update after host time substeps)*/
                 listh_tmp.usize=listh->usize;
                 for(i=0; i<N; ++i){
@@ -90,9 +91,9 @@ void callSysDynamics(int nst){
 		for(i=0; i<dnumsteps; ++i){
 			event.whichE=selectEventCP(event.cprobE,event.usizeE);
 			idh=listh->vec[event.whichE%nh];
-                
-			if((FRANDOM>prob_nev)&&(host[idh]==1)){
-                                switch(event.whichE%nh){
+                	
+			if((FRANDOM<sumprobs)&&(host[idh]==1)){
+                                switch(event.whichE/nh){
                                         case 0: dynamicsHost(0,idh,&listh_tmp,inverselisth_tmp);
                                                 break;
                                         case 1: dynamicsHost(1,idh,&listh_tmp,inverselisth_tmp);

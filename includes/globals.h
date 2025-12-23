@@ -10,14 +10,13 @@
 *************************************************************************************/
 
 /**paramenters to define the structure of the system*********/
-#define L               100       /*linear number of sites (square lattice case*/
-#define N               (L*L)    /*number of sites*/
+#define L               100        /*linear number of sites (square lattice case*/
+#define N               (L*L)      /*number of sites*/
 #define TYPES           100        /*number of types of microbe*/
 #define Tplus           (TYPES-1)  /*number of types of microbe*/
-#define IDBH            0        /*type of the bacteria that helps other bacteria*/  
-#define NETWORK         0        /*0: well-mixed
-                                  *1: square-lattice
-                                  */
+#define IDBH            0          /*type of the bacteria that helps other bacteria*/  
+#define NETWORK         0          /*0: well-mixed
+                                    *1: square-lattice*/
 #if (NETWORK==0)
         #define VIZ    (N-1)	/*number of neighbors in the well-mixed*/
 #elif
@@ -40,7 +39,7 @@
 #define Sd        0.            /*strength of the dependence of hosts deaths on their microbial content*/
 #define Dt_ref    0.05          /*time step for bacteria evolution*/
 #define Bacv      1e-03         /*initial density of vertically transmitted microbes in a new host*/
-#define Bac0      1.          /*initial bacteria density in each host (t=0)*/
+#define Bac0      1.            /*initial bacteria density in each host (t=0)*/
 #define H0        K_H           /*initial number of hosts*/
 #define BSAMPLES  10            /*number of bacteria samples passed from a parent host to its offspring*/
 #define SIGMA     0.05          /*variance of the trucated normal distribution for the inheritance of helpful microbes*/
@@ -48,15 +47,14 @@
 #define STDinv0   0.01
 #define DTVSIZE   29
 /****parameters for measures/sampling and related things****************/
-#define TF        1000.          /*host maximum time (measured using continuous values for the times steps)*/
-#define NTS       10e7           /*maximum number of timesteps*/
-#define FIG_EXT   0              /*Extension of the figure files (for the routines that create gnuplot scripts):
-				 * 0:png (good for creating animations later)
-                                 * 1:eps 
-                                 */
+#define TF        1000.           /*host maximum time (measured using continuous values for the times steps)*/
+#define NTS       10e7            /*maximum number of timesteps*/
+#define FIG_EXT   0               /*Extension of the figure files (for the routines that create gnuplot scripts):
+				  * 0:png (good for creating animations later)
+                                  * 1:eps*/
 #define NF       100             /*number of files creater for the routines that create one file per timestep (interval between file=(Tf_me-T0_me)/NF)*/
-#define NTf_me   NTS            /*time to stop a measure*/
-#define NT0_me   0              /*time to start a measure*/
+#define NTf_me   NTS             /*time to stop a measure*/
+#define NT0_me   0               /*time to start a measure*/
 /***Routine Choices***********************************************/
 #if (TYPES==2)
   #define INV     1         /*(don't change it)! Investment function when there is just 2 types is given by inv[j]=(j-Tmin)/Tplus):  

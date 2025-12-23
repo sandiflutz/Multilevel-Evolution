@@ -509,6 +509,26 @@ int bissectionSearch(double nr,double *vec, int vsize){
 	return k;
 }
 /*********************************************************
+ *   return the smallest index k that satisfy vec[k]>nr  *                           
+ ********************************************************/
+int upperBoundStrict(double nr,double *vec, int vsize){
+	int left, right,mid;
+		
+	left=0;
+	right=vsize;
+	while(left<right){
+		mid=left+(right-left)/2;
+		if(vec[mid]>nr){
+			right=mid;
+		}else{
+			left=mid+1;
+		}
+	}
+
+
+	return left;
+}
+/*********************************************************
 *         randomly selects and event (towering method):  *
 *   1)calculates the cumulative probabilitities          *
 *   2)Randomly selects a number between 0 and the last   *
@@ -524,7 +544,8 @@ int selectEvent(double *event,int size){
 	cumulProb(size,event,cprob);
 
         nr=FRANDOM*cprob[size-1];
-        id=bissectionSearch(nr, cprob, size);
+        //id=bissectionSearch(nr, cprob, size);
+        id=upperBoundStrict(nr, cprob, size);
 
 	free(cprob);
         return id;
@@ -539,7 +560,8 @@ int selectEventCP(double *cprob,int size){
         double nr;
 
         nr=FRANDOM*cprob[size-1];
-        id=bissectionSearch(nr, cprob, size);
+        //id=bissectionSearch(nr, cprob, size);
+        id=upperBoundStrict(nr, cprob, size);
 
 	return id;
 }

@@ -67,9 +67,9 @@ void callSysDynamics(int nst){
 	int i,idh,id_list,numsteps,nh,dnt_h,dnt_b,dnt;
 	double dt,sumprobs;
 	int *inverselisth_tmp=(int *)calloc(N,sizeof(int));
-	DynList listh_tmp;
-	listh_tmp.vec=(int *)calloc(N,sizeof(int));
-	listh_tmp.size=listh->size;
+        DynList listh_tmp;
+        listh_tmp.vec=(int *)calloc(N,sizeof(int));
+        listh_tmp.size=listh->size;
 	
 	nh=listh->usize;
 	
@@ -88,24 +88,22 @@ void callSysDynamics(int nst){
 		calcHostEvents(&event);
 		
                 dt=adjustTimeStep(event.cprobE[event.usizeE-1]);//adjust dt to calculate host event probabilities
+		calcNumSteps(&dnt_h,&dnt_b,&dnt,dt,Dt_ref);
+		dt=Dt_ref/(double)dnt_h;
                 sumprobs=dt*event.cprobE[event.usizeE-1];
                 event.dtE=gillespieTime(sumprobs);//use sum of event probs. to calculate gillespie time
-
 		calcNumSteps(&dnt_h,&dnt_b,&dnt,event.dtE,Dt_ref);
-		/*temporary host list (to keep track of the changes in the real time changes in the host list, that have to be update after host time substeps)*/
-		listh_tmp.usize=listh->usize;
 		for(i=0; i<N; ++i){
-			listh_tmp.vec[i]=listh->vec[i];
-			inverselisth_tmp[i]=inverselisth[i];
-		}
-		/******/
+                        listh_tmp.vec[i]=listh->vec[i];
+                        inverselisth_tmp[i]=inverselisth[i];
+                }
 		for(i=0; i<dnt_h; ++i){
 			event.whichE=selectEventCP(event.cprobE,event.usizeE);
 			id_list=event.whichE%nh;
 			idh=listh->vec[id_list];
 		
 			if(host[idh]==1){
-				switch(event.whichE%nh){
+				switch(event.whichE/nh){
 					case 0:	dynamicsHost(0,idh,&listh_tmp,inverselisth_tmp);	
 						break;
 					case 1: dynamicsHost(1,idh,&listh_tmp,inverselisth_tmp);
@@ -113,13 +111,13 @@ void callSysDynamics(int nst){
 				}
 			}
 		}
+		 //updating hosts dynamic list
+                for(i=0; i<N; ++i){
+                        listh->vec[i]=listh_tmp.vec[i];
+                        inverselisth[i]=inverselisth_tmp[i];
+                }
+                listh->usize=listh_tmp.usize;
 
-		//updating hosts dynamic list
-		for(i=0; i<N; ++i){
-			listh->vec[i]=listh_tmp.vec[i];
-			inverselisth[i]=inverselisth_tmp[i];
-		}
-		listh->usize=listh_tmp.usize;
 		nh=listh->usize;
 		/*******************/
 		#endif

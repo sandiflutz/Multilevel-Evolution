@@ -138,6 +138,16 @@ void cumulProb(int size, double *prob,double *cprob);
 * (vec[k-1]<=nr<=vec[k])                                    *
 *************************************************************/
 int bissectionSearch(double nr,double *vec, int vsize);
+/************************************************************
+* Use a bissection procedure to find the position @k        *
+* of a number @num in an ordered vector of integers @vec    *
+* (vec[k-1]<=num<=vec[k])                                   *
+*************************************************************/
+int bissectionSearchInt(int num,int *vec, int vsize);
+/*********************************************************
+ *   return the smallest index k that satisfy vec[k]>nr  *
+ ********************************************************/
+int upperBoundStrict(double nr,double *vec, int vsize);
 /*********************************************************
 *         randomly selects and event (towering method):  *
 *   1)calculates the cumulative probabilitities          *
