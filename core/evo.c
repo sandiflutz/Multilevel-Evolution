@@ -36,7 +36,7 @@ void calcHostEvents(Event *event){
 
 	nh=listh->usize;//number of hosts
 
-	w=(double *)calloc(nh,sizeof(double));
+	w=(double *)calloc(nh,sizeof(double));//vector for the accumulated investments of each live host
 
         event->usizeE=(2*nh);//# of possible host events (birth or death for each host)
         memset(event->ratesE,0.,sizeof(double)*event->sizeE);
@@ -186,6 +186,7 @@ double adjustTimeStep(double maxprob){
 	p2=(double *)calloc(DTVSIZE,sizeof(double));
 	
 	for(i=0; i<DTVSIZE; ++i){
+		/*dtVec[] is a vector with a range of @DTVSIZE dt possible values in a logarithmic scale*/
 		p0[i]=exp(-maxprob*dtVec[i]);
 		p1[i]=maxprob*dtVec[i]*p0[i];
 		p2[i]=1.-p0[i]-p1[i];
@@ -228,18 +229,22 @@ void calcNumSteps(int *dnt_h,int *dnt_b,int *dnt,double dt_h,double dt_b){
 
 	return;
 }
-/*******************************************************
-*                  host dynamics                       *
-********************************************************/
+/********************************************************
+*                  host dynamics                        *
+* Receives the id of the focus host, the type of event  *
+* (reproduction=1, or death=0, the list with the labels *
+* of existing hosts, lhost[host]=label, and the inverse *
+* hosts list, ilhost[label]=host)                       *                 
+*********************************************************/
 void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
         int idlist_h,idlist_k,idk,nh;
 	
-	idlist_h=ilhost[idh];
+	idlist_h=ilhost[idh];//label of the focus host 
 	nh=lhost->usize;
 	switch(type_event){
-		case 0:
+		case 0://reproduction
 			#if (NETWORK==0)//complete graph
-			idlist_k=randNeighbor(idlist_h,lhost->vec,lhost->usize,N-1,N);/*sending: 1-focus id,2-neighbors vector,
+			idlist_k=randNeighbor(idlist_h,lhost->vec,lhost->usize,N-1,N);/*choose a random neighbor from the host list. Variable being sent: 1-focus id,2-neighbors vector,
 											 *3 and 4-randomly select neighbors between these 2 ids,
 											 *5-neighbors vector size*/
                         idk=lhost->vec[idlist_k];			
@@ -254,7 +259,8 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
 			++lhost->usize;
 			hostBirth(idh,idk);
 			break;
-		case 1: hostDeath(idh);
+		case 1: //host death
+			hostDeath(idh);
 			exchange(ilhost,idh,lhost->vec[nh-1]);
 			exchange(lhost->vec,idlist_h,nh-1);
 			--lhost->usize;

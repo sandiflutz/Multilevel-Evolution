@@ -35,20 +35,20 @@ int main(void){
 	return EXIT_N;
 }
 /******************************************
- *          set system                    *
+ *  		set system                *
  ******************************************/
 void callSetSystem(void){
 	
-	/*setting the system*/
+	/* setting the system: setSystem() is in init.c */
 	setSystem(&event,&meas);
 	
-        /*Open Files for time measures*/
+        /*Open Files for time measures: openFiles() is in init.c*/
 	#ifdef TMEAS
-	strncat(meas.ftname_pars, "_gil",meas.ftnpars_size-strlen(meas.ftname_pars)-1);
+	strncat(meas.ftname_pars, "_gil",meas.ftnpars_size-strlen(meas.ftname_pars)-1);//add "_gil" at the end of the file name
         openFiles(&meas);
         #endif
 
-        /*setting microbial solver*/
+        /*setting microbial solver (from GSL)*/
         bac_make_system(&sys, spar);
         driver =
                 gsl_odeiv2_driver_alloc_y_new(&sys,gsl_odeiv2_step_msbdf,
@@ -84,8 +84,9 @@ void callSysDynamics(int nst){
 		#endif
 		
 		#if (CI!=2)//not the single host case
-		/*host dynamics*/
-		calcHostEvents(&event);
+		/*host dynamics (all routines in this block are from evo.c)*/
+		calcHostEvents(&event);/*calculates host events rates and stored them in the vector @ratesE from the struct @event
+					*The corresponding cumulative probability is stored in the vector @cprobE from the same struct*/
 		
                 dt=adjustTimeStep(event.cprobE[event.usizeE-1]);//adjust dt to calculate host event probabilities
 		calcNumSteps(&dnt_h,&dnt_b,&dnt,dt,Dt_ref);
@@ -102,7 +103,7 @@ void callSysDynamics(int nst){
 			id_list=event.whichE%nh;
 			idh=listh->vec[id_list];
 		
-			if(host[idh]==1){
+			if(host[idh]==1){//if host is alive
 				switch(event.whichE/nh){
 					case 0:	dynamicsHost(0,idh,&listh_tmp,inverselisth_tmp);	
 						break;
@@ -111,7 +112,7 @@ void callSysDynamics(int nst){
 				}
 			}
 		}
-		 //updating hosts dynamic list
+		//updating hosts dynamic list
                 for(i=0; i<N; ++i){
                         listh->vec[i]=listh_tmp.vec[i];
                         inverselisth[i]=inverselisth_tmp[i];
@@ -122,7 +123,7 @@ void callSysDynamics(int nst){
 		/*******************/
 		#endif
 	
-		EXIT_N=bacDynamics(driver,&event);
+		EXIT_N=bacDynamics(driver,&event);//from bac_gsl.c
 
 		event.timeE+=event.dtE;
                 numsteps+=dnt;

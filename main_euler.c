@@ -72,16 +72,17 @@ void callSysDynamics(int nst){
 		#endif
 		
 		#if (CI!=2)//not the single host case
-		/*host dynamics*/
+		/*host dynamics (all routines in this block are from evo.c)*/
 		calcHostEvents(&event);
 
 		dt=adjustTimeStep(event.cprobE[event.usizeE-1]);
+		printf("dt=%f\n",dt);
 		dnumsteps=ceil(Dt_ref/dt);
 		dt=Dt_ref/(double)dnumsteps;
 		sumprobs=dt*event.cprobE[event.usizeE-1];
-		printf("ns=%d sumprobs=%f\n",numsteps,sumprobs);
+		//printf("ns=%d dns=%d dt=%f sumprobs=%f\n",numsteps,dnumsteps,dt,sumprobs);
                 event.dtE=dt;
-		/*temporary host list (to keep track of the changes in the real time changes in the host list, that have to be update after host time substeps)*/
+		/*temporary host list (to keep track of the changes in the host list, that have to be updated after the host time substeps)*/
                 listh_tmp.usize=listh->usize;
                 for(i=0; i<N; ++i){
                         listh_tmp.vec[i]=listh->vec[i];
@@ -89,16 +90,17 @@ void callSysDynamics(int nst){
                 }
                 /******/
 		for(i=0; i<dnumsteps; ++i){
-			event.whichE=selectEventCP(event.cprobE,event.usizeE);
-			idh=listh->vec[event.whichE%nh];
-                	
-			if((FRANDOM<sumprobs)&&(host[idh]==1)){
-                                switch(event.whichE/nh){
-                                        case 0: dynamicsHost(0,idh,&listh_tmp,inverselisth_tmp);
-                                                break;
-                                        case 1: dynamicsHost(1,idh,&listh_tmp,inverselisth_tmp);
-                                                break;
-                                }
+			if(FRANDOM<sumprobs){
+				event.whichE=selectEventCP(event.cprobE,event.usizeE);
+				idh=listh->vec[event.whichE%nh];
+				if(host[idh]==1){//if chosen host is alive
+					switch(event.whichE/nh){
+						case 0: dynamicsHost(0,idh,&listh_tmp,inverselisth_tmp);
+							break;
+						case 1: dynamicsHost(1,idh,&listh_tmp,inverselisth_tmp);
+							break;
+					}
+				}
 			}
 		}
 		//updating hosts dynamic list
@@ -111,7 +113,7 @@ void callSysDynamics(int nst){
 		/**************/
 		#endif
 
-		bac_euler(Dt_ref,spar);
+		bac_euler(Dt_ref,spar);//from bac_eu.c
 		
 		event.timeE+=Dt_ref;
                 numsteps+=dnumsteps;

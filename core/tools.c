@@ -477,37 +477,6 @@ void cumulProb(int size, double *prob,double *cprob){
 
         return;
 }
-/************************************************************
-* Use a bissection procedure to find the position @k        *
-* of a number @nr in an ordered vector @vec                 *
-* (vec[k-1]<=nr<=vec[k])                                    *
-*************************************************************/
-int bissectionSearch(double nr,double *vec, int vsize){
-        int ok,k,kmin,kmax;
-
-        kmin=0;
-        kmax=vsize;
-
-        if(nr>vec[0]){
-		ok=0;
-		while(ok==0){
-			k=(kmin+kmax)/2;
-			if(vec[k]<nr){
-				kmin=k;
-			}else if(vec[k-1]>nr){
-				kmax=k;
-			}else{
-				ok=1;
-			}
-		}
-
-        
-	}else{
-		k=0;
-	}
-
-	return k;
-}
 /*********************************************************
  *   return the smallest index k that satisfy vec[k]>nr  *                           
  ********************************************************/
@@ -525,6 +494,7 @@ int upperBoundStrict(double nr,double *vec, int vsize){
 		}
 	}
 
+	if(left>=vsize)left=vsize-1;
 
 	return left;
 }
@@ -560,7 +530,6 @@ int selectEventCP(double *cprob,int size){
         double nr;
 
         nr=FRANDOM*cprob[size-1];
-        //id=bissectionSearch(nr, cprob, size);
         id=upperBoundStrict(nr, cprob, size);
 
 	return id;

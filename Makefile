@@ -69,7 +69,7 @@ debug:	$(DEBUG_OBJS)
 # -------------------------------------------------------
 #  Clean object files
 # -------------------------------------------------------
-clean:
+cleanobj:
 	find . -type f -name '*.o' -exec rm -f {} +
 # -------------------------------------------------------
 #  Clean executables
@@ -90,8 +90,13 @@ help:
 	@echo "Available measurement MACRO options:"
 	@$(foreach m,$(MEASURE_MACROS),echo "  - $(m)";)
 	@echo ""
-	@echo "Example:"
-	@echo "make gsl MACRO=AVERINVxT EXEC=invXt_gsl.out"
+	@echo "Other options:"
+	@echo "clean just objects: make cleanobj"
+	@echo "clean just executables: make cleanexec"
+	@echo "clean all objects and executables: make cleanall"
+	@echo ""
+	@echo "Example (for the gsl version): make gsl MACRO=AVERINVxT EXEC=invXt_gsl.out"
+	@echo "Example (for the euler version): make euler MACRO=AVERINVxT EXEC=invXt_eu.out"
 	@echo ""
 # -------------------------------------------------------
 #  Phony targets

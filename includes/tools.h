@@ -132,18 +132,6 @@ void setNetLinks(int **neighbor,int *netlink,int nviz,int sites);
 * a simple probability vector                       *
 *****************************************************/
 void cumulProb(int size, double *prob,double *cprob);
-/************************************************************
-* Use a bissection procedure to find the position @k        *
-* of a number @nr in an ordered vector @vec                 *
-* (vec[k-1]<=nr<=vec[k])                                    *
-*************************************************************/
-int bissectionSearch(double nr,double *vec, int vsize);
-/************************************************************
-* Use a bissection procedure to find the position @k        *
-* of a number @num in an ordered vector of integers @vec    *
-* (vec[k-1]<=num<=vec[k])                                   *
-*************************************************************/
-int bissectionSearchInt(int num,int *vec, int vsize);
 /*********************************************************
  *   return the smallest index k that satisfy vec[k]>nr  *
  ********************************************************/
