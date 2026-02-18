@@ -80,7 +80,6 @@ void callSysDynamics(int nst){
 		dnumsteps=ceil(Dt_ref/dt);
 		dt=Dt_ref/(double)dnumsteps;
 		sumprobs=dt*event.cprobE[event.usizeE-1];
-		//printf("ns=%d dns=%d dt=%f sumprobs=%f\n",numsteps,dnumsteps,dt,sumprobs);
                 event.dtE=dt;
 		/*temporary host list (to keep track of the changes in the host list, that have to be updated after the host time substeps)*/
                 listh_tmp.usize=listh->usize;
@@ -93,7 +92,7 @@ void callSysDynamics(int nst){
 			if(FRANDOM<sumprobs){
 				event.whichE=selectEventCP(event.cprobE,event.usizeE);
 				idh=listh->vec[event.whichE%nh];
-				if(host[idh]==1){//if chosen host is alive
+				if((host[idh]==1)&&(listh_tmp.usize>1)){//if chosen host is alive
 					switch(event.whichE/nh){
 						case 0: dynamicsHost(0,idh,&listh_tmp,inverselisth_tmp);
 							break;

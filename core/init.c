@@ -3,6 +3,7 @@
 #include<stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include"globals.h"
 #include"randgen_ufrgs.h"
 #include"tools.h"
@@ -25,7 +26,8 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	inverselisth=(int *)calloc(N,sizeof(int));
 
 	dtVec=(double *) calloc(DTVSIZE,sizeof(double));
-	logSpacedVec(dtVec,1e-07,Dt_ref,DTVSIZE);//DTVSIZE,dtVec[0]=1e-07 and dtVec[DTVSIZE-1]=1e-02 are values used in the paper
+	//logSpacedVec(dtVec,1e-07,Dt_ref,DTVSIZE);//DTVSIZE,dtVec[0]=1e-07 and dtVec[DTVSIZE-1]=1e-02 are values used in the paper
+	logSpacedVec(dtVec,1e-07,1e-02,DTVSIZE);//DTVSIZE,dtVec[0]=1e-07 and dtVec[DTVSIZE-1]=1e-02 are values used in the paper
         
 	fdatapath=(char *)malloc(sizeof(char)*50);
 	sprintf(fdatapath,"data_manipulation/");
@@ -99,21 +101,46 @@ void allocateMemory(Event *event,TimeMeasures *meas){
  *  Open Global Files                     *
  ******************************************/
 void openFiles(TimeMeasures *meas){
-	int namelen,dnl;
+	int ok=0,namelen,dnl;
+	unsigned long id;
 
-	dnl=100;
+	id = (unsigned long)time(NULL);
+
+	dnl=200;
         namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;
 
 	char *name=(char *)calloc(namelen,sizeof(char));
 
 #ifdef DENSb1xT
-        sprintf(name,"%sdensb1Xt_%s.dat",fdatapath,meas->ftname_pars);
+	/*each execution will produce a file with a different name (with a "random" id at the end of the name)*/
+	while(ok==0){
+		sprintf(name,"%sdensb1Xt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+		meas->file_tmeas=fopen(name,"r");
+		if(meas->file_tmeas!=NULL){
+			++id;
+			fclose(meas->file_tmeas);
+		}else{
+			ok=1;
+		}
+	}
+        sprintf(name,"%sdensb1Xt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
         meas->file_tmeas=fopen(name,"w");
 	if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
 
 #endif
 #ifdef AVERINVxT
-        sprintf(name,"%saverInvXt_%s.dat",fdatapath,meas->ftname_pars);
+	while(ok==0){
+        	sprintf(name,"%saverInvXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+		meas->file_tmeas=fopen(name,"r");
+		if(meas->file_tmeas!=NULL){
+			++id;
+			fclose(meas->file_tmeas);
+		}else{
+			ok=1;
+		}
+
+	}
+        sprintf(name,"%saverInvXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
         meas->file_tmeas=fopen(name,"w");
 	if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
 #endif

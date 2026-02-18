@@ -18,7 +18,7 @@
 #define NETWORK         0          /*0: well-mixed
                                     *1: square-lattice*/
 #if (NETWORK==0)
-        #define VIZ    (N-1)	/*number of neighbors in the well-mixed*/
+        #define VIZ    N	/*number of neighbors in the well-mixed*/
 #elif
         #define VIZ    4	/*number of neighbors in the square-lattice: 4 or 8*/
 #endif

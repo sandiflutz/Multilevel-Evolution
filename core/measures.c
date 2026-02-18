@@ -229,7 +229,7 @@ void invDistXt(TimeMeasures *meas){
 	double binsize,*hist_inv,*freqInvH;
         char *name,*namedat,*name_gp,*nt_format;
         FILE *fhist,*fgp;
-	
+
 	/****creating files (if there are file with the same names, there are subscribed)********/
 	dnl=100;
 	namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;

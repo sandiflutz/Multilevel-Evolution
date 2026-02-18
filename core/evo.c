@@ -209,26 +209,6 @@ double adjustTimeStep(double maxprob){
 	free(p2);
 	return dt;
 }
-/*******************************************************
- *  	calculate the number of times steps            *
- *******************************************************/
-void calcNumSteps(int *dnt_h,int *dnt_b,int *dnt,double dt_h,double dt_b){
-	
-	*dnt_h=(int)(dt_b/dt_h);
-
-	if(*dnt_h==0){
-		*dnt_h = 1;
-		*dnt_b = round(dt_h/dt_b);
-		*dnt = *dnt_b;
-
-	}else{
-		*dnt_b=1;
-		*dnt_h=round(dt_b/dt_h);
-		*dnt = *dnt_h;
-	}
-
-	return;
-}
 /********************************************************
 *                  host dynamics                        *
 * Receives the id of the focus host, the type of event  *
@@ -251,7 +231,11 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
 			#else
 			searchLiveNeighbors(0,idh,VIZ,host,neighbors,alive_viz);
 			nav=alive_viz->usize;//# of alive neighbors
-			idk=randNeighbor(idh,alive_viz->vec,nav,VIZ-1,VIZ);
+			idk=randNeighbor(idh,alive_viz->vec,nav,VIZ-1,VIZ);/*passing: 1-focus host id,2-list of alive neighboring hosts (including the focus host),
+									      *3- position id of the first empty space = # of alive neigbors, 4-position id of the last empty space
+									      *5-size of the list of neighbors = maximum number of alive neighbors
+									      *the last element of @alive_viz, the (VIZ-1)th element, 
+									      *is the focus host, so it cannot be include. */
 			idlist_k=ilhost[idk];
 			#endif
 			exchange(ilhost,lhost->vec[nh],idk);

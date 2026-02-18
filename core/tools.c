@@ -264,7 +264,7 @@ void searchLiveNeighbors(int dead,int idh,int *host,int **neighbor,DynList *aliv
 	nviz=0;
 	ne=0;
 
-	viz=alive_viz->size;
+	viz=alive_viz->size-1;//the full size of the list includes the focus site 
 	for(j=0;j<viz;++j){
 		idv=neighbor[idh][j];
 		if(host[idv]!=dead){
@@ -275,7 +275,8 @@ void searchLiveNeighbors(int dead,int idh,int *host,int **neighbor,DynList *aliv
 			++ne;
 		}
 	}
-	alive_viz->usize=nviz;
+	alive_viz->vec[nviz]=idh;
+	alive_viz->usize=nviz+1;
 
 
 	return;
@@ -294,7 +295,7 @@ void searchAllLiveNeighbors(int dead,int sites,int nh,int maxviz,int *listh,int 
 	for(i=0; i<nh; ++i){
 		idh=listh[i];
 		ne=0;
-		for(j=0;j<maxviz;++j){
+		for(j=0;j<maxviz-1;++j){//position maxviz-1 is occupied by the if of the focus host
 			idv=neighbor[idh][j];
 			if(host[idv]!=dead){
 				list_aviz[idh*sites+nviz[idh]]=idv;
@@ -305,7 +306,8 @@ void searchAllLiveNeighbors(int dead,int sites,int nh,int maxviz,int *listh,int 
 				++ne;
 			}
 		}
-
+		list_aviz[idh*sites+nviz[idh]]=idh;
+		++nviz[idh];
 	}
 
 	return;
