@@ -45,7 +45,7 @@
 #define SIGMA     0.05          /*variance of the trucated normal distribution for the inheritance of helpful microbes*/
 #define MEANinv0  0.
 #define STDinv0   0.01
-#define DTVSIZE   29
+#define DTVSIZE   19
 /****parameters for measures/sampling and related things****************/
 #define TF        1000.           /*host maximum time (measured using continuous values for the times steps)*/
 #define NTS       10e7            /*maximum number of timesteps*/
@@ -55,6 +55,7 @@
 #define NF       100             /*number of files creater for the routines that create one file per timestep (interval between file=(Tf_me-T0_me)/NF)*/
 #define NTf_me   NTS             /*time to stop a measure*/
 #define NT0_me   0               /*time to start a measure*/
+#define SAMPLE   100             /*number of files with raw data that are going to be produce for measurements that require it*/
 /***Routine Choices***********************************************/
 #if (TYPES==2)
   #define INV     1         /*(don't change it)! Investment function when there is just 2 types is given by inv[j]=(j-Tmin)/Tplus):  

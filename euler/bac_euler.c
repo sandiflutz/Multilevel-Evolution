@@ -54,7 +54,7 @@ void bac_euler(double dt,SysParams *sp){
                         migr_in=(migr_in-mig*bac[idh1][j])/(nh-1.);
                         #else
 			migr_in=0.;
-			for(k=0; k<nv; ++k){
+			for(k=0; k<nv-1; ++k){//the last element of the alive neighbors list @alive_viz.vec[nv-1] is the focus host id
                                 idh2=alive_viz.vec[k][idh1];
                                 migr_in+=mig*bac[idh2][j];
                         }

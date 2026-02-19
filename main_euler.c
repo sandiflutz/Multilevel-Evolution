@@ -19,13 +19,16 @@ Event event;
 TimeMeasures meas;
 /****************Program's Routines*****************************/
 int main(void){
+	int i;
         
 	/*setting the system*/
 	callSetSystem();
 	/**********/
         
 #ifdef TMEAS
-	callSysDynamics(NTf_me);
+	for(i=0; i<SAMPLE; ++i){
+		callSysDynamics(NTf_me);
+	}
 #endif
 
 

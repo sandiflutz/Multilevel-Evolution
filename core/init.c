@@ -27,7 +27,7 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 
 	dtVec=(double *) calloc(DTVSIZE,sizeof(double));
 	//logSpacedVec(dtVec,1e-07,Dt_ref,DTVSIZE);//DTVSIZE,dtVec[0]=1e-07 and dtVec[DTVSIZE-1]=1e-02 are values used in the paper
-	logSpacedVec(dtVec,1e-07,1e-02,DTVSIZE);//DTVSIZE,dtVec[0]=1e-07 and dtVec[DTVSIZE-1]=1e-02 are values used in the paper
+	logSpacedVec(dtVec,-7,-2,DTVSIZE);//DTVSIZE,dtVec[0]=1e-07 and dtVec[DTVSIZE-1]=1e-02 are values used in the paper
         
 	fdatapath=(char *)malloc(sizeof(char)*50);
 	sprintf(fdatapath,"data_manipulation/");
