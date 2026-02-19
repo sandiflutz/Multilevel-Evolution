@@ -2,6 +2,7 @@
 
 #include<stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_odeiv2.h>
 #include"globals.h"
@@ -22,14 +23,22 @@ gsl_odeiv2_driver *driver=NULL;
 gsl_odeiv2_system sys;
 /****************Program's Routines*****************************/
 int main(void){
-        
+	int i;	
+       
 	/*setting the system*/
 	callSetSystem();
 	/**********/
-	
-	#ifdef TMEAS
-	callSysDynamics(NTf_me);
-        #endif
+
+#ifdef TST
+	for(i=0; i<DTVSIZE; ++i){
+		printf("%d %.16f\n",i,dtVec[i]);
+	}
+#endif
+#ifdef TMEAS
+	for(i=0; i<SAMPLE; ++i){
+		callSysDynamics(NTf_me);
+	}
+#endif
 
 	freeMemory();
 	return EXIT_N;
@@ -40,6 +49,7 @@ int main(void){
 void callSetSystem(void){
 	
 	/* setting the system: setSystem() is in init.c */
+	
 	setSystem(&event,&meas);
 	
         /*Open Files for time measures: openFiles() is in init.c*/
@@ -52,7 +62,7 @@ void callSetSystem(void){
         bac_make_system(&sys, spar);
         driver =
                 gsl_odeiv2_driver_alloc_y_new(&sys,gsl_odeiv2_step_msbdf,
-                Dt_ref,// initial step size guess
+                1e-6,// initial step size guess
                 1e-6,// absolute tolerance
                 1e-6// relative tolerance
         );
@@ -64,8 +74,8 @@ void callSetSystem(void){
  *          time loop                     *
  ******************************************/
 void callSysDynamics(int nst){
-	int i,idh,id_list,numsteps,nh,dnt_h,dnt_b,dnt;
-	double dt,sumprobs;
+	int i,idh,id_list,numsteps,nh,dnt_h,dnt;
+	double sumprobs;
 	int *inverselisth_tmp=(int *)calloc(N,sizeof(int));
         DynList listh_tmp;
         listh_tmp.vec=(int *)calloc(N,sizeof(int));
@@ -87,29 +97,37 @@ void callSysDynamics(int nst){
 		/*host dynamics (all routines in this block are from evo.c)*/
 		calcHostEvents(&event);/*calculates host events rates and stored them in the vector @ratesE from the struct @event
 					*The corresponding cumulative probability is stored in the vector @cprobE from the same struct*/
-		
-                dt=adjustTimeStep(event.cprobE[event.usizeE-1]);//adjust dt to calculate host event probabilities
-		calcNumSteps(&dnt_h,&dnt_b,&dnt,dt,Dt_ref);
-		dt=Dt_ref/(double)dnt_h;
-                sumprobs=dt*event.cprobE[event.usizeE-1];
+
+                sumprobs=event.cprobE[event.usizeE-1];
                 event.dtE=gillespieTime(sumprobs);//use sum of event probs. to calculate gillespie time
-		calcNumSteps(&dnt_h,&dnt_b,&dnt,event.dtE,Dt_ref);
+
+		dnt_h=ceil(Dt_ref/event.dtE);
+		printf("dtE=%.7f dnt_h=%d\n",event.dtE,dnt_h);
+
+		/*temporary host list (to keep track of the changes in the host list, that have to be updated after the host time substeps)*/
+		listh_tmp.usize=listh->usize;
 		for(i=0; i<N; ++i){
                         listh_tmp.vec[i]=listh->vec[i];
                         inverselisth_tmp[i]=inverselisth[i];
                 }
+		/******/
+
 		for(i=0; i<dnt_h; ++i){
 			event.whichE=selectEventCP(event.cprobE,event.usizeE);
 			id_list=event.whichE%nh;
 			idh=listh->vec[id_list];
-		
-			if(host[idh]==1){//if host is alive
-				switch(event.whichE/nh){
-					case 0:	dynamicsHost(0,idh,&listh_tmp,inverselisth_tmp);	
-						break;
-					case 1: dynamicsHost(1,idh,&listh_tmp,inverselisth_tmp);
-						break;
+
+			if(listh_tmp.usize>1){
+				if(host[idh]==1){//if host is alive
+					switch(event.whichE/nh){
+						case 0:	dynamicsHost(0,idh,&listh_tmp,inverselisth_tmp);//reproduction	
+							break;
+						case 1: dynamicsHost(1,idh,&listh_tmp,inverselisth_tmp);//death
+							break;
+					}
 				}
+			}else{
+				exit(1);
 			}
 		}
 		//updating hosts dynamic list
@@ -122,8 +140,11 @@ void callSysDynamics(int nst){
 		nh=listh->usize;
 		/*******************/
 		#endif
+
+		event.dtE=ceil(event.dtE/Dt_ref)*Dt_ref;//time ¨step¨ (how much time is going to pass, not necessarily the one used for integration) for the microbial dynamics is always >= Dt_ref 
+		printf("time=%f dtE_atualizado=%.16f \n\n",event.timeE,event.dtE);
 	
-		EXIT_N=bacDynamics(driver,&event);//from bac_gsl.c
+		bacDynamics(driver,&event);//from bac_gsl.c
 
 		event.timeE+=event.dtE;
                 numsteps+=dnt;

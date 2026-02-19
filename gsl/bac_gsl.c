@@ -1,5 +1,6 @@
 /* bac_gsl.c */
 
+#include<math.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_odeiv2.h>
 #include"randgen_ufrgs.h"
@@ -95,6 +96,30 @@ int bac_jac(double t, const double y[], double *dfdy,double *dfdt, void *params)
 
 	return GSL_SUCCESS;
 }
+/********************************************************************
+*              Euler integration for migration terms                *
+*********************************************************************/
+void eulerBacMig(int idh,int nviz,int *nlist, double dt,double **y){
+	int j,k,idk;
+	double migr_in,migr_out;
+	double mig=spar->mig;//migration rate
+
+	for(j=0; j<TYPES; ++j){
+		migr_out=mig*y[idh][j];	
+		migr_in=0.;
+		for(k=0; k<nviz; ++k){
+			idk=nlist[k];
+			migr_in+=mig*y[idk][j];
+		}
+		migr_in=(migr_in-mig*y[idh][j])/(double)(nviz-1);//neighbors list include focus host, so its effect has to be discounted
+		
+		//euler integration for the evolution due to migration
+		y[idh][j]=y[idh][j]+(migr_in-migr_out)*dt;
+	}
+	
+
+	return;
+}
 /********************************************
 *     Buil a GSL  ODE system struct         *
 *********************************************/
@@ -109,50 +134,56 @@ void bac_make_system(gsl_odeiv2_system *sys, SysParams *P){
 /**************************************************
  *          Bacteria Dynamics                     *
  **************************************************/
-int bacDynamics(gsl_odeiv2_driver *driver,Event *event){
-	int i,j,k,idh,idk,nh,status,nv;
-	double migr_in,migr_out,time_tmp,**bac_tmp=NULL;
+void bacDynamics(gsl_odeiv2_driver *driver,Event *event){
+	int i,j,idh,nh,status,nt;
+	double time_tmp,**bac_tmp=NULL;
 	double dt=event->dtE;
-        double mig=spar->mig;//migration rate
-
 
 	nh=listh->usize;//# of alive hosts
+	
+	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
+		for(j=0; j<TYPES; ++j){
+			spar->micr[idh]+=bac[idh][j];
+		}
+	}
+
 	if(nh>1){
 		//allocating space for a tempory bacteria abundance vector (so the abundances can be updated synchronously)
 		bac_tmp=(double **)calloc(N,sizeof(double *));
 		for(i=0; i<N; ++i){
 			bac_tmp[i]=(double *)calloc(TYPES,sizeof(double));
+			for(j=0; j<TYPES; ++j){
+				bac_tmp[i][j]=bac[i][j];
+			}
 		}
 		/*************/
 		for(i=0; i<nh; ++i){
 			idh=listh->vec[i];//index of the i-th alive host stored in a list
 			spar->idhost=idh;
+			/************/
+			
 			#if (NETWORK!=0)//not the complete graph
 			searchLiveNeighbors(0,idh,host,neighbor,alive_viz);//store the indexes of @idh alive neighbors in a list
-			nv=alive_viz->usize;//# of alive neighbors
 			#endif
+
+			nt=ceil(dt/Dt_ref);//dt is the gillespie time and Dt_ref is the referencial time for bacteria evolution
+			for(j=0; j<nt; ++j){
+				#if (NETWORK==0)//complete graph
+				eulerBacMig(idh,nh,listh->vec,Dt_ref,bac_tmp);/*sending: 1-position id of the focus host,2-# of alive neighbors+1,
+										*3-list of alive neighbors of the focus host, 4-time step used in the euler integration, 
+										*4-vector with the microbial abundances in host @idh*/
+				#elif
+				eulerBacMig(idh,alive_viz->usize,alive_viz->vec,Dt_ref,bac_tmp);
+				#endif
+			}
+
+			//update total abundance of the microbial population on the idh-th host
 			spar->micr[idh]=0.;
 			for(j=0; j<TYPES; ++j){
-				/*migration terms*/
-				migr_in=0.;
-				migr_out=mig*bac[idh][j];	
-				#if (NETWORK==0)//well-mixed
-				for(k=0; k<nh; ++k){
-					idk=listh->vec[k];
-					migr_in+=mig*bac[idk][j];
-				}
-				migr_in=(migr_in-mig*bac[idh][j])/nh;
-				#else
-				for(k=0; k<nv; ++k){
-					idk=alive_viz->vec[k];
-					migr_in+=mig*bac[idk][j];
-				}
-				migr_in/=nv;
-				#endif
-				//evolution due just to the migrations terms
-				bac_tmp[idh][j]=bac[idh][j]+(migr_in-migr_out)*dt;
 				spar->micr[idh]+=bac_tmp[idh][j];
 			}
+			/************/
 			gsl_odeiv2_driver_reset(driver);
 			time_tmp=event->timeE;
 			status=gsl_odeiv2_driver_apply(driver, &time_tmp, time_tmp+dt, bac_tmp[idh]);//evolution due to birth and death for host @idh
@@ -162,8 +193,15 @@ int bacDynamics(gsl_odeiv2_driver *driver,Event *event){
 				}
 				free(bac_tmp);
 				printf("Error in ODE integration: %s\n", gsl_strerror(status));
-				return 1;
+				exit(1);
 			}
+			/***checking for bugs****/
+			for(j=0; j<TYPES; ++j){
+				if((bac_tmp[idh][j]<0.)||(bac_tmp[idh][j]>1.)){
+					printf("C: time=%f bac[%d][%d]=%f\n",time_tmp,idh,j,bac_tmp[idh][j]);
+				}
+			}
+			/************/
 
 	
 		}
@@ -191,7 +229,7 @@ int bacDynamics(gsl_odeiv2_driver *driver,Event *event){
 		status=gsl_odeiv2_driver_apply(driver, &time_tmp, time_tmp+dt, bac[idh]);//evolution due to birth and death for host @idh
 		if (status != GSL_SUCCESS) {
 			printf("Error in ODE integration: %s\n", gsl_strerror(status));
-			return 1;
+			exit(1);
 			
 		}
 		spar->micr[idh]=0.;
@@ -201,5 +239,5 @@ int bacDynamics(gsl_odeiv2_driver *driver,Event *event){
 	}
 
 
-	return 0;
+	return;
 }

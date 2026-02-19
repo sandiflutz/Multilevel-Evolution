@@ -32,7 +32,10 @@ int bac_rhs(double t, const double y[], double f[], void *params);
 *     GSL-compatible jacobian               *
 *********************************************/
 int bac_jac(double t, const double y[], double *dfdy,double *dfdt, void *params);
-
+/********************************************************************
+*              Euler integration for migration terms                *
+*********************************************************************/
+void eulerBacMig(int idh,int nviz,int *nlist, double dt,double **y);
 /********************************************
 *     Buil a GSL  ODE system struct         *
 *********************************************/
@@ -40,5 +43,5 @@ void bac_make_system(gsl_odeiv2_system *sys, SysParams *P);
 /*************************************************************
  *          Bacteria Dynamics                                *
  *************************************************************/
-int bacDynamics(gsl_odeiv2_driver *driver,Event *event);
+void bacDynamics(gsl_odeiv2_driver *driver,Event *event);
 #endif
