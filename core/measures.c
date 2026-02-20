@@ -78,10 +78,58 @@ void densB1Xt(TimeMeasures *meas){
         
 	return;
 }
-/**********************************************
-*   stores the frequency of beneficial       *
-*   bacteria in a single host                *
-**********************************************/
+/********************************************************
+* Stores the mean fraction of each type of bacteria in  *
+* the system                                            *
+*********************************************************/
+void meanFracXt(TimeMeasures *meas){
+	int i,j,idh,nh;
+	double *avbacfreq;
+	
+	if(meas->NTnow==meas->NTi){
+		fprintf(meas->file_tmeas,"#1:time 2:mean freq. of bac of type=%d ",TYPES-1);
+		for(j=TYPES-2; j>=0; --j){
+			fprintf(meas->file_tmeas,"%d:mean freq. of bac of type=%d ",TYPES-j+1,j);
+		}
+		fprintf(meas->file_tmeas,"\n");
+	}
+	
+	nh=listh->usize;
+
+	avbacfreq=(double *)calloc(TYPES,sizeof(double));
+	memset(avbacfreq,0.,sizeof(double));
+	
+        fprintf(meas->file_tmeas,"%f ",meas->Tnow);
+        printf("%f ",meas->Tnow);
+	for(j=TYPES-1; j>=0; --j){
+		for(i=0; i<nh; ++i){
+			idh=listh->vec[i];
+			avbacfreq[j]+=bac[idh][j]/(spar->micr[idh]);
+		}
+		avbacfreq[j]/=(double)nh;
+		/*storing data*/
+		fprintf(meas->file_tmeas,"%f ",avbacfreq[j]);
+		printf("%f ",avbacfreq[j]);
+	}
+        fprintf(meas->file_tmeas,"\n");
+        printf("\n");
+
+	free(avbacfreq);
+	return;
+}
+/********************************************************
+*   stores the average investment in the system         *
+*	-Def: avInv=sum_ij(bac_ij*inv_j)/sum_ij(bacij)  *
+*	where i is the host index, j is the type of     *
+*   	bacteria index, bac_ij is the abundance of      *
+*   	type j in host i and inv_j is the investment    *
+*   	of type j.                                      *
+*   	-When TYPES=2:                                  *
+*   		-inv is either 0 (for neutrals)         *
+*   		or 1 (for helpers)                      *
+*   		-avInv is the mean frequency of         *
+*   		helpers in the system                   *
+*********************************************************/
 void averInvestmentXt(TimeMeasures *meas){
 	int i,idh,nh;
 	double averinv,*densInvH,tot_micr;
@@ -266,7 +314,7 @@ void invDistXt(TimeMeasures *meas){
 	
 	if(meas->NTnow==meas->NTi)fprintf(fhist,"#1:average inv. in hosts 2:frac. of hosts 3:numsteps\n");
 	for(i=0; i<nbins; ++i){
-		fprintf(fhist,"%f %f %d\n",(double)i*binsize,(double)hist_inv[i]/nh,meas->NTnow);
+		fprintf(fhist,"%f %f %f %d\n",(double)i*binsize,(double)hist_inv[i]/nh,freqInvH[0],meas->NTnow);
 	}
 	
 	/*******************filling gnuplot file*****************************/
@@ -314,6 +362,11 @@ void measures(TimeMeasures *meas){
 		averInvestmentXt(meas);
 	}
         #endif
+        #ifdef MEANBFRACxT
+	if((meas->NTnow>=meas->NTi)&&(meas->NTnow<=meas->NTf)){
+		meanFracXt(meas);
+	}
+        #endif
         #ifdef SAVE_CONFIG
 	if((meas->NTnow>=meas->NTi)&&(meas->nfiles<NF)){
 		printf("Time (measuring):%d\n",meas->NTnow);
@@ -324,11 +377,11 @@ void measures(TimeMeasures *meas){
         #endif
         #ifdef INV_DIST
 
-	if((meas->NTnow>=meas->NTi)&&(meas->nfiles<NF)){
+	if((meas->Tnow>=500.)&&(meas->nfiles<NF)){
 		printf("Time (measuring):%d\n",meas->NTnow);
 		invDistXt(meas);
 		++meas->nfiles;
-	}else if(meas->NTnow<meas->NTi){
+	}else if(meas->Tnow<500.){
 		printf("Time (before measuring starts):%d\n",meas->NTnow);
 	}else{
 		printf("Time (after measuring finishes):%d\n",meas->NTnow);

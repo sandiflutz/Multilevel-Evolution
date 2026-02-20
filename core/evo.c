@@ -41,6 +41,8 @@ void calcHostEvents(Event *event){
         event->usizeE=(2*nh);//# of possible host events (birth or death for each host)
         memset(event->ratesE,0.,sizeof(double)*event->sizeE);
 
+	printf("%d \n",nh);
+
         //birth events
 	for(i=0; i<nh; ++i){
 		idh=listh->vec[i];

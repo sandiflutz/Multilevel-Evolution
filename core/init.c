@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 #include"globals.h"
 #include"randgen_ufrgs.h"
 #include"tools.h"
@@ -14,6 +15,7 @@
 ************************************************************/
 void allocateMemory(Event *event,TimeMeasures *meas){
         int i;
+	int e0,ef,m0,mf;//variable related to the range of dtVec: [m0*10^e0;mf*10^ef]
 
         host=(int *)calloc(N,sizeof(int));
 	memset(host,0,sizeof(int)*N);
@@ -26,8 +28,15 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	inverselisth=(int *)calloc(N,sizeof(int));
 
 	dtVec=(double *) calloc(DTVSIZE,sizeof(double));
-	//logSpacedVec(dtVec,1e-07,Dt_ref,DTVSIZE);//DTVSIZE,dtVec[0]=1e-07 and dtVec[DTVSIZE-1]=1e-02 are values used in the paper
-	logSpacedVec(dtVec,-7,-2,DTVSIZE);//DTVSIZE,dtVec[0]=1e-07 and dtVec[DTVSIZE-1]=1e-02 are values used in the paper
+	m0=1;
+	e0=-7;
+	mf=5;
+	ef=-2;
+	logSpacedVec(dtVec,e0,ef,m0,mf,DTVSIZE);/*filling dt vector @dtVec with values from m0*10^(e0) to mf*10^(ef) logarithmic spaced
+					       *passing: 1)dt vector,2)e0,3)ef,4)m0,5)mf,6)size of the dt vector  
+					       *range: dtVec[0]=1e-07 and dtVec[DTVSIZE-1]=1e-02 are values used in the paper
+					       *another option: dtVec[DTVSIZE-1]=0.05 is the value of the microbial time step in the original paper
+					       */
         
 	fdatapath=(char *)malloc(sizeof(char)*50);
 	sprintf(fdatapath,"data_manipulation/");
@@ -77,9 +86,9 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	meas->NTi=NT0_me;
 	meas->NTf=NTf_me;
 	meas->saveT=0;
-	meas->ftnpars_size=250;
+	meas->ftnpars_size=300;
 	meas->ftname_pars=(char *)calloc(meas->ftnpars_size,sizeof(char));
-	sprintf(meas->ftname_pars,"N%d_Ty%d_Kh%d_net%d_Bv%f_cost%0.4f_sigma%0.2f_mu%f_mig%f",N,TYPES,spar->kh,NETWORK,Bacv,spar->cost,spar->sigma,spar->mu,spar->mig);
+	sprintf(meas->ftname_pars,"N%d_Ty%d_Kh%d_net%d_Gh%d_Bv1e%d_cost1e%d_sigma%0.2f_mu1e%d_mig1e%d_dthmax%de%d_dtsize%d",N,TYPES,spar->kh,NETWORK,Gh,(int)log10(Bacv),(int)log10(spar->cost),spar->sigma,(int)log10(spar->mu),(int)log10(spar->mig),mf,ef,DTVSIZE);
 	#endif
 
 	#if (NETWORK!=0)//not the well-mixed/complete graph case
@@ -138,13 +147,64 @@ void openFiles(TimeMeasures *meas){
 		}else{
 			ok=1;
 		}
-
 	}
         sprintf(name,"%saverInvXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
         meas->file_tmeas=fopen(name,"w");
 	if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
 #endif
+#ifdef MEANBFRACxT
+	while(ok==0){
+        	sprintf(name,"%smeanFracBXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+		meas->file_tmeas=fopen(name,"r");
+		if(meas->file_tmeas!=NULL){
+			++id;
+			fclose(meas->file_tmeas);
+		}else{
+			ok=1;
+		}
+	}
+        sprintf(name,"%smeanFracBXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+        meas->file_tmeas=fopen(name,"w");
+	if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
+#endif
 	free(name);
+        return;
+}
+/*****************************************************
+*   Populates Host and Microbial layer               *
+*   Bacterial layer: types of bacteria               *
+*   start with fixed fractions equal to 1/TYPES      *
+******************************************************/
+void initialStateFixedFrac(void){
+       int i,j,nh=0,ne=0;
+        double p_oc;
+
+	p_oc=(double)H0/N;
+
+        for(i=0; i<N; ++i){
+		if(FRANDOM<p_oc){
+                        host[i]=1;
+			listh->vec[nh]=i;
+			inverselisth[i]=nh;
+			++nh;
+			spar->micr[i]=Bac0;
+                        for(j=0; j<TYPES; ++j){
+                                bac[i][j]=Bac0/TYPES;
+                        }
+		}else{
+			listh->vec[N-1-ne]=i;//empty sites are stored at the end of the list of hosts;
+			inverselisth[i]=N-1-ne;
+			++ne;
+			memset(bac[i],0.,sizeof(double)*TYPES);
+			spar->micr[i]=0.;
+		}
+        }
+
+	#if (NETWORK==0)//complete graph
+	listh->usize=nh;
+	#else
+	#endif
+
         return;
 }
 /*****************************************************
@@ -335,8 +395,10 @@ void setSystem(Event *event,TimeMeasures *meas){
 		initialStateUniD();
 	#elif(CI==1)//frequencies come from normal distribution
 		initialStateNormD();
-	#else//single host
+	#elif(CI==2)//single host
 		initialStateSingleH(meas);
+	#else
+		initialStateFixedFrac();
 	#endif
 
 	return;

@@ -42,6 +42,11 @@ void calcInvDist(double binsize, double *hist_inv, double *freqInvH);
 *   in an isolate host                          *
 **************************************************/
 void densB1Xt(TimeMeasures *meas);
+/********************************************************
+* Stores the mean fraction of each type of bacteria in  *
+* the system                                            *
+*********************************************************/
+void meanFracXt(TimeMeasures *meas);
 /**********************************************
 *   store the frequency of beneficial         *
 *   bacteria in a single host                 *

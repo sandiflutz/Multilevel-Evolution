@@ -95,7 +95,7 @@ void callSysDynamics(int nst){
 			if(FRANDOM<sumprobs){
 				event.whichE=selectEventCP(event.cprobE,event.usizeE);
 				idh=listh->vec[event.whichE%nh];
-				if((host[idh]==1)&&(listh_tmp.usize>1)){//if chosen host is alive
+				if((host[idh]==1)&&(listh_tmp.usize>1)){//if chosen host is alive and the system has more than 1 host
 					switch(event.whichE/nh){
 						case 0: dynamicsHost(0,idh,&listh_tmp,inverselisth_tmp);
 							break;

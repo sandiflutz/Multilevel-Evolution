@@ -164,5 +164,5 @@ double minNum(double a, double b);
 /****************************************************
  * Create fill a vector with log spaced elements    *
  ***************************************************/
-void logSpacedVec(double *vec,double vec0,double vecf,int size);
+void logSpacedVec(double *vec,double e0,double ef,double m0, double mf, int size);
 #endif

@@ -8,6 +8,7 @@ MACRO = TMEAS
 MEASURE_MACROS = \
 	INV_DIST \
 	AVERINVxT \
+	MEANBFRACxT \
 	DENSb1xT \
 	SAVE_CONFIG \
 # -------------------------------------------------------

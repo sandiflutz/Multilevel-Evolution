@@ -36,6 +36,12 @@ void openFiles(TimeMeasures *meas);
 /*****************************************************
 *   Populates Host and Microbial layer               *
 *   Bacterial layer: types of bacteria               *
+*   start with fixed fractions equal to 1/TYPES      *
+******************************************************/
+void initialStateFixedFrac(void);
+/*****************************************************
+*   Populates Host and Microbial layer               *
+*   Bacterial layer: types of bacteria               *
 *   are uniformly distributed                        *
 *****************************************************/
 void initialStateUniD(void);

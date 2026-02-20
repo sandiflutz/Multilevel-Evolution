@@ -572,15 +572,15 @@ double minNum(double a, double b){
 }
 /****************************************************
  * Create fill a vector with log spaced elements    *
- * 	- range: [10^(-vec0),10^(-vecf)]            *
+ * 	- range: [m0*10^(e0),mf*10^(ef)]            *
  * 	- number of elements: size                  * 
- ***************************************************/
-void logSpacedVec(double *vec,double vec0,double vecf,int size){
+ ****************************************************/
+void logSpacedVec(double *vec,double e0,double ef,double m0, double mf, int size){
 	int i;
-	double step=(vecf-vec0)/(size-1);
+	double step=(ef+log10(mf)-e0-log10(m0))/(size-1);
 
 	for(i=0; i<size; ++i){
-		vec[i]=pow(10.,(vec0+i*step));
+		vec[i]=pow(10.,(e0+log10(m0)+i*step));
 	}
 
 	return;
