@@ -64,7 +64,7 @@ void densB1Xt(TimeMeasures *meas){
 	double averinv;
 
 	if(meas->NTnow==meas->NTi){
-		fprintf(meas->file_tmeas,"#1:time 2:average investment level on an isolated host\n");
+		fprintf(meas->file_tmeas,"#1:time | 2:average investment level on an isolated host | 3:frac. of bac. of type 0 | 4:frac. of bac. of type 1 | 5:abundance of the micr. pop.)\n");
 	}
 	
 	averinv=0.;
@@ -72,8 +72,8 @@ void densB1Xt(TimeMeasures *meas){
 		averinv+=bac[meas->idh_h1][j]*spar->s[j]*spar->inv[j]/spar->micr[meas->idh_h1];
 	}
 	
-	fprintf(meas->file_tmeas,"%f %f %f %f %f\n",meas->Tnow,averinv,bac[meas->idh_h1][0]/spar->micr[meas->idh_h1],bac[meas->idh_h1][1]/spar->micr[meas->idh_h1],spar->micr[meas->idh_h1]);
-	printf("time=%f averinv=%f fbac0=%f fbac1=%f micr=%f\n",meas->Tnow,averinv,bac[meas->idh_h1][0]/spar->micr[meas->idh_h1],bac[meas->idh_h1][1]/spar->micr[meas->idh_h1],spar->micr[meas->idh_h1]);
+	fprintf(meas->file_tmeas,"%f %f %f %f %f %f\n",meas->Tnow,averinv,bac[meas->idh_h1][0]/spar->micr[meas->idh_h1],bac[meas->idh_h1][1]/spar->micr[meas->idh_h1],spar->micr[meas->idh_h1],meas->dth);
+	printf("time=%f averinv=%f fbac0=%f fbac1=%f micr=%f dth=%f\n",meas->Tnow,averinv,bac[meas->idh_h1][0]/spar->micr[meas->idh_h1],bac[meas->idh_h1][1]/spar->micr[meas->idh_h1],spar->micr[meas->idh_h1],meas->dth);
        	printf("%f %f\n",meas->Tnow,averinv);
         
 	return;
@@ -91,7 +91,7 @@ void meanFracXt(TimeMeasures *meas){
 		for(j=TYPES-2; j>=0; --j){
 			fprintf(meas->file_tmeas,"%d:mean freq. of bac of type=%d ",TYPES-j+1,j);
 		}
-		fprintf(meas->file_tmeas,"\n");
+		fprintf(meas->file_tmeas,"%d:dth\n",TYPES+2);
 	}
 	
 	nh=listh->usize;
@@ -111,8 +111,8 @@ void meanFracXt(TimeMeasures *meas){
 		fprintf(meas->file_tmeas,"%f ",avbacfreq[j]);
 		printf("%f ",avbacfreq[j]);
 	}
-        fprintf(meas->file_tmeas,"\n");
-        printf("\n");
+        fprintf(meas->file_tmeas,"%f\n",meas->dth);
+        printf("dth=%f\n",meas->dth);
 
 	free(avbacfreq);
 	return;
@@ -135,7 +135,7 @@ void averInvestmentXt(TimeMeasures *meas){
 	double averinv,*densInvH,tot_micr;
 	
 	if(meas->NTnow==meas->NTi){
-		fprintf(meas->file_tmeas,"#1:time 2:average cumulative investment 3:dens_host 4:number of time steps\n");
+		fprintf(meas->file_tmeas,"#1:time 2:average cumulative investment 3:dens_host 4:number of time steps 4:dth\n");
 	}
 
 	/****setting investiment density per host vector*****/
@@ -156,8 +156,8 @@ void averInvestmentXt(TimeMeasures *meas){
 	
 
 	/*storing data*/
-        fprintf(meas->file_tmeas,"%f %f %f %d %f %d\n",meas->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,meas->NTnow);
-        printf("t=%f averinv=%f avmicrdens=%f nh=%d nh/N=%f numsteps=%d\n",meas->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,meas->NTnow);
+        fprintf(meas->file_tmeas,"%f %f %f %d %f %d %f\n",meas->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,meas->NTnow,meas->dth);
+        printf("t=%f averinv=%f avmicrdens=%f nh=%d nh/N=%f numsteps=%d dth=%f\n",meas->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,meas->NTnow,meas->dth);
 
 	/*freeing allocated memory*/
 	free(densInvH);

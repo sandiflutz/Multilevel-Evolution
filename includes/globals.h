@@ -10,36 +10,41 @@
 *************************************************************************************/
 
 /**paramenters to define the structure of the system*********/
-#define L               100        /*linear number of sites (square lattice case*/
-#define N               (L*L)      /*number of sites*/
-#define TYPES           100        /*number of types of microbe*/
-#define Tplus           (TYPES-1)  /*number of types of microbe*/
-#define IDBH            0          /*type of the bacteria that helps other bacteria*/  
-#define NETWORK         0          /*0: well-mixed
-                                    *1: square-lattice*/
+#define L               100		/*linear number of sites (square lattice case*/
+#define N               (L*L)		/*number of sites*/
+#define TYPES           3		/*number of types of microbe*/
+#define Tplus           1		/*number of types of microbe*/
+#define Tneg            1		/*number of types of microbe*/
+#define IDBH            0		/*type of the bacteria that helps other bacteria*/  
+#define NETWORK         0		/*0: well-mixed
+					 *1: square-lattice*/
 #if (NETWORK==0)
-        #define VIZ    N	/*number of neighbors in the well-mixed*/
+        #define VIZ	N		/*number of neighbors in the well-mixed*/
 #elif
-        #define VIZ    4	/*number of neighbors in the square-lattice: 4 or 8*/
+        #define VIZ	4		/*number of neighbors in the square-lattice: 4 or 8*/
 #endif
-#if (TYPES==2)
-	#define CI     3
+#if ((TYPES==2)&&(Tplus==TYPES-1))
+	#define CI	3
 #else
-	#define CI     1	/*0: system starts with types being randomly distributed with a uniform distribution
-				 *1: system starts with types being randomly distributed using a normal distribution for the frequencies of each type
-				 *2: system starts with only the 1 host
-				 *3: all types of bacteria start with a fixed fraction of 1/TYPES*/
+	#define CI	3		/*0: system starts with types being randomly distributed with a uniform distribution
+					 *1: system starts with types being randomly distributed using a normal distribution for the frequencies of each type
+					 *2: system starts with only the 1 host
+					 *3: all types of bacteria start with a fixed fraction of 1/TYPES*/
 #endif
-#define Mu        1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
-#define Theta     1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-#define K_H       500		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
-#define Gamma     1e-02		/*cost for helping when the investment is 1*/
-#define Gh        100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
-#define Bacv      1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
-#define SIGMA     0.05		/*variance of the trucated normal distribution for the inheritance of helpful microbes*/
-#define DTVSIZE   19		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
-				 *the host dynamics so the probability of 2 consecutive host events during a @Dt_ref time interval is <0.01
-				 *paper uses 19 when TYPES=2 and 29 otherwise (??)*/
+#define Mu        	1e-03		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
+#define Theta     	1e-06		/*migration rate (tab1:1e-06, tab2:1e-05)*/
+#define K_H      	5000		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
+#define Gamma     	1e-00		/*cost for helping when the investment is 1*/
+#define Gh        	10		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
+#define Bacv      	1e-04		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
+#define SIGMA     	0.05		/*variance of the trucated normal distribution for the inheritance of helpful microbes*/
+#define Fneg0           1.		/*cost of a negative type j is =Gamma*investment[j]*(Fneg0-micr_neg), where micr_neg is the total frequency of negative types in a host 
+					 *if Fneg0=1., the cost of negative type is 0 when micr_neg=1. */ 
+#define Fneg1           (1./TYPES)	/*cost of a positive type j is =Gamma*investment[j]*(Fneg1-micr_neg), where micr_neg is the total frequency of negative types in a host 
+					 *if the cost of negative type is 0 when micr_neg=Fneg1 and negative (reproduction is faster than for the neutral type) when micr_neg>Fneg1*/ 
+#define DTVSIZE   	29		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
+					 *the host dynamics so the probability of 2 consecutive host events during a @Dt_ref time interval is <0.01
+					 *paper uses 19 when TYPES=2 and 29 otherwise (??)*/
 /*****Fixed Parameters**********/
 #define Beta      1.            /*birth rate for neutral bacteria*/
 #define Delta     1.            /*death rate for microbes*/
@@ -63,14 +68,22 @@
 #define NT0_me   0               /*time to start a measure*/
 #define SAMPLE   100             /*number of files with raw data that are going to be produce for measurements that require it*/
 /***Routine Choices***********************************************/
-#if (TYPES==2)
-  #define INV     1         /*(don't change it)! Investment function when there is just 2 types is given by inv[j]=(j-Tmin)/Tplus):  
-			     * 0 or 1: if the types are neutral and positive
-			     * 0 and -1: if the types are neutral and negative*/
+#if ((TYPES==2)&&(Tplus==TYPES-1))
+	#define INV     	1       /*(don't change it)! Investment function when there is just 2 types is given by inv[j]=(j-Tmin)/Tplus):  
+					* 0 or 1: if the types are neutral and positive
+					* 0 and -1: if the types are neutral and negative*/
+	#define MUT_BIRTH_DYN  	0	/*0 (my version): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu 
+					* 1 (paper version for TYPES=100): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu/2 
+					* (all other types mutate from j to j+1 with rate mu/2 and from j to j-1 with rate mu/2) 
+					*/
 #else
-  #define INV     0         /*investment function:
-			     *0 (paper version): inv[j]=(2(j+1)-1)/(2*TYPES)
-			     *1: inv[j]=(j-Tmin)/Tplus (where Tplus=# of positive types, Tmin=# of negative types=TYPES-1-Tplus)*/
+  	#define INV     	1       /*investment function:
+			     		*0 (paper version): inv[j]=(2(j+1)-1)/(2*TYPES)
+			     		*1: inv[j]=(j-Tmin)/Tplus (where Tplus=# of positive types, Tmin=# of negative types=TYPES-1-Tplus)*/
+	#define MUT_BIRTH_DYN  	0	/*0 (my version): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu 
+					* 1 (paper version for TYPES=100): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu/2 
+					* (all other types mutate from j to j+1 with rate mu/2 and from j to j-1 with rate mu/2) 
+					*/
 #endif
 #define TV        0         /*rule for vertical transmission: 0=normal dist. (around parent bac. type freq.),1=poisson dist. for the sample size */
 #if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)
@@ -113,6 +126,7 @@ typedef struct{
 typedef struct{
         double Tnow;
 	double saveT;
+	double dth;
 	int NTi;
 	int NTf;
 	int NTnow;

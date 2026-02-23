@@ -6,7 +6,7 @@
 
 void bac_euler(double dt,SysParams *sp){
 	int i,j,jpl,jmi,idh1,k,idh2,nh;
-	double birth,death,migr_in,migr_out,func,**bac_tmp;
+	double birth,death,migr_in,migr_out,func,**bac_tmp,micr_neg;
 	double mut=sp->mu;//mutation rate
         double cost=sp->cost;//cost of helping for an ideal helper
         double birthr=sp->beta;//birth rate of a neutral bacteria
@@ -27,12 +27,27 @@ void bac_euler(double dt,SysParams *sp){
                 searchLiveNeighbors(0,idh1,host,neighbor,alive_viz);
 		int nv=alive_viz->usize;
                 #endif
+		#if (Tneg>0)
+		micr_neg=0.;
+		for(j=0; j<Tneg; ++j){
+			micr_neg+=bac[idh1][j];
+		}
+		micr_neg/=sp->micr[idh1];
+		for(j=0; j<Tneg; ++j){
+			sp->s[j]=Fneg0-micr_neg;//when micr_neg=Fneg0, cost of any negative type is 0 (cost is @cost)
+		}
+		for(j=Tneg; j<=Tplus+Tneg; ++j){
+			sp->s[j]=Fneg1-micr_neg;
+		}
+                #endif
 
                 for(j=0; j<TYPES;++j){
                         /*births*/
                         birth=(1.-mut)*(1.-cost*sp->s[j]*sp->inv[j])*birthr*bac[idh1][j];//division of type j
-                        jpl=j+1;
+		      	jpl=j+1;
                         jmi=j-1;
+                      	/*my way: when j=0(j=TYPES-1) only mutation to j+1(j-1) happens, with rate mu (instead of mu/2) - this is what the paper do for TYPES=2 but not for TYPES=100*/
+			#if (MUT_BIRTH_DYN==0)
                         if(j==0){
                                 jmi=jpl;
                         }else if(j==TYPES-1){
@@ -40,6 +55,17 @@ void bac_euler(double dt,SysParams *sp){
                         }
                         birth+=0.5*mut*(1.-cost*sp->s[jpl]*sp->inv[jpl])*birthr*bac[idh1][jpl];//division of type j+1 -> mutation into j
                         birth+=0.5*mut*(1.-cost*sp->s[jmi]*sp->inv[jmi])*birthr*bac[idh1][jmi];//division of type j-1 -> mutation into j
+			#else
+                      	/*paper way: when j=0(j=TYPES-1), only mutation to j+1(j-1) happens, with rate mu/2*/
+                        if(j==0){
+				birth+=0.5*mut*(1.-cost*sp->s[jpl]*sp->inv[jpl])*birthr*bac[idh1][jpl];//division of type j+1 -> mutation into j
+                        }else if(j==TYPES-1){
+				birth+=0.5*mut*(1.-cost*sp->s[jmi]*sp->inv[jmi])*birthr*bac[idh1][jmi];//division of type j-1 -> mutation into j
+			}else{
+				birth+=0.5*mut*(1.-cost*sp->s[jpl]*sp->inv[jpl])*birthr*bac[idh1][jpl];//division of type j+1 -> mutation into j
+				birth+=0.5*mut*(1.-cost*sp->s[jmi]*sp->inv[jmi])*birthr*bac[idh1][jmi];//division of type j-1 -> mutation into j
+			}
+			#endif
                         /*death*/
                         death=deathr*sp->micr[idh1]*bac[idh1][j];
                         /*migrations*/

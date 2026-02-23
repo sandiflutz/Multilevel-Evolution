@@ -79,11 +79,13 @@ void callSysDynamics(int nst){
 		calcHostEvents(&event);
 
 		dt=adjustTimeStep(event.cprobE[event.usizeE-1]);
-		printf("dt=%f\n",dt);
+		#ifdef TMEAS
+		meas.dth=dt;
+		#endif
 		dnumsteps=ceil(Dt_ref/dt);
 		dt=Dt_ref/(double)dnumsteps;
 		sumprobs=dt*event.cprobE[event.usizeE-1];
-                event.dtE=dt;
+		event.dtE=dt;
 		/*temporary host list (to keep track of the changes in the host list, that have to be updated after the host time substeps)*/
                 listh_tmp.usize=listh->usize;
                 for(i=0; i<N; ++i){
