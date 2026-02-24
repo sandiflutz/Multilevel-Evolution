@@ -219,7 +219,7 @@ double adjustTimeStep(double maxprob){
 void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
         int idlist_h,idlist_k,idk,nh;
 	
-	idlist_h=ilhost[idh];//label of the focus host 
+	idlist_h=ilhost[idh];//label of the focus host on the temporary list of alive hosts 
 	nh=lhost->usize;
 	switch(type_event){
 		case 0://reproduction

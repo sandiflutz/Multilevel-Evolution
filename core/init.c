@@ -87,9 +87,13 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	meas->NTf=NTf_me;
 	meas->saveT=0;
 	meas->dth=Dt_ref;
-	meas->ftnpars_size=350;
+	meas->ftnpars_size=400;
 	meas->ftname_pars=(char *)calloc(meas->ftnpars_size,sizeof(char));
-	sprintf(meas->ftname_pars,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_Bv1e%d_cost1e%d_sigma%0.2f_mu1e%d_mig1e%d_Fneg0_%0.1f_Fneg1_%0.1f_dthmax%de%d_MBDYN%d",N,TYPES,Tplus,Tneg,spar->kh,NETWORK,Gh,(int)log10(Bacv),(int)log10(spar->cost),spar->sigma,(int)log10(spar->mu),(int)log10(spar->mig),Fneg0,Fneg1,mf,ef,MUT_BIRTH_DYN);
+		#if (Tneg>0)
+		sprintf(meas->ftname_pars,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_Bv1e%d_cost1e%d_sigma%0.2f_mu1e%d_mig1e%d_dthmax%de%d_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,(int)log10(Bacv),(int)log10(spar->cost),spar->sigma,(int)log10(spar->mu),(int)log10(spar->mig),mf,ef,(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
+		#else
+		sprintf(meas->ftname_pars,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_Bv1e%d_cost1e%d_sigma%0.2f_mu1e%d_mig1e%d_dthmax%de%d",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,(int)log10(Bacv),(int)log10(spar->cost),spar->sigma,(int)log10(spar->mu),(int)log10(spar->mig),mf,ef);
+		#endif
 	#endif
 
 	#if (NETWORK!=0)//not the well-mixed/complete graph case
@@ -360,31 +364,22 @@ void setInvestments(void){
         int i,neutral,ty_maior;
 	double dty;
 
-#if((Tplus+Tneg>TYPES)||(Tplus+Tneg<TYPES-1))
-	printf("Tplus+Tneg should be equal to TYPES-1 (if you want to include a neutral type of bacteria) or TYPES (for no neutral type of bacteria).\n");
+#if((Tpos+Tneg>TYPES)||(Tpos+Tneg<TYPES-1))
+	printf("Tpos+Tneg should be equal to TYPES-1 (if you want to include a neutral type of bacteria) or TYPES (for no neutral type of bacteria).\n");
 	exit(1);
 #endif
-     /*   for(i=0; i<TYPES; ++i){
-                spar->inv[i]=(double)(i-Tneg)/Tplus;
-		
-		if(i-tymi>=0){
-			spar->s[i]=1.;
-		}else{
-			spar->s[i]=-1.;
-		}
-        }*/
-#if(Tplus>=Tneg)
-	ty_maior=Tplus;
+#if(Tpos>=Tneg)
+	ty_maior=Tpos;
 #else 
 	ty_maior=Tneg;
 #endif
 	dty=1./ty_maior;
-	neutral=TYPES-Tplus-Tneg;/*=0 if there is no neutral type and =1 otherwise*/
+	neutral=TYPES-Tpos-Tneg;/*=0 if there is no neutral type and =1 otherwise*/
 	for(i=0; i<Tneg; ++i){
 		spar->inv[i]=(double)(i-Tneg)/ty_maior;
 		spar->s[i]=-1.;
 	}
-	for(i=Tneg; i<=Tplus+Tneg; ++i){
+	for(i=Tneg; i<=Tpos+Tneg; ++i){
 		spar->inv[i]=(double)(i-Tneg)/ty_maior + dty*(1.-(double)neutral);/*if there is a neutral type, its index is i=Tneg, and inv[Tneg]=0.. otherwise this is the index 
 										   *if there is no neutral type, index i=Tneg is the index of the first positive type, and its investiment is inv[Tneg]=dty*/
 		spar->s[i]=1.;

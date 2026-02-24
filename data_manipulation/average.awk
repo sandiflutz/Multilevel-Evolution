@@ -43,7 +43,7 @@ END {
           for (j=0; j < colunas; ++j)
               {
                media = coluna[i*colunas+j]/sets[i*colunas+j];
-               printf("%.8lf ",media);
+               printf("%.8f ",media);
 #              erro = sqrt(coluna2[i*colunas+j]/sets[i*colunas+j]-media*media);
 #              if (erro==0.0) printf("%.4lf ",media);
 #                        else printf("%.4lf %.4lf ",media,erro);

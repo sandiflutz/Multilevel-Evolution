@@ -1,12 +1,18 @@
 /* bac_euler.c */
+#include<math.h>
 #include"randgen_ufrgs.h"
 #include"globals.h"
 #include"tools.h"
 #include"bac_euler.h"
 
+
+/********************************************
+ * integration of the microbial equations   *
+ * using euler method                       *
+ ********************************************/
 void bac_euler(double dt,SysParams *sp){
 	int i,j,jpl,jmi,idh1,k,idh2,nh;
-	double birth,death,migr_in,migr_out,func,**bac_tmp,micr_neg;
+	double birth,death,migr_in,migr_out,func,**bac_tmp,micr_neg,eps=0.0001;
 	double mut=sp->mu;//mutation rate
         double cost=sp->cost;//cost of helping for an ideal helper
         double birthr=sp->beta;//birth rate of a neutral bacteria
@@ -34,10 +40,10 @@ void bac_euler(double dt,SysParams *sp){
 		}
 		micr_neg/=sp->micr[idh1];
 		for(j=0; j<Tneg; ++j){
-			sp->s[j]=Fneg0-micr_neg;//when micr_neg=Fneg0, cost of any negative type is 0 (cost is @cost)
+			sp->s[j]=expCostReduc(micr_neg,CRnn0,CRnn1,eps);
 		}
-		for(j=Tneg; j<=Tplus+Tneg; ++j){
-			sp->s[j]=Fneg1-micr_neg;
+		for(j=Tneg; j<=Tpos+Tneg; ++j){
+			sp->s[j]=expCostReduc(micr_neg,CRnp0,CRnp1,eps);
 		}
                 #endif
 
@@ -108,4 +114,19 @@ void bac_euler(double dt,SysParams *sp){
 	}
 	free(bac_tmp);
 	return;
+}
+/****************************************************************
+ *     cost reduction function caused by negative types         *
+ *     of bacteria                                              *
+ ***************************************************************/
+double expCostReduc(double x, double a,double b,double eps){
+	double func;
+
+	if(1.-x<=eps){
+		func=a;
+	}else{
+		func=a*exp(-b*x/(1.-x));
+	}
+	
+	return func;
 }
