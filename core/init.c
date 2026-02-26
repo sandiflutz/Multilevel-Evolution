@@ -3,7 +3,6 @@
 #include<stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <math.h>
 #include"globals.h"
 #include"randgen_ufrgs.h"
@@ -89,11 +88,37 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	meas->dth=Dt_ref;
 	meas->ftnpars_size=400;
 	meas->ftname_pars=(char *)calloc(meas->ftnpars_size,sizeof(char));
-		#if (Tneg>0)
-		sprintf(meas->ftname_pars,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_Bv1e%d_cost1e%d_sigma%0.2f_mu1e%d_mig1e%d_dthmax%de%d_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,(int)log10(Bacv),(int)log10(spar->cost),spar->sigma,(int)log10(spar->mu),(int)log10(spar->mig),mf,ef,(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
+	char *ngeral=(char *)calloc(200,sizeof(char));
+	char *nevo = (char *)calloc(50,sizeof(char));
+	char *ntneg = (char *)calloc(50,sizeof(char));
+	char nparam[4][10];
+	double param[4];
+	param[0]=Bacv;
+	param[1]=spar->cost;
+	param[2]=spar->mu;
+	param[3]=spar->mig;
+	for(i=0; i<4; ++i){
+		if(param[i]==0){
+			sprintf(nparam[i],"0");
+		}else{
+			sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+		}	
+	}
+	sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
+		#if (EVO==0)
+		sprintf(nevo,"_dthmax%de%d_",mf,ef);
 		#else
-		sprintf(meas->ftname_pars,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_Bv1e%d_cost1e%d_sigma%0.2f_mu1e%d_mig1e%d_dthmax%de%d",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,(int)log10(Bacv),(int)log10(spar->cost),spar->sigma,(int)log10(spar->mu),(int)log10(spar->mig),mf,ef);
+		sprintf(nevo,"");
 		#endif
+		#if (Tneg>0)
+		sprintf(ntneg,"_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
+		#else
+		sprintf(ntneg,"");
+		#endif
+	sprintf(meas->ftname_pars,"%s%s%s",ngeral,nevo,ntneg);
+	free(ngeral);
+	free(nevo);
+	free(ntneg);
 	#endif
 
 	#if (NETWORK!=0)//not the well-mixed/complete graph case
@@ -109,70 +134,6 @@ void allocateMemory(Event *event,TimeMeasures *meas){
         alive_viz->usize=0;
         #endif
 
-        return;
-}
-/******************************************
- *  Open Global Files                     *
- ******************************************/
-void openFiles(TimeMeasures *meas){
-	int ok=0,namelen,dnl;
-	unsigned long id;
-
-	id = (unsigned long)time(NULL);
-
-	dnl=200;
-        namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;
-
-	char *name=(char *)calloc(namelen,sizeof(char));
-
-#ifdef DENSb1xT
-	/*each execution will produce a file with a different name (with a "random" id at the end of the name)*/
-	while(ok==0){
-		sprintf(name,"%sdensb1Xt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
-		meas->file_tmeas=fopen(name,"r");
-		if(meas->file_tmeas!=NULL){
-			++id;
-			fclose(meas->file_tmeas);
-		}else{
-			ok=1;
-		}
-	}
-        sprintf(name,"%sdensb1Xt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
-        meas->file_tmeas=fopen(name,"w");
-	if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
-
-#endif
-#ifdef AVERINVxT
-	while(ok==0){
-        	sprintf(name,"%saverInvXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
-		meas->file_tmeas=fopen(name,"r");
-		if(meas->file_tmeas!=NULL){
-			++id;
-			fclose(meas->file_tmeas);
-		}else{
-			ok=1;
-		}
-	}
-        sprintf(name,"%saverInvXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
-        meas->file_tmeas=fopen(name,"w");
-	if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
-#endif
-#ifdef MEANBFRACxT
-	while(ok==0){
-        	sprintf(name,"%smeanFracBXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
-		meas->file_tmeas=fopen(name,"r");
-		if(meas->file_tmeas!=NULL){
-			++id;
-			fclose(meas->file_tmeas);
-		}else{
-			ok=1;
-		}
-	}
-        sprintf(name,"%smeanFracBXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
-        meas->file_tmeas=fopen(name,"w");
-	if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
-#endif
-	free(name);
         return;
 }
 /*****************************************************

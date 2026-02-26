@@ -254,3 +254,106 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
 
         return;
 }
+/*************************************************************
+*    Host Layer Evolution (for a time interval=Dt_ref):      *
+*    This version uses a dynamical value for the time step   *
+*    of the host layer of dt<=Dt_ref                         *
+*    (original paper version)                                *
+**************************************************************/
+int evolveHostDtH(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMeasures *meas){
+	int i,idh,nh,dnumsteps;
+	double dt,sumprobs;
+	                
+	dt=adjustTimeStep(event->cprobE[event->usizeE-1]);
+	dnumsteps=ceil(Dt_ref/dt);
+	dt=Dt_ref/(double)dnumsteps;
+	sumprobs=dt*event->cprobE[event->usizeE-1];
+	event->dtE=dt;
+                
+	nh=listh->usize;
+	/*temporary host list (to keep track of the changes in the host list, that have to be updated after the host time substeps)*/
+	listh_tmp->usize=listh->usize;
+	for(i=0; i<N; ++i){
+		listh_tmp->vec[i]=listh->vec[i];
+		inverselisth_tmp[i]=inverselisth[i];
+	}
+	/******/
+
+	for(i=0; i<dnumsteps; ++i){
+		if(FRANDOM<sumprobs){
+			event->whichE=selectEventCP(event->cprobE,event->usizeE);
+			idh=listh->vec[event->whichE%nh];
+			if((host[idh]==1)&&(listh_tmp->usize>1)){//if chosen host is alive and the system has more than 1 host
+				switch(event->whichE/nh){
+					case 0: dynamicsHost(0,idh,listh_tmp,inverselisth_tmp);
+						break;
+					case 1: dynamicsHost(1,idh,listh_tmp,inverselisth_tmp);
+						break;
+				}
+				#ifdef NUMHEVENTSxT
+				meas->numb+=1-event->whichE/nh;
+				meas->numd+=event->whichE/nh;
+				#endif
+			}
+		}
+	}
+	                
+	/*updating hosts dynamic list*/
+	for(i=0; i<N; ++i){
+		listh->vec[i]=listh_tmp->vec[i];
+		inverselisth[i]=inverselisth_tmp[i];
+	}
+	listh->usize=listh_tmp->usize;
+	nh=listh->usize;
+	/**************/
+
+	return dnumsteps;
+}
+/*************************************************************
+*    Host Layer Evolution (for a time interval=Dt_ref):      *
+*    This version uses a tau-leaping method                  *
+**************************************************************/
+void evolveHostTLP(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMeasures *meas){
+	int i,k,idh,nh;                
+
+	nh=listh->usize;
+	/*temporary host list (to keep track of the changes in the host list, that have to be updated after the host time substeps)*/
+	listh_tmp->usize=listh->usize;
+	for(i=0; i<N; ++i){
+		listh_tmp->vec[i]=listh->vec[i];
+		inverselisth_tmp[i]=inverselisth[i];
+	}
+	/***/
+	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
+		//births
+		k=poissonRandKnuth((event->ratesE[i]*Dt_ref));//maximnumber of times host @idh reproduces in a time interval=Dt_ref
+		while((host[idh]==1)&&(k>0)){//host has to be alive
+			dynamicsHost(0,idh,listh_tmp,inverselisth_tmp);
+			--k;
+			#ifdef NUMHEVENTSxT
+			++meas->numb;
+			#endif
+		}
+                        
+		//deaths
+		k=poissonRandKnuth((event->ratesE[i+nh]*Dt_ref));//maximum number of times host @idh dies in a time interval=Dt_ref
+		while((host[idh]==1)&&(listh_tmp->usize>1)&&(k>0)){//host has to be alive to die (effective k cant be >1)
+			dynamicsHost(1,idh,listh_tmp,inverselisth_tmp);//death
+			#ifdef NUMHEVENTSxT
+			++meas->numd;
+			#endif
+			--k;
+		}
+	}
+                
+	//updating hosts dynamic list
+	for(i=0; i<N; ++i){
+		listh->vec[i]=listh_tmp->vec[i];
+		inverselisth[i]=inverselisth_tmp[i];
+	}
+	listh->usize=listh_tmp->usize;
+	nh=listh->usize;
+	/**************/
+	return;
+}

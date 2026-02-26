@@ -43,4 +43,16 @@ double adjustTimeStep(double maxprob);
 *                  host dynamics                       *
 ********************************************************/
 void dynamicsHost(int type_event,int idh,DynList *lhost, int *ilhost);
+/*************************************************************
+*    Host Layer Evolution (for a time interval=Dt_ref):      *
+*    This version uses a dynamical value for the time step   *
+*    of the host layer of dt<=Dt_ref                         *
+*    (original paper version)                                *
+**************************************************************/
+int evolveHostDtH(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMeasures *meas);
+/*************************************************************
+*    Host Layer Evolution (for a time interval=Dt_ref):      *
+*    This version uses a tau-leaping method                  *
+**************************************************************/
+void evolveHostTLP(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMeasures *meas);
 #endif

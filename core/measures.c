@@ -1,8 +1,98 @@
 /* meaures.c */
-
+#include <time.h>
 #include"globals.h"
 #include"tools.h"
 #include"measures.h"
+/******************************************
+*	Open Global Files                 *
+*******************************************/
+void openFiles(TimeMeasures *meas){
+        int ok=0,namelen,dnl;
+        unsigned long id;
+
+        id = (unsigned long)time(NULL);
+
+        dnl=200;
+        namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;
+
+        char *name=(char *)calloc(namelen,sizeof(char));
+
+#ifdef DENSb1xT
+        /*each execution will produce a file with a different name (with a "random" id at the end of the name)*/
+        while(ok==0){
+                sprintf(name,"%sdensb1Xt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+                meas->file_tmeas=fopen(name,"r");
+                if(meas->file_tmeas!=NULL){
+                        ++id;
+                        fclose(meas->file_tmeas);
+                }else{
+                        ok=1;
+                }
+        }
+        sprintf(name,"%sdensb1Xt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+        meas->file_tmeas=fopen(name,"w");
+        if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
+
+#endif
+#ifdef AVERINVxT
+        while(ok==0){
+                sprintf(name,"%saverInvXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+                meas->file_tmeas=fopen(name,"r");
+                if(meas->file_tmeas!=NULL){
+                        ++id;
+                        fclose(meas->file_tmeas);
+                }else{
+                        ok=1;
+                }
+        }
+        sprintf(name,"%saverInvXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+        meas->file_tmeas=fopen(name,"w");
+        if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
+#endif
+#ifdef MEANBFRACxT
+        while(ok==0){
+                sprintf(name,"%smeanFracBXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+                meas->file_tmeas=fopen(name,"r");
+                if(meas->file_tmeas!=NULL){
+                        ++id;
+                        fclose(meas->file_tmeas);
+                }else{
+                        ok=1;
+                }
+        }
+        sprintf(name,"%smeanFracBXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+        meas->file_tmeas=fopen(name,"w");
+        if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
+#endif
+#ifdef NUMHEVENTSxT
+        while(ok==0){
+                sprintf(name,"%snumheventsXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+                meas->file_tmeas=fopen(name,"r");
+                if(meas->file_tmeas!=NULL){
+                        ++id;
+                        fclose(meas->file_tmeas);
+                }else{
+                        ok=1;
+                }
+        }
+        sprintf(name,"%snumheventsXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+        meas->file_tmeas=fopen(name,"w");
+        if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
+#endif
+        free(name);
+        return;
+}
+/**********************************************
+*   		Close Global Files            *                    
+***********************************************/
+void closeFiles(TimeMeasures *meas){
+	
+	if(meas->file_tmeas!=NULL){
+		fclose(meas->file_tmeas);
+	}
+
+	return;
+}
 /**********************************************
  * calculate investment density per Host     *
  **********************************************/
@@ -347,6 +437,21 @@ void invDistXt(TimeMeasures *meas){
 	return;
 }
 /***************************************************
+*  stores the number of host events per            * 
+*  microbial time steps                            *
+****************************************************/
+void numHostEventsPerDtXt(TimeMeasures *meas){
+
+	if(meas->NTnow==0){
+		fprintf(meas->file_tmeas,"#1:time 2:#of host events per Dt_ref 3:#of host births per Dt_ref 4:#of host deaths per Dt_ref 5:#of hosts\n");
+	}
+
+	fprintf(meas->file_tmeas,"%f %d %d %d %d\n",meas->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,listh->usize);
+	printf("%f %d %d %d %d\n",meas->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,listh->usize);
+
+	return;
+}
+/***************************************************
 *  call routines that measure and store measures   *
 *  during the time loop                            *
 ****************************************************/
@@ -386,6 +491,9 @@ void measures(TimeMeasures *meas){
 	}else{
 		printf("Time (after measuring finishes):%d\n",meas->NTnow);
 	}
+        #endif
+	#ifdef NUMHEVENTSxT
+	numHostEventsPerDtXt(meas);
         #endif
 
 

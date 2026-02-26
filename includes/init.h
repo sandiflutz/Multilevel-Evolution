@@ -29,10 +29,6 @@
 *     initialize system parameters                         *
 ************************************************************/
 void allocateMemory(Event *event,TimeMeasures *meas);
-/******************************************
- *  Open Global Files                     *
- ******************************************/
-void openFiles(TimeMeasures *meas);
 /*****************************************************
 *   Populates Host and Microbial layer               *
 *   Bacterial layer: types of bacteria               *

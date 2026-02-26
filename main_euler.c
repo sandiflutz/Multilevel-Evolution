@@ -14,7 +14,6 @@ void callSetSystem(void);
 void callSysDynamics(int nst);
 void freeMemory(void);
 /******global variables*********************************************/
-int EXIT_N=0;
 Event event;
 TimeMeasures meas;
 /****************Program's Routines*****************************/
@@ -26,28 +25,28 @@ int main(void){
 	/**********/
         
 #ifdef TMEAS
+	#if (EVO==0)
+        strncat(meas.ftname_pars, "_eu",meas.ftnpars_size-strlen(meas.ftname_pars)-1);
+	#else
+        strncat(meas.ftname_pars, "_tlp",meas.ftnpars_size-strlen(meas.ftname_pars)-1);
+	#endif
 	for(i=0; i<SAMPLE; ++i){
+        	openFiles(&meas);
 		callSysDynamics(NTf_me);
+		closeFiles(&meas);
 	}
 #endif
 
 
 	freeMemory();
-	return EXIT_N;
+	return 0;
 }
 /******************************************
  *          set system                    *
  ******************************************/
 void callSetSystem(void){
 
-        /*setting the system*/
         setSystem(&event,&meas);
-
-        /*Open Files for time measures*/
-        #ifdef TMEAS
-        strncat(meas.ftname_pars, "_eu",meas.ftnpars_size-strlen(meas.ftname_pars)-1);
-        openFiles(&meas);
-        #endif
 
         return;
 }
@@ -62,9 +61,12 @@ void callSysDynamics(int nst){
 	listh_tmp.vec=(int *)calloc(N,sizeof(int));
 	listh_tmp.size=listh->size;
 
-	dt=Dt_ref;
+	#ifdef NUMHEVENTSxT
+	meas.numb=0;
+	meas.numd=0;
+	#endif	
+
 	numsteps=0;
-	dnumsteps=1;
 	event.timeE=0.;
 	nh=listh->usize;
 	while((numsteps<=NTS)&&(nh>0)){
@@ -72,48 +74,21 @@ void callSysDynamics(int nst){
 		meas.NTnow=numsteps;
 		meas.Tnow=event.timeE;
 		measures(&meas);
+			#ifdef NUMHEVENTSxT
+			meas.numb=0;
+			meas.numd=0;
+			#endif
 		#endif
 		
 		#if (CI!=2)//not the single host case
 		/*host dynamics (all routines in this block are from evo.c)*/
 		calcHostEvents(&event);
-
-		dt=adjustTimeStep(event.cprobE[event.usizeE-1]);
-		#ifdef TMEAS
-		meas.dth=dt;
-		#endif
-		dnumsteps=ceil(Dt_ref/dt);
-		dt=Dt_ref/(double)dnumsteps;
-		sumprobs=dt*event.cprobE[event.usizeE-1];
-		event.dtE=dt;
-		/*temporary host list (to keep track of the changes in the host list, that have to be updated after the host time substeps)*/
-                listh_tmp.usize=listh->usize;
-                for(i=0; i<N; ++i){
-                        listh_tmp.vec[i]=listh->vec[i];
-                        inverselisth_tmp[i]=inverselisth[i];
-                }
-                /******/
-		for(i=0; i<dnumsteps; ++i){
-			if(FRANDOM<sumprobs){
-				event.whichE=selectEventCP(event.cprobE,event.usizeE);
-				idh=listh->vec[event.whichE%nh];
-				if((host[idh]==1)&&(listh_tmp.usize>1)){//if chosen host is alive and the system has more than 1 host
-					switch(event.whichE/nh){
-						case 0: dynamicsHost(0,idh,&listh_tmp,inverselisth_tmp);
-							break;
-						case 1: dynamicsHost(1,idh,&listh_tmp,inverselisth_tmp);
-							break;
-					}
-				}
-			}
-		}
-		//updating hosts dynamic list
-		for(i=0; i<N; ++i){
-			listh->vec[i]=listh_tmp.vec[i];
-			inverselisth[i]=inverselisth_tmp[i];
-		}
-		listh->usize=listh_tmp.usize;
-		nh=listh->usize;
+			#if (EVO==0)//evolution using adjustment of host time step (as in the original paper)
+				dnumsteps=evolveHostDtH(&event,&listh_tmp,inverselisth_tmp,&meas);
+			#else
+				evolveHostTLP(&event,&listh_tmp,inverselisth_tmp,&meas);
+				dnumsteps=1;
+			#endif
 		/**************/
 		#endif
 
@@ -128,8 +103,8 @@ void callSysDynamics(int nst){
         return;
 }
 /******************************************
-* Clean Allocated Memory                 *
-*****************************************/
+* 	Clean Allocated Memory            *
+*******************************************/
 void freeMemory(void){
 	int i;
 
@@ -150,9 +125,6 @@ void freeMemory(void){
 	free(spar);
 #ifdef TMEAS
         free(meas.ftname_pars);
-	#if  defined(DENSb1xT)||defined(AVERINVxT)
-        fclose(meas.file_tmeas);
-        #endif
 #endif
 
 #if (NETWORK!=0)
