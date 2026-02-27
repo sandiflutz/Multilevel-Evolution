@@ -11,7 +11,7 @@
 *************************************************************************************/
 /**paramenters to define the structure of the system*********/
 //topoly
-#define L               100		/*linear number of sites (square lattice case*/
+#define L               224		/*linear number of sites (square lattice case*/
 #define N               (L*L)		/*number of sites*/
 #define NETWORK         0		/*0: well-mixed
 					 *1: square-lattice*/
@@ -21,7 +21,7 @@
         #define VIZ	4		/*number of neighbors in the square-lattice: 4 or 8*/
 #endif
 //bacteria
-#define TYPES           100		/*number of types of microbe*/
+#define TYPES           2		/*number of types of microbe*/
 #define Tpos            (TYPES-1)	/*number of positive types of microbes: positively affect host reproduction success*/
 #define Tneg            0		/*number of negative types of microbes: negatively affect host reproduction success*/
 
@@ -30,17 +30,17 @@
 #if ((TYPES==2)&&(Tpos==TYPES-1))
 	#define CI	3
 #else
-	#define CI	1		/*0: system starts with types being randomly distributed with a uniform distribution
+	#define CI	0		/*0: system starts with types being randomly distributed with a uniform distribution
 					 *1: system starts with types being randomly distributed using a normal distribution for the frequencies of each type
 					 *2: system starts with only the 1 host
 					 *3: all types of bacteria start with a fixed fraction of 1/TYPES*/
 #endif
 //parameters for the dynamics 
-#define Mu        	1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
-#define Theta     	1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-#define K_H      	500		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
-#define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
-#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
+#define Mu        	1e-09		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
+#define Theta     	1e-06		/*migration rate (tab1:1e-06, tab2:1e-05)*/
+#define K_H      	5000		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
+#define Gh        	10		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
+#define Bacv      	1e-04		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #define SIGMA     	0.01		/*variance of the trucated normal distribution for the inheritance of helpful microbes*/
 #define DTVSIZE   	29		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
 					 *the host dynamics so the probability of 2 consecutive host events during a @Dt_ref time interval is <0.01
@@ -76,13 +76,13 @@
 #define MEANinv0  0.
 #define STDinv0   0.01
 /****parameters for measures/sampling and related things****************/
-#define TF        300.           /*host maximum time (measured using continuous values for the times steps)*/
+#define TF        500.           /*host maximum time (measured using continuous values for the times steps)*/
 #define NTS       10e7            /*maximum number of timesteps*/
 #define FIG_EXT   0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 				  * 0:png (good for creating animations later)
                                   * 1:eps*/
 #define NF       100             /*number of files created for the routines that create one file per timestep (interval between file=(Tf_me-T0_me)/NF)*/
-#define NTf_me   NTS             /*time to stop a measure*/
+#define NTf_me   10000            /*time (in #of time steps) to stop a measure*/
 #define NT0_me   0               /*time to start a measure*/
 #define SAMPLE   100             /*number of files with raw data that are going to be produce for measurements that require it*/
 /***Routine Choices***********************************************/
@@ -97,7 +97,7 @@
 					* (all other types mutate from j to j+1 with rate mu/2 and from j to j-1 with rate mu/2) 
 					*/
 #else
-  	#define INV     	1       /*investment function:
+  	#define INV     	0       /*investment function:
 			     		*0 (paper version): inv[j]=(2(j+1)-1)/(2*TYPES)
 			     		*1: inv[j]=(j-Tneg)/Tpos (where Tpos=# of positive types, Tneg=# of negative types=TYPES-1-Tpos)*/
 	#define MUT_BIRTH_DYN  	0	/*0 (my version): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu 
@@ -144,10 +144,11 @@ typedef struct{
 *  Structs related to Measures             *
 *******************************************/
 typedef struct{
+        double Ti;
+        double Tf;
         double Tnow;
 	double saveT;
 	double dth;
-	int NTi;
 	int NTf;
 	int NTnow;
         int nfiles;

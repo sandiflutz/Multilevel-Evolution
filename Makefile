@@ -22,9 +22,9 @@ LDFLAGS = -lm -fsanitize=address
 # -------------------------------------------------------
 #  Source files and object files
 # -------------------------------------------------------
-CORE = core/init.c core/evo.c core/measures.c core/tools.c core/randgen_ufrgs.c globals.c
+CORE = core/init.c core/evo.c core/measures.c core/tools.c core/randgen_ufrgs.c core/bac.c globals.c
 
-SRCS = main_euler.c euler/bac_euler.c $(CORE)
+SRCS = main.c $(CORE)
 
 OBJS = $(SRCS:.c=.o)
 

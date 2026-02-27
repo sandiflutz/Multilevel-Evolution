@@ -1,9 +1,9 @@
-/* bac_euler.c */
+/* bac.c */
 #include<math.h>
 #include"randgen_ufrgs.h"
 #include"globals.h"
 #include"tools.h"
-#include"bac_euler.h"
+#include"bac.h"
 
 
 /********************************************

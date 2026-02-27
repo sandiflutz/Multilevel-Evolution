@@ -153,7 +153,7 @@ void densB1Xt(TimeMeasures *meas){
 	int j;
 	double averinv;
 
-	if(meas->NTnow==meas->NTi){
+	if(meas->Tnow==meas->Ti){
 		fprintf(meas->file_tmeas,"#1:time | 2:average investment level on an isolated host | 3:frac. of bac. of type 0 | 4:frac. of bac. of type 1 | 5:abundance of the micr. pop.)\n");
 	}
 	
@@ -176,12 +176,12 @@ void meanFracXt(TimeMeasures *meas){
 	int i,j,idh,nh;
 	double *avbacfreq;
 	
-	if(meas->NTnow==meas->NTi){
+	if(meas->Tnow==meas->Ti){
 		fprintf(meas->file_tmeas,"#1:time 2:mean freq. of bac of type=%d ",TYPES-1);
 		for(j=TYPES-2; j>=0; --j){
 			fprintf(meas->file_tmeas,"%d:mean freq. of bac of type=%d ",TYPES-j+1,j);
 		}
-		fprintf(meas->file_tmeas,"%d:dth\n",TYPES+2);
+		fprintf(meas->file_tmeas,"%d:numsteps\n",TYPES+2);
 	}
 	
 	nh=listh->usize;
@@ -201,8 +201,8 @@ void meanFracXt(TimeMeasures *meas){
 		fprintf(meas->file_tmeas,"%f ",avbacfreq[j]);
 		printf("%f ",avbacfreq[j]);
 	}
-        fprintf(meas->file_tmeas,"%f\n",meas->dth);
-        printf("dth=%f\n",meas->dth);
+        fprintf(meas->file_tmeas,"%d\n",meas->NTnow);
+        printf("%d\n",meas->NTnow);
 
 	free(avbacfreq);
 	return;
@@ -224,7 +224,7 @@ void averInvestmentXt(TimeMeasures *meas){
 	int i,idh,nh;
 	double averinv,*densInvH,tot_micr;
 	
-	if(meas->NTnow==meas->NTi){
+	if(meas->Tnow==meas->Ti){
 		fprintf(meas->file_tmeas,"#1:time 2:average cumulative investment 3:dens_host 4:number of time steps 4:dth\n");
 	}
 
@@ -402,7 +402,7 @@ void invDistXt(TimeMeasures *meas){
 
 	/*******************filling data file*****************************/
 	
-	if(meas->NTnow==meas->NTi)fprintf(fhist,"#1:average inv. in hosts 2:frac. of hosts 3:numsteps\n");
+	if(meas->Tnow==meas->Ti)fprintf(fhist,"#1:average inv. in hosts 2:frac. of hosts 3:numsteps\n");
 	for(i=0; i<nbins; ++i){
 		fprintf(fhist,"%f %f %f %d\n",(double)i*binsize,(double)hist_inv[i]/nh,freqInvH[0],meas->NTnow);
 	}
@@ -442,7 +442,7 @@ void invDistXt(TimeMeasures *meas){
 ****************************************************/
 void numHostEventsPerDtXt(TimeMeasures *meas){
 
-	if(meas->NTnow==0){
+	if(meas->Tnow==meas->Ti){
 		fprintf(meas->file_tmeas,"#1:time 2:#of host events per Dt_ref 3:#of host births per Dt_ref 4:#of host deaths per Dt_ref 5:#of hosts\n");
 	}
 
@@ -458,22 +458,22 @@ void numHostEventsPerDtXt(TimeMeasures *meas){
 void measures(TimeMeasures *meas){
 	
         #ifdef DENSb1xT
-	if((meas->NTnow>=meas->NTi)&&(meas->NTnow<=meas->NTf)){
+	if((meas->Tnow>=meas->Ti)&&(meas->Tnow<=meas->Tf)){
 		densB1Xt(meas);
 	}
         #endif
         #ifdef AVERINVxT
-	if((meas->NTnow>=meas->NTi)&&(meas->NTnow<=meas->NTf)){
+	if((meas->Tnow>=meas->Ti)&&(meas->Tnow<=meas->Tf)){
 		averInvestmentXt(meas);
 	}
         #endif
         #ifdef MEANBFRACxT
-	if((meas->NTnow>=meas->NTi)&&(meas->NTnow<=meas->NTf)){
+	if((meas->Tnow>=meas->Ti)&&(meas->Tnow<=meas->Tf)){
 		meanFracXt(meas);
 	}
         #endif
         #ifdef SAVE_CONFIG
-	if((meas->NTnow>=meas->NTi)&&(meas->nfiles<NF)){
+	if((meas->Tnow>=meas->Ti)&&(meas->nfiles<NF)){
 		printf("Time (measuring):%d\n",meas->NTnow);
 		save_config(meas);
 		++meas->nfiles;

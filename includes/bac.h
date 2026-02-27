@@ -1,6 +1,5 @@
-#ifndef BAC_EULER_H
-#define BAC_EULER_H
-
+#ifndef BAC_H
+#define BAC_H
 /********************************************
  * integration of the microbial equations   *
  * using euler method                       *

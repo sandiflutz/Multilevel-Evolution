@@ -1,17 +1,16 @@
-/* main_euler.c */
-
+/* main.c */
 #include<stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include"globals.h"
 #include"randgen_ufrgs.h"
 #include"init.h"
-#include"bac_euler.h"
+#include"bac.h"
 #include"evo.h"
 #include"measures.h"
 /*****************declaring routines order**************************/
 void callSetSystem(void);
-void callSysDynamics(int nst);
+void callSysDynamics(double tf);
 void freeMemory(void);
 /******global variables*********************************************/
 Event event;
@@ -25,18 +24,15 @@ int main(void){
 	/**********/
         
 #ifdef TMEAS
-	#if (EVO==0)
-        strncat(meas.ftname_pars, "_eu",meas.ftnpars_size-strlen(meas.ftname_pars)-1);
-	#else
-        strncat(meas.ftname_pars, "_tlp",meas.ftnpars_size-strlen(meas.ftname_pars)-1);
-	#endif
 	for(i=0; i<SAMPLE; ++i){
+		setCI(&meas);
         	openFiles(&meas);
-		callSysDynamics(NTf_me);
+		
+		callSysDynamics(meas.Tf);
+		
 		closeFiles(&meas);
 	}
 #endif
-
 
 	freeMemory();
 	return 0;
@@ -53,7 +49,7 @@ void callSetSystem(void){
 /******************************************
 *          time loop                     *
 ******************************************/
-void callSysDynamics(int nst){
+void callSysDynamics(double tf){
 	int i,idh,numsteps,nh,dnumsteps;
 	double dt,sumprobs;
 	int *inverselisth_tmp=(int *)calloc(N,sizeof(int));
@@ -69,7 +65,8 @@ void callSysDynamics(int nst){
 	numsteps=0;
 	event.timeE=0.;
 	nh=listh->usize;
-	while((numsteps<=NTS)&&(nh>0)){
+	dnumsteps=1;
+	while((event.timeE<=tf)&&(nh>0)){
 		#ifdef TMEAS
 		meas.NTnow=numsteps;
 		meas.Tnow=event.timeE;
@@ -86,11 +83,12 @@ void callSysDynamics(int nst){
 			#if (EVO==0)//evolution using adjustment of host time step (as in the original paper)
 				dnumsteps=evolveHostDtH(&event,&listh_tmp,inverselisth_tmp,&meas);
 			#else
+				event.dtE=Dt_ref;
 				evolveHostTLP(&event,&listh_tmp,inverselisth_tmp,&meas);
-				dnumsteps=1;
 			#endif
 		/**************/
 		#endif
+		nh=listh->usize;
 
 		bac_euler(Dt_ref,spar);//from bac_eu.c
 		
@@ -140,6 +138,7 @@ void freeMemory(void){
 	free(event.ratesE);
 	free(event.cprobE);
 	free(listh->vec);
+	free(inverselisth);
 
 	/*structs*/
 	free(listh);

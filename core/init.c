@@ -82,12 +82,14 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	#ifdef TMEAS
 	meas->idh_h1=0.;
 	meas->nfiles=0;
-	meas->NTi=NT0_me;
+	meas->Ti=0.;
+	meas->Tf=TF;
 	meas->NTf=NTf_me;
 	meas->saveT=0;
 	meas->dth=Dt_ref;
 	meas->ftnpars_size=400;
 	meas->ftname_pars=(char *)calloc(meas->ftnpars_size,sizeof(char));
+
 	char *ngeral=(char *)calloc(200,sizeof(char));
 	char *nevo = (char *)calloc(50,sizeof(char));
 	char *ntneg = (char *)calloc(50,sizeof(char));
@@ -106,9 +108,9 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	}
 	sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
 		#if (EVO==0)
-		sprintf(nevo,"_dthmax%de%d_",mf,ef);
+		sprintf(nevo,"_dthmax%de%d_v0",mf,ef);
 		#else
-		sprintf(nevo,"");
+		sprintf(nevo,"_tlp");
 		#endif
 		#if (Tneg>0)
 		sprintf(ntneg,"_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
@@ -147,6 +149,11 @@ void initialStateFixedFrac(void){
 
 	p_oc=(double)H0/N;
 
+	for(i=0; i<N; ++i){
+		listh->vec[i]=0;
+		inverselisth[i]=0;
+	}
+
         for(i=0; i<N; ++i){
 		if(FRANDOM<p_oc){
                         host[i]=1;
@@ -181,6 +188,11 @@ void initialStateFixedFrac(void){
 void initialStateUniD(void){
        int i,j,nh=0,ne=0;
         double norm,p_oc;
+
+	for(i=0; i<N; ++i){
+		listh->vec[i]=0;
+		inverselisth[i]=0;
+	}
 
 	p_oc=(double)H0/N;
 
@@ -227,6 +239,11 @@ void initialStateNormD(void){
         double norm,p_oc;
 
 	bacinit=(double *)calloc(TYPES,sizeof(double));
+	
+	for(i=0; i<N; ++i){
+		listh->vec[i]=0;
+		inverselisth[i]=0;
+	}
                        
        /*setting initial bacteria dist.: the same for every host*/	
 	norm=0.;
@@ -349,6 +366,25 @@ void setInvestments(void){
         return;
 }
 /****************************************************************************
+ *                     Set Initial Conditions                               *
+ ***************************************************************************/
+void setCI(TimeMeasures *meas){
+
+	meas->Tnow=0.;
+	meas->NTnow=0;
+	/*setting initial state (alive hosts and bacteria abundances)*/
+	#if (CI==0)//uniform distribution
+		initialStateUniD();
+	#elif(CI==1)//frequencies come from normal distribution
+		initialStateNormD();
+	#elif(CI==2)//single host
+		initialStateSingleH(meas);
+	#else
+		initialStateFixedFrac();
+	#endif
+	return;
+}
+/****************************************************************************
  *                     Build System                                         *
  ***************************************************************************/
 void setSystem(Event *event,TimeMeasures *meas){
@@ -370,15 +406,7 @@ void setSystem(Event *event,TimeMeasures *meas){
 	#endif
 
 	/*setting initial state (alive hosts and bacteria abundances)*/
-	#if (CI==0)//uniform distribution
-		initialStateUniD();
-	#elif(CI==1)//frequencies come from normal distribution
-		initialStateNormD();
-	#elif(CI==2)//single host
-		initialStateSingleH(meas);
-	#else
-		initialStateFixedFrac();
-	#endif
+	setCI(meas);
 
 	return;
 }
