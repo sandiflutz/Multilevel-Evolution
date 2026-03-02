@@ -50,8 +50,7 @@ void callSetSystem(void){
 *          time loop                     *
 ******************************************/
 void callSysDynamics(double tf){
-	int i,idh,numsteps,nh,dnumsteps;
-	double dt,sumprobs;
+	int numsteps,nh,dnumsteps;
 	int *inverselisth_tmp=(int *)calloc(N,sizeof(int));
 	DynList listh_tmp;
 	listh_tmp.vec=(int *)calloc(N,sizeof(int));
@@ -82,7 +81,7 @@ void callSysDynamics(double tf){
 		calcHostEvents(&event);
 			#if (EVO==0)//evolution using adjustment of host time step (as in the original paper)
 				dnumsteps=evolveHostDtH(&event,&listh_tmp,inverselisth_tmp,&meas);
-			#else
+			#elif (EVO==1)
 				event.dtE=Dt_ref;
 				evolveHostTLP(&event,&listh_tmp,inverselisth_tmp,&meas);
 			#endif

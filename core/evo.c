@@ -153,11 +153,31 @@ void hostBirth(int idp, int idk){
 void hostDeath(int idh){
         int i;
 
-        host[idh]=0;
+        //host[idh]=0;
+        host[idh]=-1;
         for(i=0; i<TYPES; ++i){
                 bac[idh][i]=0.;
         }
 	spar->micr[idh]=0.;
+
+        return;
+}
+/****************************************
+*	moviment of hosts:		*
+*	2 neighbors exchange places	*
+*****************************************/
+void hostMoviment(int id1,int id2){
+	int i,htmp;
+	double bac_tmp;
+
+	for(i=0; i<TYPES; ++i){
+		bac_tmp=bac[id1][i];
+		bac[id1][i]=bac[id2][i];
+		bac[id2][i]=bac_tmp;
+	}
+	htmp=host[id1];
+	host[id1]=host[id2];
+	host[id2]=htmp;
 
         return;
 }
@@ -217,34 +237,54 @@ double adjustTimeStep(double maxprob){
 * hosts list, ilhost[label]=host)                       *                 
 *********************************************************/
 void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
-        int idlist_h,idlist_k,idk,nh;
+        int idlist_h,idlist_k,idk,nh,ne;
+	DynList empty_viz;
+
+	#if (NETWORK>0)
+	empty_viz.vec = (int *)calloc(VIZ,sizeof(int));
+	empty_viz.size=VIZ;
+	#endif
 	
 	idlist_h=ilhost[idh];//label of the focus host on the temporary list of alive hosts 
 	nh=lhost->usize;
 	switch(type_event){
 		case 0://reproduction
 			#if (NETWORK==0)//complete graph
-			idlist_k=randNeighbor(idlist_h,lhost->vec,lhost->usize,N-1,N);/*choose a random neighbor from the host list. Variable being sent: 1-focus id,2-neighbors vector,
+			if(N-lhost->usize>list_newd->usize){
+				do{
+					idlist_k=randNeighbor(idlist_h,lhost->vec,lhost->usize,N-1,N);/*choose a random neighbor from the host list. Variable being sent: 1-focus id,2-neighbors vector,
 											 *3 and 4-randomly select neighbors between these 2 ids,
 											 *5-neighbors vector size*/
-                        idk=lhost->vec[idlist_k];			
+				}while((idlist_k<listh->usize)&&(listh->usize<N-1));//making sure the empty site chosen to receive idh's offspring wasn't a host that died doing the current time interval 
+									    //(since the list of live host and the events rates vector are updated only at the end of each time step)
+				idk=lhost->vec[idlist_k];
+			}else{//no available empty sites
+				idk=-1;
+			}			
 			#else
-			searchLiveNeighbors(0,idh,VIZ,host,neighbors,alive_viz);
-			nav=alive_viz->usize;//# of alive neighbors
-			idk=randNeighbor(idh,alive_viz->vec,nav,VIZ-1,VIZ);/*passing: 1-focus host id,2-list of alive neighboring hosts (including the focus host),
-									      *3- position id of the first empty space = # of alive neigbors, 4-position id of the last empty space
-									      *5-size of the list of neighbors = maximum number of alive neighbors
-									      *the last element of @alive_viz, the (VIZ-1)th element, 
-									      *is the focus host, so it cannot be include. */
-			idlist_k=ilhost[idk];
+			searchEmptyNeighbors(0,idh,host,neighbor,&empty_viz);
+			ne=empty_viz.usize;//# of empty sites in the neighborhood
+			if(ne>0){
+				idk=randNeighbor(idh,empty_viz.vec,0,ne-1,empty_viz.size);/*passing: 1-focus host id,2-list of empty sites,
+										    *3- position id of the first empty space, 4-position id of the last empty space
+										    *5-maximum number of empty sites*/
+				idlist_k=ilhost[idk];
+			//	printf("idh=%d idk=%d idlistk=%d ne=%d\n",idh,idk,idlist_k,ne);
+			}else{
+				idk=-1;
+			}
 			#endif
-			exchange(ilhost,lhost->vec[nh],idk);
-			exchange(lhost->vec,nh,idlist_k);
-			++lhost->usize;
-			hostBirth(idh,idk);
+			if(idk>=0){
+				exchange(ilhost,lhost->vec[nh],idk);
+				exchange(lhost->vec,nh,idlist_k);
+				++lhost->usize;
+				hostBirth(idh,idk);
+			}
 			break;
 		case 1: //host death
 			hostDeath(idh);
+			list_newd->vec[list_newd->usize]=idh;//list of new deaths (to prevent any offspring to occupy this site before all lists are up to date)
+			++list_newd->usize;
 			exchange(ilhost,idh,lhost->vec[nh-1]);
 			exchange(lhost->vec,idlist_h,nh-1);
 			--lhost->usize;
@@ -252,6 +292,9 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
 	}
 
 
+	#if (NETWORK>0)
+	free(empty_viz.vec);
+	#endif
         return;
 }
 /*************************************************************
@@ -304,17 +347,22 @@ int evolveHostDtH(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMea
 		inverselisth[i]=inverselisth_tmp[i];
 	}
 	listh->usize=listh_tmp->usize;
+	
+	for(i=0; i<list_newd->usize; ++i){
+		host[list_newd->vec[i]]=0;
+		list_newd->vec[i]=0;
+	}
+	list_newd->usize=0;
 	/**************/
 
 	return dnumsteps;
 }
 /*************************************************************
-*    Host Layer Evolution (for a time interval=Dt_ref):      *
+*    Host Layer Evolution (for a time interval=dtE):         *
 *    This version uses a tau-leaping method                  *
 **************************************************************/
 void evolveHostTLP(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMeasures *meas){
-	int i,k,idh,nh,evorder;                
-	double pb;
+	int i,k,idh,nh;                
 
 	nh=listh->usize;
 	/*temporary host list (to keep track of the changes in the host list, that have to be updated after the host time substeps)*/
@@ -349,7 +397,12 @@ void evolveHostTLP(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMe
 		inverselisth[i]=inverselisth_tmp[i];
 	}
 	listh->usize=listh_tmp->usize;
-	nh=listh->usize;
+	
+	for(i=0; i<list_newd->usize; ++i){
+		host[list_newd->vec[i]]=0;
+		list_newd->vec[i]=0;
+	}
+	list_newd->usize=0;
 	/**************/
 	return;
 }

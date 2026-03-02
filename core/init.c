@@ -48,6 +48,7 @@ void allocateMemory(Event *event,TimeMeasures *meas){
         if (!spar) { perror("malloc"); exit(1);}
 	spar->kh=K_H;
 	spar->gh=Gh;
+	spar->migh=Mh;
 	spar->kbac=K_bac;
 	spar->mu=Mu;
 	spar->cost=Gamma;
@@ -78,6 +79,12 @@ void allocateMemory(Event *event,TimeMeasures *meas){
         listh->size=N;
         listh->usize=0;
 
+        list_newd = malloc(sizeof(DynList));
+        if (!list_newd) { perror("malloc"); exit(1);}
+        list_newd->vec = (int *)calloc(N,sizeof(int));
+        list_newd->size=N;
+        list_newd->usize=0;
+	memset(list_newd->vec,0,sizeof(int)*N);
 	//Time measures structs
 	#ifdef TMEAS
 	meas->idh_h1=0.;
@@ -106,11 +113,17 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 			sprintf(nparam[i],"1e%d",(int)log10(param[i]));
 		}	
 	}
+	#if(NETWORK==0)
 	sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
+	#else	
+	sprintf(ngeral,"SL_N%d_VIZ%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s",N,VIZ,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
+	#endif
 		#if (EVO==0)
 		sprintf(nevo,"_dthmax%de%d_v0",mf,ef);
-		#else
+		#elif (EVO==1)
 		sprintf(nevo,"_tlp");
+		#else 
+		sprintf(nevo,"_mcs");
 		#endif
 		#if (Tneg>0)
 		sprintf(ntneg,"_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
@@ -130,7 +143,7 @@ void allocateMemory(Event *event,TimeMeasures *meas){
                 neighbor[i]=(int *)calloc(VIZ,sizeof(int));
         }
 	alive_viz = malloc(sizeof(DynList));
-        if (!aliveviz) { perror("malloc"); exit(1);}
+        if (!alive_viz) { perror("malloc"); exit(1);}
         alive_viz->vec=(int *)calloc(VIZ,sizeof(int));
         alive_viz->size=VIZ;
         alive_viz->usize=0;
@@ -173,10 +186,8 @@ void initialStateFixedFrac(void){
 		}
         }
 
-	#if (NETWORK==0)//complete graph
 	listh->usize=nh;
-	#else
-	#endif
+	list_newd->usize=0;
 
         return;
 }
@@ -220,10 +231,8 @@ void initialStateUniD(void){
 		}
         }
 
-	#if (NETWORK==0)//complete graph
 	listh->usize=nh;
-	#else
-	#endif
+	list_newd->usize=0;
 
         return;
 }
@@ -278,6 +287,7 @@ void initialStateNormD(void){
         }
 
 	listh->usize=nh;
+	list_newd->usize=0;
 
 	free(bacinit);
         return;
@@ -315,6 +325,7 @@ void initialStateSingleH(TimeMeasures *meas){
 	exchange(listh->vec,0,meas->idh_h1);
 
 	listh->usize=1;
+	list_newd->usize=0;
 
         return;
 }
@@ -402,7 +413,7 @@ void setSystem(Event *event,TimeMeasures *meas){
 
 	/*setting hosts network*/	
 	#if(NETWORK==1)
-		squareLattice(neighbor,VIZ,N);
+		squareLattice(neighbor,VIZ,N);//from tools
 	#endif
 
 	/*setting initial state (alive hosts and bacteria abundances)*/

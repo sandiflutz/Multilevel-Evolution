@@ -242,11 +242,23 @@ void listSubF(DynListF *list,double sub_elem,int id_e){
 
         return;
 }
-/************************************************************
-*  		exchange 2 elements of a list               *
-*************************************************************/
+/****************************************************************
+*	exchange 2 elements of a list of integers		*
+*****************************************************************/
 void exchange(int *list, int id1, int id2){
 	int old;
+
+	old=list[id1];
+	list[id1]=list[id2];
+	list[id2]=old;
+
+	return;
+}
+/****************************************************************
+*	exchange 2 elements of a list of doubles		*
+*****************************************************************/
+void exchangeF(double *list, int id1, int id2){
+	double old;
 
 	old=list[id1];
 	list[id1]=list[id2];
@@ -279,6 +291,26 @@ void searchLiveNeighbors(int dead,int idh,int *host,int **neighbor,DynList *aliv
 	alive_viz->usize=nviz+1;
 
 
+	return;
+}
+/************************************************************************************
+*    find the number of empty sites in the neighborhood of a specific site using    * 
+*    the neighbors matrix. Store the neighboring empty sites positions              *
+************************************************************************************/
+void searchEmptyNeighbors(int se,int idh,int *host,int **neighbor,DynList *empty_viz){
+	int j,idv,ne,viz;
+
+	ne=0;
+	viz=empty_viz->size;
+	for(j=0; j<viz; ++j){
+		idv=neighbor[idh][j];
+		if(host[idv]==se){
+			empty_viz->vec[ne]=idv;
+			++ne;
+		}
+	}
+	empty_viz->usize=ne;
+	
 	return;
 }
 /************************************************************************************
@@ -427,7 +459,7 @@ void classifyNeighbors(int **neighbor,int **clneighbor,int nviz,int sites){
 *       Randomly select a neighbor from           *
 *       a neighbors list, from indexes 1d1 to id2 *
 ***************************************************/
-int randNeighbor(int id,int *vec,int id1,int id2,int size){
+int randNeighbor(int vec_id,int *vec,int id1,int id2,int size){
 	int id_viz,idmax,idmin;
 
 	if(id1<id2){
@@ -445,9 +477,9 @@ int randNeighbor(int id,int *vec,int id1,int id2,int size){
 
 	do{
 		id_viz=(int)(FRANDOM*(idmax-idmin))+idmin;
-	}while(id_viz==id);
+	}while(vec[id_viz]==vec_id);
 
-	return id_viz;
+	return vec[id_viz];
 }
 /*************************************************
 *       Set network links between sites          *

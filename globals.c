@@ -10,6 +10,6 @@ double **bac = NULL;
 double *dtVec = NULL;
 char *fdatapath;
 DynList *listh = NULL;
-Dyn2DList *listh2d = NULL;
 DynList *alive_viz = NULL;
+DynList *list_newd = NULL;
 SysParams *spar = NULL;

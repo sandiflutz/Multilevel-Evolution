@@ -14,15 +14,6 @@ typedef struct{
         int sizef;//real size
         int usizef;//size of the part being used (usize<=size)
 }DynListF;//(fake) dynamic list of fluctuating point numbers 
-
-typedef struct{
-        double **array;//list of integers
-        int ncol;//# number of columns
-        int nlin;//# number of lines
-        int *ucol;//# of columns being used 
-        int ulin;//# of lines being used 
-}Dyn2DList;//(fake) 2D dynamic list of fluctuating
-/**************************************************************/
 /********************************************************
  *                 Factorial                            *
  ********************************************************/
@@ -81,15 +72,24 @@ void listAddF(DynListF *list,double add_elem,int id_e);
 void listSub(DynList *list,int sub_elem,int id_e);
 /**************Double List Version***********************************/
 void listSubF(DynListF *list,double sub_elem,int id_e);
-/************************************************************
-*               exchange 2 elements of a list               *
-*************************************************************/
+/****************************************************************
+*       exchange 2 elements of a list of integers               *
+*****************************************************************/
 void exchange(int *list, int id1, int id2);
+/****************************************************************
+*       exchange 2 elements of a list of doubles                *
+*****************************************************************/
+void exchangeF(double *list, int id1, int id2);
 /************************************************************************************
 *    find the number of live neighbors of a specific host using the neighbors       *
 *    matrix and the list of live hosts. Store live neighbors positions              *
 ************************************************************************************/
 void searchLiveNeighbors(int dead,int idh,int *host,int **neighbor,DynList *alive_viz);
+/************************************************************************************
+*    find the number of empty sites in the neighborhood of a specific site using    *
+*    the neighbors matrix. Store the neighboring empty sites positions              *
+************************************************************************************/
+void searchEmptyNeighbors(int se,int idh,int *host,int **neighbor,DynList *empty_viz);
 /************************************************************************************
 *    find the number of live neighbors using the neighbors matrix and              *
 *    the list of live hosts. Store live neighbors positions                        *

@@ -11,7 +11,7 @@
  * using euler method                       *
  ********************************************/
 void bac_euler(double dt,SysParams *sp){
-	int i,j,jpl,jmi,idh1,k,idh2,nh;
+	int i,j,jpl,jmi,idh1,k,idh2,nh,nv;
 	double birth,death,migr_in,migr_out,func,**bac_tmp,micr_neg,eps=0.0001;
 	double mut=sp->mu;//mutation rate
         double cost=sp->cost;//cost of helping for an ideal helper
@@ -31,7 +31,7 @@ void bac_euler(double dt,SysParams *sp){
                 
 		#if (NETWORK!=0)
                 searchLiveNeighbors(0,idh1,host,neighbor,alive_viz);
-		int nv=alive_viz->usize;
+		nv=alive_viz->usize;
                 #endif
 		#if (Tneg>0)
 		micr_neg=0.;
@@ -87,10 +87,12 @@ void bac_euler(double dt,SysParams *sp){
                         #else
 			migr_in=0.;
 			for(k=0; k<nv-1; ++k){//the last element of the alive neighbors list @alive_viz.vec[nv-1] is the focus host id
-                                idh2=alive_viz.vec[k][idh1];
+                                idh2=alive_viz->vec[k];
                                 migr_in+=mig*bac[idh2][j];
                         }
-                        migr_in/=(double)nv;
+			if(nv>0){
+				migr_in/=(double)nv;
+			}
                         #endif
 
                         func=birth-death-migr_out+migr_in;

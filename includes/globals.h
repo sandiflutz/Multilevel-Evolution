@@ -11,17 +11,17 @@
 *************************************************************************************/
 /**paramenters to define the structure of the system*********/
 //topoly
-#define L               224		/*linear number of sites (square lattice case*/
+#define L               100		/*linear number of sites (square lattice case*/
 #define N               (L*L)		/*number of sites*/
-#define NETWORK         0		/*0: well-mixed
+#define NETWORK         1		/*0: well-mixed
 					 *1: square-lattice*/
 #if (NETWORK==0)
         #define VIZ	N		/*number of neighbors in the well-mixed*/
-#elif
+#else
         #define VIZ	4		/*number of neighbors in the square-lattice: 4 or 8*/
 #endif
 //bacteria
-#define TYPES           2		/*number of types of microbe*/
+#define TYPES           100		/*number of types of microbe*/
 #define Tpos            (TYPES-1)	/*number of positive types of microbes: positively affect host reproduction success*/
 #define Tneg            0		/*number of negative types of microbes: negatively affect host reproduction success*/
 
@@ -30,19 +30,20 @@
 #if ((TYPES==2)&&(Tpos==TYPES-1))
 	#define CI	3
 #else
-	#define CI	0		/*0: system starts with types being randomly distributed with a uniform distribution
+	#define CI	1		/*0: system starts with types being randomly distributed with a uniform distribution
 					 *1: system starts with types being randomly distributed using a normal distribution for the frequencies of each type
 					 *2: system starts with only the 1 host
 					 *3: all types of bacteria start with a fixed fraction of 1/TYPES*/
 #endif
 //parameters for the dynamics 
-#define Mu        	1e-09		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
-#define Theta     	1e-06		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-#define K_H      	5000		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
-#define Gh        	10		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
-#define Bacv      	1e-04		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
+#define Mu        	1e-01		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
+#define Theta     	1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
+#define K_H      	500		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
+#define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
+#define Mh        	0.		/*host migration coeficient*/
+#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #define SIGMA     	0.01		/*variance of the trucated normal distribution for the inheritance of helpful microbes*/
-#define DTVSIZE   	29		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
+#define DTVSIZE   	19		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
 					 *the host dynamics so the probability of 2 consecutive host events during a @Dt_ref time interval is <0.01
 					 *paper uses 19 when TYPES=2 and 29 otherwise (??)*/
 /**cost**/
@@ -76,7 +77,7 @@
 #define MEANinv0  0.
 #define STDinv0   0.01
 /****parameters for measures/sampling and related things****************/
-#define TF        500.           /*host maximum time (measured using continuous values for the times steps)*/
+#define TF        250000.         /*host maximum time (measured using continuous values for the times steps)*/
 #define NTS       10e7            /*maximum number of timesteps*/
 #define FIG_EXT   0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 				  * 0:png (good for creating animations later)
@@ -86,8 +87,9 @@
 #define NT0_me   0               /*time to start a measure*/
 #define SAMPLE   100             /*number of files with raw data that are going to be produce for measurements that require it*/
 /***Routine Choices***********************************************/
-#define EVO			1	/*0: evolution of the host layer using a dynamical time step (based on the paper version)
-					 *1: evolution of the host layer using a tau-leaping method*/
+#define EVO			0	/*0: evolution of the host layer using a dynamical time step (based on the paper version)
+					 *1: evolution of the host layer using a tau-leaping method
+					 *2: evolution of the host layer using Mont Carlo steps*/
 #if ((TYPES==2)&&(Tpos==TYPES-1))
 	#define INV     	1       /*(don't change it)! Investment function when there is just 2 types is given by inv[j]=(j-Tmin)/Tpos):  
 					* 0 or 1: if the types are neutral and positive
@@ -122,7 +124,8 @@ typedef struct{
         double cost;//cost of helping for an ideal helper bacteria
         double beta;//birth rate of a neutral bacteria
         double delta;//bacteria death rate
-        double mig;//migration rate
+        double mig;//bacteria migration rate
+        double migh;//host migration coeficient
 	double sb;
 	double sd;
 	double sigma;
@@ -170,7 +173,7 @@ extern double **bac;
 extern double *dtVec;
 extern char *fdatapath;
 extern DynList *listh;
-extern Dyn2DList *listh2d;
 extern DynList *alive_viz;
+extern DynList *list_newd;
 extern SysParams *spar;
 #endif

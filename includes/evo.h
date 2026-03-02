@@ -30,6 +30,11 @@ void hostBirth(int idp, int idk);
 *       death of a host                               *
 *******************************************************/
 void hostDeath(int idh);
+/****************************************
+*       moviment of hosts:              *
+*       2 neighbors exchange places     *
+*****************************************/
+void hostMoviment(int id1,int id2);
 /************************************************
 *         returns gillespie's time increment    *
 ************************************************/
@@ -55,4 +60,9 @@ int evolveHostDtH(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMea
 *    This version uses a tau-leaping method                  *
 **************************************************************/
 void evolveHostTLP(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMeasures *meas);
+/*************************************************************
+*    Host Layer Evolution (for a time interval=dtE):         *
+*    This version uses mont carlo steps                      *
+**************************************************************/
+void evolveHostMCS(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMeasures *meas);
 #endif
