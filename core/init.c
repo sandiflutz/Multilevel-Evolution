@@ -87,6 +87,14 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	memset(list_newd->vec,0,sizeof(int)*N);
 	//Time measures structs
 	#ifdef TMEAS
+		#if (NETWORK==1)
+			#ifdef NUMHEVENTSxT
+			meas->numb_lin=(int *)calloc(L,sizeof(int));
+			meas->numd_lin=(int *)calloc(L,sizeof(int));
+			meas->numb_col=(int *)calloc(L,sizeof(int));
+			meas->numd_col=(int *)calloc(L,sizeof(int));
+			#endif
+		#endif
 	meas->idh_h1=0.;
 	meas->nfiles=0;
 	meas->Ti=0.;
@@ -113,11 +121,7 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 			sprintf(nparam[i],"1e%d",(int)log10(param[i]));
 		}	
 	}
-	#if(NETWORK==0)
 	sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
-	#else	
-	sprintf(ngeral,"SL_N%d_VIZ%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s",N,VIZ,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
-	#endif
 		#if (EVO==0)
 		sprintf(nevo,"_dthmax%de%d_v0",mf,ef);
 		#elif (EVO==1)
@@ -413,7 +417,7 @@ void setSystem(Event *event,TimeMeasures *meas){
 
 	/*setting hosts network*/	
 	#if(NETWORK==1)
-		squareLattice(neighbor,VIZ,N);//from tools
+		squareLattice(neighbor,VIZ,L);//from tools
 	#endif
 
 	/*setting initial state (alive hosts and bacteria abundances)*/

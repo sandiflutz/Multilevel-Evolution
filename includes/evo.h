@@ -47,7 +47,7 @@ double adjustTimeStep(double maxprob);
 /*******************************************************
 *                  host dynamics                       *
 ********************************************************/
-void dynamicsHost(int type_event,int idh,DynList *lhost, int *ilhost);
+void dynamicsHost(int type_event,int idh,DynList *lhost, int *ilhost,TimeMeasures *meas);
 /*************************************************************
 *    Host Layer Evolution (for a time interval=Dt_ref):      *
 *    This version uses a dynamical value for the time step   *

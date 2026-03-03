@@ -36,7 +36,7 @@
 					 *3: all types of bacteria start with a fixed fraction of 1/TYPES*/
 #endif
 //parameters for the dynamics 
-#define Mu        	1e-01		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
+#define Mu        	1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
 #define Theta     	1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
 #define K_H      	500		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
 #define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
@@ -111,6 +111,15 @@
 #if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)
 	#define TMEAS
 #endif
+/***LABELING***/
+#define UP		0 /*label of the top neighbor (for the square lattice)*/
+#define RIGHT		1 /*label of the right neighbor (for the square lattice)*/
+#define DOWN		2 /*label of the bottom neighbor (for the square lattice)*/
+#define LEFT		3 /*label of the left neighbor (for the square lattice)*/
+#define LeftUp		4 /*label of the neighbor at the left-up diagonal (for the square lattice)*/
+#define RightUp		5 /*label of the neighbor at the right-up diagonal (for the square lattice)*/
+#define RightDown	6 /*label of the neighbor at the right-down diagonal (for the square lattice)*/
+#define LeftDown	7 /*label of the neighbor at the left-down diagonal (for the square lattice)*/
 /********************************************
 *  Struct for System Parameters             *
 *********************************************/
@@ -157,7 +166,11 @@ typedef struct{
         int nfiles;
         int idh_h1;
 	int numb;
+	int *numb_lin;
+	int *numb_col;
 	int numd;
+	int *numd_lin;
+	int *numd_col;
 	char *ftname_pars;
 	int ftnpars_size;
 	FILE *file_tmeas;

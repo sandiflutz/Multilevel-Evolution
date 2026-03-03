@@ -222,7 +222,6 @@ void listSub(DynList *list,int sub_elem,int id_e){
 	}else{
                 exit(EXIT_FAILURE);
         }
-	
 
         return;
 }
@@ -373,38 +372,38 @@ void searchAllLiveLinks(int sites,int nh,int *listh,int *netlink,int *nviz,int *
 * Set neighbors for a square lattice network.      *
 * Indexes order: neighbors[site_id][k-th neighbor] *
 ****************************************************/
-void squareLattice(int **neighbor,int viz,int sites){
-        int i,k=0,l,base;
-
-        l=sites/2;
+void squareLattice(int **neighbor,int viz,int lsize){
+        int i,k,sites,base;
 
         /*neighbors order:
          * 0=top,1=right,2=botton,3=left;
          * Diagonals:4=left-top,5=right-top,6=right-bottom,7=left-bottom */
 
+	sites=lsize*lsize;
+	k=0;
         while(k<viz){
                 for(i=0; i<sites; ++i){
-                        base=(i/l)*l;
+                        base=(i/lsize)*lsize;
                         switch(k){
-                                case 0: neighbor[i][k]= (i-l+sites)%sites;//up
+                                case 0: neighbor[i][k] = (i-lsize+sites)%sites;//up
                                         break;
-                                case 1: neighbor[i][k]= base + (i+1)%l;//right
+                                case 1: neighbor[i][k]= base + (i+1)%lsize;//right
                                         break;
-                                case 2: neighbor[i][k]= (i+l)%sites;//down
+                                case 2: neighbor[i][k]= (i+lsize)%sites;//down
                                         break;
-                                case 3: neighbor[i][k]= base + (i-1+l)%l;//left
+                                case 3: neighbor[i][k]= base + (i-1+lsize)%lsize;//left
                                         break;
-                                case 4: neighbor[i][k]= base + (i-1+l)%l;//(left) left-up
-                                        neighbor[i][k]= (neighbor[k][i]-l+sites)%sites;//(up)
+                                case 4: neighbor[i][k]= base + (i-1+lsize)%lsize;//(left) left-up
+                                        neighbor[i][k]= (neighbor[i][k]-lsize+sites)%sites;//(up)
                                         break;
-                                case 5: neighbor[i][k]= base + (i+1)%l;//(right) right-up
-                                        neighbor[i][k]=(neighbor[k][i]-l+sites)%sites;//(up)
+                                case 5: neighbor[i][k]= base + (i+1)%lsize;//(right) right-up
+                                        neighbor[i][k]=(neighbor[i][k]-lsize+sites)%sites;//(up)
                                         break;
-                                case 6: neighbor[i][k]= base + (i+1)%l;//(right) right-down
-                                        neighbor[i][k]= (neighbor[k][i]+l)%sites;//(down)
+                                case 6: neighbor[i][k]= base + (i+1)%lsize;//(right) right-down
+                                        neighbor[i][k]= (neighbor[i][k]+lsize)%sites;//(down)
                                         break;
-                                case 7: neighbor[i][k]= base + (i-1+l)%l;//(left)  left-down
-                                        neighbor[i][k]= (neighbor[k][i]+l)%sites;//(down)
+                                case 7: neighbor[i][k]= base + (i-1+lsize)%lsize;//(left)  left-down
+                                        neighbor[i][k]= (neighbor[i][k]+lsize)%sites;//(down)
                                         break;
                         }
                 }
@@ -464,11 +463,11 @@ int randNeighbor(int vec_id,int *vec,int id1,int id2,int size){
 
 	if(id1<id2){
 		idmin=id1;
-		if(id2>=size)id2=size-1;
+		if(id2>size)id2=size;
 		idmax=id2;
 	}else if(id2<id1){
 		idmin=id2;
-		if(id1>=size)id1=size-1;
+		if(id1>size)id1=size;
 		idmax=id1;
 	}else{
 		idmin=id1;
@@ -617,8 +616,51 @@ void logSpacedVec(double *vec,double e0,double ef,double m0, double mf, int size
 
 	return;
 }
-/*************************************************************
- *    
- *
- *
- *************************************************************/
+/***************************************************
+*  calculate spatial corretation for a square      *
+*  lattice type of system                          *
+****************************************************/
+double spatialCorr(int *state,int sites, int dist,int right,int down,int **neighbor,double *corr){
+        int i,j,idvx,idvy;
+        double corrx=0.;
+        double corry=0.;
+        double corr_tot=0.;
+
+        for(i=0; i<sites; ++i){
+                idvx=i;
+                idvy=i;
+                for(j=0; j<dist; ++j){
+                        idvx=neighbor[right][idvx];
+                        idvy=neighbor[down][idvy];
+                }
+                corrx+=(double)state[i]*state[idvx];
+                corry+=(double)state[i]*state[idvy];
+        }
+	corr_tot=(corrx+corry)/(2.*sites);
+	corrx/=(double)sites;
+	corry/=(double)sites;
+	
+	corr[0]=corrx;
+	corr[1]=corry;
+
+        return corr_tot;
+}
+/***************************************************
+*  calculate spatial corretation for a square      *
+*  lattice type of system in 1 direction only      *
+****************************************************/
+double spatialCorr1d(int *state,int sites, int dist,int id_direction,int **neighbor){
+        int i,j,idv;
+        double corr_dir=0.;
+
+        for(i=0; i<sites; ++i){
+                idv=i;
+                for(j=0; j<dist; ++j){
+                        idv=neighbor[id_direction][idv];
+                }
+                corr_dir+=(double)state[i]*state[idv];
+        }
+	corr_dir/=(double)sites;
+
+        return corr_dir;
+}

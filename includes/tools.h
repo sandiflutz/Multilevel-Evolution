@@ -107,7 +107,7 @@ void searchAllLiveLinks(int sites,int nh,int *listh,int *netlink,int *nviz,int *
 /*************************************************
 * Set neighbors for a square lattice network     *
 **************************************************/
-void squareLattice(int **neighbor,int viz,int sites);
+void squareLattice(int **neighbor,int viz,int lsize);
 /**********************************************************
 *               Set network of a complete graph           *
 *               (without self-neighboring)                *
@@ -165,4 +165,14 @@ double minNum(double a, double b);
  * Create fill a vector with log spaced elements    *
  ***************************************************/
 void logSpacedVec(double *vec,double e0,double ef,double m0, double mf, int size);
+/***************************************************
+*  calculate spatial corretation for a square      *
+*  lattice type of system                          *
+****************************************************/
+double spatialCorr(int *state,int sites, int dist,int right,int down,int **neighbor,double *corr);
+/***************************************************
+*  calculate spatial corretation for a square      *
+*  lattice type of system in 1 direction only      *
+****************************************************/
+double spatialCorr1d(int *state,int sites, int dist,int id_direction,int **neighbor);
 #endif

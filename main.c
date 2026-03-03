@@ -24,6 +24,10 @@ int main(void){
 	/**********/
         
 #ifdef TMEAS
+	#if defined(SAVE_CONFIG)||defined(INV_DIST)
+	meas.Tf=NF*Dt_ref+1.;	
+	callSysDynamics(meas.Tf);
+	#else
 	for(i=0; i<SAMPLE; ++i){
 		setCI(&meas);
         	openFiles(&meas);
@@ -32,6 +36,7 @@ int main(void){
 		
 		closeFiles(&meas);
 	}
+	#endif
 #endif
 
 	freeMemory();
@@ -59,6 +64,14 @@ void callSysDynamics(double tf){
 	#ifdef NUMHEVENTSxT
 	meas.numb=0;
 	meas.numd=0;
+		#if (NETWORK==1)
+			for(int i=0; i<L; ++i){
+				meas.numb_lin[i]=0;
+				meas.numd_lin[i]=0;
+				meas.numb_col[i]=0;
+				meas.numd_col[i]=0;
+			}
+                #endif
 	#endif	
 
 	numsteps=0;
@@ -73,6 +86,14 @@ void callSysDynamics(double tf){
 			#ifdef NUMHEVENTSxT
 			meas.numb=0;
 			meas.numd=0;
+				#if (NETWORK==1)
+				for(int i=0; i<L; ++i){
+					meas.numb_lin[i]=0;
+					meas.numd_lin[i]=0;
+					meas.numb_col[i]=0;
+					meas.numd_col[i]=0;
+				}
+				#endif
 			#endif
 		#endif
 		
@@ -122,6 +143,14 @@ void freeMemory(void){
 	free(spar);
 #ifdef TMEAS
         free(meas.ftname_pars);
+	#ifdef NUMHEVENTSxT
+		#if (NETWORK==1)
+                        free(meas.numb_lin);
+                        free(meas.numd_lin);
+                        free(meas.numb_col);
+                        free(meas.numd_col);
+                #endif
+	#endif	
 #endif
 
 #if (NETWORK!=0)

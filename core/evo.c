@@ -236,13 +236,14 @@ double adjustTimeStep(double maxprob){
 * of existing hosts, lhost[host]=label, and the inverse *
 * hosts list, ilhost[label]=host)                       *                 
 *********************************************************/
-void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
-        int idlist_h,idlist_k,idk,nh,ne;
+void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost,TimeMeasures *meas){
+        int j,k,ok,idlist_h,idlist_k,idk,nh,ne,idviz,idv;
 	DynList empty_viz;
 
 	#if (NETWORK>0)
 	empty_viz.vec = (int *)calloc(VIZ,sizeof(int));
 	empty_viz.size=VIZ;
+	empty_viz.usize=0;
 	#endif
 	
 	idlist_h=ilhost[idh];//label of the focus host on the temporary list of alive hosts 
@@ -255,9 +256,12 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
 					idlist_k=randNeighbor(idlist_h,lhost->vec,lhost->usize,N-1,N);/*choose a random neighbor from the host list. Variable being sent: 1-focus id,2-neighbors vector,
 											 *3 and 4-randomly select neighbors between these 2 ids,
 											 *5-neighbors vector size*/
-				}while((idlist_k<listh->usize)&&(listh->usize<N-1));//making sure the empty site chosen to receive idh's offspring wasn't a host that died doing the current time interval 
+					idk=lhost->vec[idlist_k];
+				}while(host[idk]!=0);//making sure the empty site chosen to receive idh's offspring wasn't a host that died doing the current time interval 
 									    //(since the list of live host and the events rates vector are updated only at the end of each time step)
-				idk=lhost->vec[idlist_k];
+				#ifdef NUMHEVENTSxT
+				++meas->numb;
+				#endif
 			}else{//no available empty sites
 				idk=-1;
 			}			
@@ -265,11 +269,10 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
 			searchEmptyNeighbors(0,idh,host,neighbor,&empty_viz);
 			ne=empty_viz.usize;//# of empty sites in the neighborhood
 			if(ne>0){
-				idk=randNeighbor(idh,empty_viz.vec,0,ne-1,empty_viz.size);/*passing: 1-focus host id,2-list of empty sites,
+				idk=randNeighbor(idh,empty_viz.vec,0,ne,empty_viz.size);/*passing: 1-focus host id,2-list of empty sites,
 										    *3- position id of the first empty space, 4-position id of the last empty space
 										    *5-maximum number of empty sites*/
 				idlist_k=ilhost[idk];
-			//	printf("idh=%d idk=%d idlistk=%d ne=%d\n",idh,idk,idlist_k,ne);
 			}else{
 				idk=-1;
 			}
@@ -279,6 +282,13 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
 				exchange(lhost->vec,nh,idlist_k);
 				++lhost->usize;
 				hostBirth(idh,idk);
+				#ifdef NUMHEVENTSxT
+				++meas->numb;
+				int lin_idk=(idk/L);
+				int col_idk=idk-lin_idk*L;
+				++meas->numb_lin[lin_idk];
+				++meas->numb_col[lin_idk];
+				#endif
 			}
 			break;
 		case 1: //host death
@@ -288,6 +298,15 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost){
 			exchange(ilhost,idh,lhost->vec[nh-1]);
 			exchange(lhost->vec,idlist_h,nh-1);
 			--lhost->usize;
+			#ifdef NUMHEVENTSxT
+			++meas->numd;
+				#if (NETWORK==1)
+				int lin_idk=(idk/L);
+				int col_idk=idk-lin_idk*L;
+				++meas->numd_lin[lin_idk];
+				++meas->numd_col[lin_idk];
+				#endif
+			#endif
 			break;
 	}
 
@@ -328,15 +347,11 @@ int evolveHostDtH(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMea
 			idh=listh->vec[event->whichE%nh];
 			if((host[idh]==1)&&(listh_tmp->usize>1)){//if chosen host is alive and the system has more than 1 host
 				switch(event->whichE/nh){
-					case 0: dynamicsHost(0,idh,listh_tmp,inverselisth_tmp);
+					case 0: dynamicsHost(0,idh,listh_tmp,inverselisth_tmp,meas);
 						break;
-					case 1: dynamicsHost(1,idh,listh_tmp,inverselisth_tmp);
+					case 1: dynamicsHost(1,idh,listh_tmp,inverselisth_tmp,meas);
 						break;
 				}
-				#ifdef NUMHEVENTSxT
-				meas->numb+=1-event->whichE/nh;
-				meas->numd+=event->whichE/nh;
-				#endif
 			}
 		}
 	}
@@ -379,15 +394,11 @@ void evolveHostTLP(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMe
 		idh=listh->vec[event->whichE%nh];
 		if((host[idh]==1)&&(listh_tmp->usize>1)){//if chosen host is alive and the system has more than 1 host
 			switch(event->whichE/nh){
-				case 0: dynamicsHost(0,idh,listh_tmp,inverselisth_tmp);
+				case 0: dynamicsHost(0,idh,listh_tmp,inverselisth_tmp,meas);
 					break;
-				case 1: dynamicsHost(1,idh,listh_tmp,inverselisth_tmp);
+				case 1: dynamicsHost(1,idh,listh_tmp,inverselisth_tmp,meas);
 					break;
 			}
-			#ifdef NUMHEVENTSxT
-			meas->numb+=1-event->whichE/nh;
-			meas->numd+=event->whichE/nh;
-			#endif
 		}
 	}
 		

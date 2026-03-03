@@ -79,6 +79,21 @@ void openFiles(TimeMeasures *meas){
         meas->file_tmeas=fopen(name,"w");
         if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
 #endif
+#ifdef CORRxT
+        while(ok==0){
+                sprintf(name,"%scorrXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+                meas->file_tmeas=fopen(name,"r");
+                if(meas->file_tmeas!=NULL){
+                        ++id;
+                        fclose(meas->file_tmeas);
+                }else{
+                        ok=1;
+                }
+        }
+        sprintf(name,"%snumheventsXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+        meas->file_tmeas=fopen(name,"w");
+        if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
+#endif
         free(name);
         return;
 }
@@ -259,21 +274,47 @@ void averInvestmentXt(TimeMeasures *meas){
 *  investment of each host            *
 ***************************************/
 void save_config(TimeMeasures *meas){
-        int i,j,id,idlisth,nh,namelen,dnl;
-        double pointsize,*freqInvH;
-        char *name,*namedat,*name_gp,*nt_format;
-        FILE *fconfig,*fgp;
+        int i,j,id,idlisth,nh,cnamelen,snamelen,dnl;
+        double pointsize;
+	double *freqInvH=NULL;
+        char *name=NULL;
+	char *namedat=NULL;
+	char *name_gp=NULL;
+	char *nt_format=NULL;
+        FILE *fconfig = NULL;
+	FILE *fgp = NULL;
 	
 	/****creating files (if there are file with the same names, there are subscribed)********/
+	
+	//file name sizes
 	dnl=100;
-        namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;
-        nt_format=(char *)malloc(sizeof(char)*dnl);//format of the time term, on the name (files for animations have to be ordered: better to use a 0<t<1 format)
-        name=(char *)malloc(sizeof(char)*namelen);//base name
-        namedat=(char *)malloc(sizeof(char)*namelen+dnl);//data file name
-        name_gp=(char *)malloc(sizeof(char)*namelen+dnl);//name for the gnuplot data file
+        cnamelen=strlen(meas->ftname_pars)+dnl;//core name length
+        
+	//core name structure
+        name=(char *)calloc(cnamelen,sizeof(char));//base name
+        sprintf(name,"snapshot_%s",meas->ftname_pars);
+	
+	nt_format=(char *)calloc(dnl,sizeof(char));//format of the time term, on the name (files for animations have to be ordered: better to use a 0<t<1 format)
+#if (FIG_EXT==0)
+        sprintf(nt_format,"idt%f",meas->Tnow/meas->Tf);
+#else
+        sprintf(nt_format,"Tf%f",meas->Tnow);
+#endif
+	
+	//file names for data and for gnuplot script
+	snamelen=strlen(name)+strlen(fdatapath)+strlen(nt_format)+dnl;//length of the specific file names
+	namedat=(char *)calloc(snamelen,sizeof(char));//data file name
+        name_gp=(char *)calloc(snamelen,sizeof(char));//name for the gnuplot data file
 
-        sprintf(name,"%ssnapshot_%s",fdatapath,meas->ftname_pars);
 
+        sprintf(namedat,"%s%s_%s.dat",fdatapath,name,nt_format);
+        sprintf(name_gp,"%s%s_%s.gp",fdatapath,name,nt_format);
+
+        fconfig = fopen(namedat,"w");
+        fgp = fopen(name_gp,"w");
+
+
+	/*********Defining point size for the gnuplot script****************************************/
         if(L>=100){
                 pointsize=0.5;
         }else if(L>=50){
@@ -281,17 +322,6 @@ void save_config(TimeMeasures *meas){
         }else{
                 pointsize=2;
         }
-#if (FIG_EXT==0)
-        sprintf(nt_format,"idt%f",(double)meas->NTnow/meas->NTf);
-#elif
-        sprintf(nt_format,"Tf%d",meas->NTnow);
-#endif
-        sprintf(namedat,"%s%s_%s.dat",fdatapath,name,nt_format);
-        sprintf(name_gp,"%s%s_%s.gp",fdatapath,name,nt_format);
-
-        fconfig = fopen(namedat,"w");
-        fgp = fopen(name_gp,"w");
-	
 
 	/*******setting average investment per host vector and filling data file***********************/
 
@@ -300,15 +330,20 @@ void save_config(TimeMeasures *meas){
 						      * (real host indexes are idh=listh->vec[i] (for 0<=i<nh)) */
 	calcInvFreq(freqInvH);
 	
+	
 	idlisth=0;
         for(i = 0; i < L; ++i){//linha
                 for(j = 0; j < L; ++j){//coluna
                         id=j+i*L;
-			if(id<listh->vec[idlisth]){//@id not on the list of alive hosts
-                                fprintf(fconfig,"%d %d %d\n",i,j,-1);
-			}else{//id==listh->vec[idlisth], @id is alive
-                                fprintf(fconfig,"%d %d %f\n",i,j,freqInvH[idlisth]);
-				++idlisth;
+			if(idlisth>nh-1){
+				fprintf(fconfig,"%d %d %d\n",i,j,-1);
+			}else{
+				if(id<listh->vec[idlisth]){//@id not on the list of alive hosts
+					fprintf(fconfig,"%d %d %d\n",i,j,-1);
+				}else{//id==listh->vec[idlisth], @id is alive
+					fprintf(fconfig,"%d %d %f\n",i,j,freqInvH[idlisth]);
+					++idlisth;
+				}
 			}
                 }
                 fprintf(fconfig,"\n");
@@ -324,10 +359,10 @@ void save_config(TimeMeasures *meas){
         }
 #if (FIG_EXT==0)
         fprintf(fgp,"set term png size 720,540\n");
-	fprintf(fgp,"set output'%s_idt%f.png'\n",name,(double)meas->NTnow/meas->NTf);
-#elif
+	fprintf(fgp,"set output'%s_idt%f.png'\n",name,meas->Tnow/meas->Tf);
+#else
         fprintf(fgp,"set term post eps enha color 20\n");
-        fprintf(fgp,"set output'%s_Tf%d_fm.eps'\n",name,meas->NTnow);
+        fprintf(fgp,"set output'%s_Tf%f_fm.eps'\n",name,meas->Tnow);
 #endif
 
         fprintf(fgp,"unset key\n");
@@ -337,15 +372,13 @@ void save_config(TimeMeasures *meas){
         fprintf(fgp,"set yr[0:L-1]\n");
         fprintf(fgp,"set xr[0:L-1]\n");
         fprintf(fgp,"set size square\n");
-        fprintf(fgp,"set pointsize %0.2lf\n",pointsize);
+        fprintf(fgp,"set pointsize %0.2f\n",pointsize);
         fprintf(fgp,"rgb(r,g,b) = 65536 * int(r) + 256 * int(g) + int(b)\n");
         fprintf(fgp,"plot '%s_%s.dat' u 1:(($3>=0)?$2:1/0):(rgb(255*(1-$3),0,255*$3)) w p pt 5 lc rgb variable,\\\n",name,nt_format);
         fprintf(fgp,"'%s_%s.dat' u 1:(($3<0)?$2:1/0):(rgb(0,0,0)) w p pt 5 lc rgb variable\n",name,nt_format);
 
 
 	/***freeing allocated memory and closing files******/
-        
-	
         free(freqInvH);
 	
 	free(nt_format);
@@ -371,17 +404,17 @@ void invDistXt(TimeMeasures *meas){
 	/****creating files (if there are file with the same names, there are subscribed)********/
 	dnl=100;
 	namelen=strlen(meas->ftname_pars)+strlen(fdatapath)+dnl;
-        nt_format=(char *)malloc(sizeof(char)*dnl);//base name
-        name=(char *)malloc(sizeof(char)*namelen);//format of the time term, on the name (files for animations have to be ordered: better to use a 0<t<1 format)
-        namedat=(char *)malloc(sizeof(char)*namelen+dnl);//data file name
-        name_gp=(char *)malloc(sizeof(char)*namelen+dnl);//name for the gnuplot data file
+        nt_format=(char *)calloc(dnl,sizeof(char));//base name
+        name=(char *)calloc(namelen,sizeof(char));//format of the time term, on the name (files for animations have to be ordered: better to use a 0<t<1 format)
+        namedat=(char *)calloc((namelen+dnl),sizeof(char));//data file name
+        name_gp=(char *)calloc((namelen+dnl),sizeof(char));//name for the gnuplot data file
         
 	sprintf(name,"invDistXt_%s",meas->ftname_pars);
 
 #if (FIG_EXT==0)
-        sprintf(nt_format,"idt%f",(double)meas->NTnow/meas->NTf);
-#elif
-        sprintf(nt_format,"Tf%d",meas->NTnow);
+        sprintf(nt_format,"idt%f",(double)meas->Tnow/meas->Tf);
+#else
+        sprintf(nt_format,"Tf%d",meas->Tnow);
 #endif
         sprintf(namedat,"%s%s_%s.dat",fdatapath,name,nt_format);
         sprintf(name_gp,"%s%s_%s.gp",fdatapath,name,nt_format);
@@ -404,20 +437,20 @@ void invDistXt(TimeMeasures *meas){
 	
 	if(meas->Tnow==meas->Ti)fprintf(fhist,"#1:average inv. in hosts 2:frac. of hosts 3:numsteps\n");
 	for(i=0; i<nbins; ++i){
-		fprintf(fhist,"%f %f %f %d\n",(double)i*binsize,(double)hist_inv[i]/nh,freqInvH[0],meas->NTnow);
+		fprintf(fhist,"%f %f %f %f\n",(double)i*binsize,(double)hist_inv[i]/nh,freqInvH[0],meas->Tnow);
 	}
 	
 	/*******************filling gnuplot file*****************************/
 
 #if (FIG_EXT==0)
        fprintf(fgp,"set term png size 720,540\n");
-       fprintf(fgp,"set output'%s_idt%f.png'\n",name,(double)meas->NTnow/meas->NTf);
-#elif
+       fprintf(fgp,"set output'%s_idt%f.png'\n",name,(double)meas->Tnow/meas->Tf);
+#else
         fprintf(fgp,"set term post eps enha color 20\n");
-        fprintf(fgp,"set output'%s_Tf%d_fm.eps'\n",name,meas->NTnow);
+        fprintf(fgp,"set output'%s_Tf%d_fm.eps'\n",name,meas->Tnow);
 #endif
 
-	fprintf(fgp,"set title'{/=15 time steps=%d}'\n",meas->NTnow);
+	fprintf(fgp,"set title'{/=15 time steps=%f}'\n",meas->Tnow);
 	fprintf(fgp,"set xr[0:1]\n");
 	fprintf(fgp,"set yr[0:1]\n");
 	fprintf(fgp,"set xlabel'{/=25 av. inv. in host}'\n");
@@ -442,13 +475,72 @@ void invDistXt(TimeMeasures *meas){
 ****************************************************/
 void numHostEventsPerDtXt(TimeMeasures *meas){
 
+
+	#if (NETWORK==0)
 	if(meas->Tnow==meas->Ti){
 		fprintf(meas->file_tmeas,"#1:time 2:#of host events per Dt_ref 3:#of host births per Dt_ref 4:#of host deaths per Dt_ref 5:#of hosts\n");
 	}
-
 	fprintf(meas->file_tmeas,"%f %d %d %d %d\n",meas->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,listh->usize);
 	printf("%f %d %d %d %d\n",meas->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,listh->usize);
+	#else
+	int i;
+	double meanb_lin[2],meanb_col[2],meand_lin[2],meand_col[2],stdb_lin,stdb_col,stdd_lin,stdd_col;
+	if(meas->Tnow==meas->Ti){
+		fprintf(meas->file_tmeas,"#1:time 2:#of H events 3:#ofbirths 4:#ofdeaths 5:meanb_lin 6:err_blin 7:meanb_col 8:err_bcol 9:meand_lin 10:err_dlin 11:meand_col 12:err_dcol 13:#of hosts\n");
+	}
+	
+	for(i=0; i<2; ++i){
+		meanb_lin[i]=0.;
+		meanb_col[i]=0.;
+		meand_lin[i]=0.; 
+		meand_col[i]=0.;
+	}
 
+	for(i=0; i<L; ++i){
+		meanb_lin[0]+=(double)meas->numb_lin[i]/L;
+		meanb_lin[1]+=(double)meas->numb_lin[i]*meas->numb_lin[i]/L;
+		meanb_col[0]+=(double)meas->numb_col[i]/L;
+		meanb_col[1]+=(double)meas->numb_col[i]*meas->numb_col[i]/L;
+		
+		meand_lin[0]+=(double)meas->numd_lin[i]/L;
+		meand_lin[1]+=(double)meas->numd_lin[i]*meas->numd_lin[i]/L;
+		meand_col[0]+=(double)meas->numd_col[i]/L;
+		meand_col[1]+=(double)meas->numd_col[i]*meas->numd_col[i]/L;
+	}
+	stdb_lin=sqrt(meanb_lin[1]-meanb_lin[0]*meanb_lin[0]);
+	stdb_col=sqrt(meanb_col[1]-meanb_col[0]*meanb_col[0]);
+	stdd_lin=sqrt(meand_lin[1]-meand_lin[0]*meand_lin[0]);
+	stdd_col=sqrt(meand_col[1]-meand_col[0]*meand_col[0]);
+
+	fprintf(meas->file_tmeas,"%f %d %d %d %f %f %f %f %f %f %f %f %d\n",meas->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,meanb_lin[0],stdb_lin,meanb_col[0],stdb_col,meand_lin[0],stdd_lin,meand_col[0],stdd_col,listh->usize);
+	printf("t=%f nev=%d nb=%d nd=%d mbl=%f errbl=%f mbc=%f errbc=%f mdl=%f errdl=%f mdc=%f errdc=%f nh=%d\n",meas->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,meanb_lin[0],stdb_lin,meanb_col[0],stdb_col,meand_lin[0],stdd_lin,meand_col[0],stdd_col,listh->usize);
+	#endif
+
+	return;
+}
+/***************************************************
+*  calculate spatial corretation: both horizontal  *
+*  and vertical for a specific distance,           *
+*  considering                                     *
+****************************************************/
+void spatialCorrXt(TimeMeasures *meas){
+	int i,idvx,idvy,dist;
+	double corr_tot,*corr;
+
+	corr=(double *)calloc(2,sizeof(double));
+
+	if(meas->Tnow==meas->Ti){
+		fprintf(meas->file_tmeas,"#1:time 2:corrx 3:corry 4:corr 5:#of hosts\n");
+	}
+
+	dist=1;
+	corr_tot=spatialCorr(host,N,dist,RIGHT,DOWN,neighbor,corr);/*sending: 1-state vector,2-square lattice size, 3-distance for calculating spatial correlation
+						 *4-index of horizontal neighbors (right or left), 5-index of vertical neighbors (top or bottom)
+						 *5-vector for storing vertical and horizontal correlations*/ 
+	fprintf(meas->file_tmeas,"%f %f %f %f %d\n",meas->Tnow,corr[0],corr[1],corr_tot,listh->usize);
+	printf("t=%f corrx=%f corry=%f corr=%f nh=%d\n",meas->Tnow,corr[0],corr[1],corr_tot,listh->usize);
+
+	free(corr);
 	return;
 }
 /***************************************************
@@ -478,7 +570,6 @@ void measures(TimeMeasures *meas){
 		save_config(meas);
 		++meas->nfiles;
 	}
-	printf("Time (before measuring starts):%d\n",meas->NTnow);
         #endif
         #ifdef INV_DIST
 
@@ -494,6 +585,9 @@ void measures(TimeMeasures *meas){
         #endif
 	#ifdef NUMHEVENTSxT
 	numHostEventsPerDtXt(meas);
+        #endif
+	#ifdef CORRxT
+	spatialCorrXt(meas);
         #endif
 
 
