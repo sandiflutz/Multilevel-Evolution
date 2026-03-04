@@ -13,7 +13,7 @@
 //topoly
 #define L               100		/*linear number of sites (square lattice case*/
 #define N               (L*L)		/*number of sites*/
-#define NETWORK         1		/*0: well-mixed
+#define NETWORK         0		/*0: well-mixed
 					 *1: square-lattice*/
 #if (NETWORK==0)
         #define VIZ	N		/*number of neighbors in the well-mixed*/
@@ -40,14 +40,17 @@
 #define Theta     	1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
 #define K_H      	500		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
 #define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
-#define Mh        	0.		/*host migration coeficient*/
 #define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #define SIGMA     	0.01		/*variance of the trucated normal distribution for the inheritance of helpful microbes*/
 #define DTVSIZE   	19		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
 					 *the host dynamics so the probability of 2 consecutive host events during a @Dt_ref time interval is <0.01
 					 *paper uses 19 when TYPES=2 and 29 otherwise (??)*/
+
+#define Mh        	0.		/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
+
 /**cost**/
 #define Gamma     	1e-02		/*cost for helping when the investment is 1*/
+/***Parameters for cases where there are negative types*******************/
 /*when there are negative types, the cost for positive and negative types can be influenced by the total frequency of the negative types (f⁻): 
  * for negative types: cost Gamma*investiment[type] is multiplied by CRnn0*exp(-CRnn1*d⁻/(1-f⁻)) 
  * for positive types: cost Gamma*investiment[type] is multiplied by CRnp0*exp(-CRnp1*f⁻/(1-f⁻)) */
@@ -64,28 +67,6 @@
 					 *1.: cost goes to Gamma*investment[type] when f⁻->0*/ 
 #define CRnp1           1.5		/*for 0., the cost for positive types doesn't depend on f⁻ (it's= Gamma*investment[type]*CRnp0) */ 
 
-/*****Fixed Parameters**********/
-#define Beta      1.            /*birth rate for neutral bacteria*/
-#define Delta     1.            /*death rate for microbes*/
-#define K_bac     (Beta/Delta)  /*bacteria carrying capacity*/
-#define Sb        1.            /*strength of the dependence of hosts births on their microbial content*/
-#define Sd        0.            /*strength of the dependence of hosts deaths on their microbial content*/
-#define Dt_ref    0.05          /*time step for bacteria evolution*/
-#define Bac0      1.            /*initial bacteria density in each host (t=0)*/
-#define H0        K_H           /*initial number of hosts*/
-#define BSAMPLES  10            /*number of bacteria samples passed from a parent host to its offspring*/
-#define MEANinv0  0.
-#define STDinv0   0.01
-/****parameters for measures/sampling and related things****************/
-#define TF        250000.         /*host maximum time (measured using continuous values for the times steps)*/
-#define NTS       10e7            /*maximum number of timesteps*/
-#define FIG_EXT   0               /*Extension of the image files that are gonna be used in gnuplot scripts:
-				  * 0:png (good for creating animations later)
-                                  * 1:eps*/
-#define NF       100             /*number of files created for the routines that create one file per timestep (interval between file=(Tf_me-T0_me)/NF)*/
-#define NTf_me   10000            /*time (in #of time steps) to stop a measure*/
-#define NT0_me   0               /*time to start a measure*/
-#define SAMPLE   100             /*number of files with raw data that are going to be produce for measurements that require it*/
 /***Routine Choices***********************************************/
 #define EVO			0	/*0: evolution of the host layer using a dynamical time step (based on the paper version)
 					 *1: evolution of the host layer using a tau-leaping method
@@ -108,10 +89,32 @@
 					*/
 #endif
 #define TV			0	/*rule for vertical transmission: 0=normal dist. (around parent bac. type freq.),1=poisson dist. for the sample size */
-#if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)
-	#define TMEAS
-#endif
-/***LABELING***/
+/****parameters for measures/sampling and related things*************************************************************/
+#define TF		250000.         /*host maximum time (measured using continuous values for the times steps)*/
+#define NTS		10e7            /*maximum number of timesteps*/
+#define FIG_EXT		0               /*Extension of the image files that are gonna be used in gnuplot scripts:
+					 * 0:png (good for creating animations later)
+					 * * 1:eps*/
+#define NF		1000             /*number of files for routines that create scripts for images*/
+#define NInterv		100             /*Ninterv*Dt_ref=time interval between snapshots taken*/
+#define NTf_me		10000            /*time (in #of time steps) to stop a measure*/
+#define NT0_me		0               /*time to start a measure*/
+#define SAMPLE		100             /*number of files with raw data that are going to be produce for measurements that require it*/
+/********************************************************************************************************************************************************************/
+/*****Fixed Parameters**********/
+#define Beta      1.            /*birth rate for neutral bacteria*/
+#define Delta     1.            /*death rate for microbes*/
+#define K_bac     (Beta/Delta)  /*bacteria carrying capacity*/
+#define Sb        1.            /*strength of the dependence of hosts births on their microbial content*/
+#define Sd        0.            /*strength of the dependence of hosts deaths on their microbial content*/
+#define Dt_ref    0.05          /*time step for bacteria evolution*/
+#define Bac0      1.            /*initial bacteria density in each host (t=0)*/
+#define H0        K_H           /*initial number of hosts*/
+#define BSAMPLES  10            /*number of bacteria samples passed from a parent host to its offspring*/
+#define MEANinv0  0.
+#define STDinv0   0.01
+/***LABELING (nothing to change here)***/
+//square lattice labels
 #define UP		0 /*label of the top neighbor (for the square lattice)*/
 #define RIGHT		1 /*label of the right neighbor (for the square lattice)*/
 #define DOWN		2 /*label of the bottom neighbor (for the square lattice)*/
@@ -120,6 +123,10 @@
 #define RightUp		5 /*label of the neighbor at the right-up diagonal (for the square lattice)*/
 #define RightDown	6 /*label of the neighbor at the right-down diagonal (for the square lattice)*/
 #define LeftDown	7 /*label of the neighbor at the left-down diagonal (for the square lattice)*/
+/******defining a main MACRO for measures made during time evolution******/
+#if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(GENTIME)
+	#define TMEAS
+#endif
 /********************************************
 *  Struct for System Parameters             *
 *********************************************/
@@ -156,21 +163,19 @@ typedef struct{
 *  Structs related to Measures             *
 *******************************************/
 typedef struct{
-        double Ti;
-        double Tf;
-        double Tnow;
-	double saveT;
-	double dth;
-	int NTf;
-	int NTnow;
-        int nfiles;
+        double Ti;//time of the first time measure
+        double Tf;//final time
+        double Tnow;//current time
+	double saveT;//save data at this time
+	double dth;//time interval for the host layer
+	double timegh;
+	int ngh;
+	int NTf;//final time in number of steps
+	int NTnow;//current time in number of steps
+	int nfiles;//number of data files already created
         int idh_h1;
 	int numb;
-	int *numb_lin;
-	int *numb_col;
 	int numd;
-	int *numd_lin;
-	int *numd_col;
 	char *ftname_pars;
 	int ftnpars_size;
 	FILE *file_tmeas;
@@ -184,6 +189,7 @@ extern int **clneighbor;
 extern int *inverselisth;
 extern double **bac;
 extern double *dtVec;
+extern double *timeb;
 extern char *fdatapath;
 extern DynList *listh;
 extern DynList *alive_viz;

@@ -547,7 +547,6 @@ int selectEvent(double *event,int size){
 	cumulProb(size,event,cprob);
 
         nr=FRANDOM*cprob[size-1];
-        //id=bissectionSearch(nr, cprob, size);
         id=upperBoundStrict(nr, cprob, size);
 
 	free(cprob);
@@ -630,8 +629,8 @@ double spatialCorr(int *state,int sites, int dist,int right,int down,int **neigh
                 idvx=i;
                 idvy=i;
                 for(j=0; j<dist; ++j){
-                        idvx=neighbor[right][idvx];
-                        idvy=neighbor[down][idvy];
+                        idvx=neighbor[idvx][right];
+                        idvy=neighbor[idvy][down];
                 }
                 corrx+=(double)state[i]*state[idvx];
                 corry+=(double)state[i]*state[idvy];
@@ -656,7 +655,7 @@ double spatialCorr1d(int *state,int sites, int dist,int id_direction,int **neigh
         for(i=0; i<sites; ++i){
                 idv=i;
                 for(j=0; j<dist; ++j){
-                        idv=neighbor[id_direction][idv];
+                        idv=neighbor[idv][id_direction];
                 }
                 corr_dir+=(double)state[i]*state[idv];
         }

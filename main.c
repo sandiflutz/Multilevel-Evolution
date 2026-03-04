@@ -1,7 +1,7 @@
 /* main.c */
 #include<stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include<stdlib.h>
+#include<math.h>
 #include"globals.h"
 #include"randgen_ufrgs.h"
 #include"init.h"
@@ -24,9 +24,18 @@ int main(void){
 	/**********/
         
 #ifdef TMEAS
+	allocateMemTM(&meas);
 	#if defined(SAVE_CONFIG)||defined(INV_DIST)
-	meas.Tf=NF*Dt_ref+1.;	
+	meas.Tf=NF*NInterv*Dt_ref+1.;	
+	meas.nfiles=0;
+	meas.Ti=0.;
+	meas.saveT=meas.Ti;
 	callSysDynamics(meas.Tf);
+	#elif defined(CORRxT)||defined(NUMHEVENTSxT)||defined(GENTIME)
+        openFiles(&meas);
+	meas.Tf=1000.;
+	callSysDynamics(meas.Tf);
+	closeFiles(&meas);
 	#else
 	for(i=0; i<SAMPLE; ++i){
 		setCI(&meas);
@@ -37,6 +46,7 @@ int main(void){
 		closeFiles(&meas);
 	}
 	#endif
+	freeMemTM(&meas);
 #endif
 
 	freeMemory();
@@ -61,19 +71,6 @@ void callSysDynamics(double tf){
 	listh_tmp.vec=(int *)calloc(N,sizeof(int));
 	listh_tmp.size=listh->size;
 
-	#ifdef NUMHEVENTSxT
-	meas.numb=0;
-	meas.numd=0;
-		#if (NETWORK==1)
-			for(int i=0; i<L; ++i){
-				meas.numb_lin[i]=0;
-				meas.numd_lin[i]=0;
-				meas.numb_col[i]=0;
-				meas.numd_col[i]=0;
-			}
-                #endif
-	#endif	
-
 	numsteps=0;
 	event.timeE=0.;
 	nh=listh->usize;
@@ -86,14 +83,6 @@ void callSysDynamics(double tf){
 			#ifdef NUMHEVENTSxT
 			meas.numb=0;
 			meas.numd=0;
-				#if (NETWORK==1)
-				for(int i=0; i<L; ++i){
-					meas.numb_lin[i]=0;
-					meas.numd_lin[i]=0;
-					meas.numb_col[i]=0;
-					meas.numd_col[i]=0;
-				}
-				#endif
 			#endif
 		#endif
 		
@@ -141,17 +130,6 @@ void freeMemory(void){
 	free(spar->inv);
 	free(spar->micr);
 	free(spar);
-#ifdef TMEAS
-        free(meas.ftname_pars);
-	#ifdef NUMHEVENTSxT
-		#if (NETWORK==1)
-                        free(meas.numb_lin);
-                        free(meas.numd_lin);
-                        free(meas.numb_col);
-                        free(meas.numd_col);
-                #endif
-	#endif	
-#endif
 
 #if (NETWORK!=0)
 	for(i=0; i<N; ++i){

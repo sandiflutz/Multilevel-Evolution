@@ -251,21 +251,18 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost,TimeMeasures
 	switch(type_event){
 		case 0://reproduction
 			#if (NETWORK==0)//complete graph
-			if(N-lhost->usize>list_newd->usize){
+			if(N-lhost->usize>list_newd->usize){//#ofempty sites in the temporary host list has to be > than the number of deaths that happened in the current time interval (new spaces cant be used)
 				do{
-					idlist_k=randNeighbor(idlist_h,lhost->vec,lhost->usize,N-1,N);/*choose a random neighbor from the host list. Variable being sent: 1-focus id,2-neighbors vector,
+					idk=randNeighbor(idlist_h,lhost->vec,lhost->usize,N-1,N);/*choose a random neighbor from the host list. Variable being sent: 1-focus id,2-neighbors vector,
 											 *3 and 4-randomly select neighbors between these 2 ids,
 											 *5-neighbors vector size*/
-					idk=lhost->vec[idlist_k];
-				}while(host[idk]!=0);//making sure the empty site chosen to receive idh's offspring wasn't a host that died doing the current time interval 
-									    //(since the list of live host and the events rates vector are updated only at the end of each time step)
-				#ifdef NUMHEVENTSxT
-				++meas->numb;
-				#endif
+					idlist_k=ilhost[idk];
+				}while(host[idk]!=0);/*making sure the empty site chosen to receive idh's offspring wasn't a host that died during the current time interval
+						      *(since the list of @listh and the @ratesE are updated only at the end of each time step)*/
 			}else{//no available empty sites
 				idk=-1;
 			}			
-			#else
+			#else//square lattice
 			searchEmptyNeighbors(0,idh,host,neighbor,&empty_viz);
 			ne=empty_viz.usize;//# of empty sites in the neighborhood
 			if(ne>0){
@@ -284,10 +281,14 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost,TimeMeasures
 				hostBirth(idh,idk);
 				#ifdef NUMHEVENTSxT
 				++meas->numb;
-				int lin_idk=(idk/L);
-				int col_idk=idk-lin_idk*L;
-				++meas->numb_lin[lin_idk];
-				++meas->numb_col[lin_idk];
+				#endif
+				#ifdef GENTIME
+				timeb[idk]=meas->Tnow+Dt_ref;//time of birth of host @idk
+				if(timeb[idh]>0.){
+					meas->timegh+=(meas->Tnow+Dt_ref-timeb[idh]);//host @idh first reproduction time is the current time minos the time of its birth
+					timeb[idh]=-1.;//just the first reproduction of an individual counts
+					++meas->ngh;
+				}
 				#endif
 			}
 			break;
@@ -300,12 +301,9 @@ void dynamicsHost(int type_event,int idh,DynList *lhost,int *ilhost,TimeMeasures
 			--lhost->usize;
 			#ifdef NUMHEVENTSxT
 			++meas->numd;
-				#if (NETWORK==1)
-				int lin_idk=(idk/L);
-				int col_idk=idk-lin_idk*L;
-				++meas->numd_lin[lin_idk];
-				++meas->numd_col[lin_idk];
-				#endif
+			#endif
+			#ifdef GENTIME
+			timeb[idh]=-1.;
 			#endif
 			break;
 	}
@@ -402,7 +400,43 @@ void evolveHostTLP(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMe
 		}
 	}
 		
-	//updating hosts dynamic list
+	/*updating hosts dynamic list*/
+	for(i=0; i<N; ++i){
+		listh->vec[i]=listh_tmp->vec[i];
+		inverselisth[i]=inverselisth_tmp[i];
+	}
+	listh->usize=listh_tmp->usize;
+	
+	for(i=0; i<list_newd->usize; ++i){
+		host[list_newd->vec[i]]=0;
+		list_newd->vec[i]=0;
+	}
+	list_newd->usize=0;
+	/**************/
+	return;
+}
+/*************************************************************
+*    Host Layer Evolution (for a time interval=dtE):         *
+*    This version uses a mix of a tau-leaping method with a  * 
+*    Mont Carlo Step type of evolution                       *
+**************************************************************/
+void evolveHostMCS(Event *event,DynList *listh_tmp, int *inverselisth_tmp,TimeMeasures *meas){
+	int i,k,idh,nh,nev;                
+	
+	nh=listh->usize;
+	nev=2*nh;
+	/*temporary host list (to keep track of the changes in the host list, that have to be updated after the host time substeps)*/
+	listh_tmp->usize=listh->usize;
+	for(i=0; i<N; ++i){
+		listh_tmp->vec[i]=listh->vec[i];
+		inverselisth_tmp[i]=inverselisth[i];
+	}
+	/***/
+		
+	k=poissonRandKnuth((event->dtE*event->cprobE[event->usizeE-1]));
+	
+	
+	/*updating hosts dynamic list*/
 	for(i=0; i<N; ++i){
 		listh->vec[i]=listh_tmp->vec[i];
 		inverselisth[i]=inverselisth_tmp[i];

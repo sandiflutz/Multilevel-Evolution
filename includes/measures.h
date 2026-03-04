@@ -1,5 +1,16 @@
 #ifndef MEASURES_H
 #define MEASURES_H
+/****************************************************************
+*     allocate memory for global arrays and structs        	*
+*     related to time measuraments. Initialize time 		*
+*     measurement parameters					*
+****************************************************************/
+void allocateMemTM(TimeMeasures *meas);
+/************************************************
+*       Free Allocated Memory for time          *
+*       measurements                            *
+*************************************************/
+void freeMemTM(TimeMeasures *meas);
 /******************************************
 *       Open Global Files                 *
 *******************************************/
@@ -52,6 +63,16 @@ void invDistXt(TimeMeasures *meas);
 *  microbial time steps                            *
 ****************************************************/
 void numHostEventsPerDtXt(TimeMeasures *meas);
+/***************************************************
+*  calculate spatial corretation: both horizontal  *
+*  and vertical for a specific distance,           *
+*  considering                                     *
+****************************************************/
+void spatialCorrXt(TimeMeasures *meas);
+/***************************************************
+*  calculating average host generation time        *
+****************************************************/
+void genHostTime(TimeMeasures *meas);
 /***************************************************
 *  call routines that measure and store measures   *
 *  during the time loop                            *

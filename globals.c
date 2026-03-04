@@ -8,6 +8,7 @@ int *netlink = NULL;
 int *inverselisth=NULL;
 double **bac = NULL;
 double *dtVec = NULL;
+double *timeb = NULL;
 char *fdatapath;
 DynList *listh = NULL;
 DynList *alive_viz = NULL;

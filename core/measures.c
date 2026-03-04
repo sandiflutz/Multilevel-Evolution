@@ -3,6 +3,89 @@
 #include"globals.h"
 #include"tools.h"
 #include"measures.h"
+/***********************************************************
+*     allocate memory for global arrays and structs        *
+*     related to time measuraments                         *
+************************************************************/
+void allocateMemTM(TimeMeasures *meas){
+	int i;
+        char *ngeral=(char *)calloc(200,sizeof(char));
+        char *nevo = (char *)calloc(50,sizeof(char));
+        char *ntneg = (char *)calloc(50,sizeof(char));
+        char nparam[4][10];
+        double param[4];
+
+	meas->idh_h1=0.;
+        meas->Ti=0.;
+        meas->Tf=TF;
+        meas->NTf=NTf_me;
+	meas->dth=Dt_ref;
+        
+	meas->saveT=0.;
+        meas->nfiles=0;
+        
+	meas->timegh=0.;
+	meas->ngh=0;
+	#ifdef GENTIME
+	timeb =(double *)calloc(N,sizeof(double));
+	for(i=0; i<N; ++i){
+		if(host[i]==1){
+			timeb[i]=0.;
+		}else{
+			timeb[i]=-1.;
+		}
+	}
+	#endif
+
+        meas->ftnpars_size=400;
+        meas->ftname_pars=(char *)calloc(meas->ftnpars_size,sizeof(char));
+
+        param[0]=Bacv;
+        param[1]=spar->cost;
+        param[2]=spar->mu;
+        param[3]=spar->mig;
+        
+	for(i=0; i<4; ++i){
+                if(param[i]==0){
+                        sprintf(nparam[i],"0");
+                }else{
+                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+                }
+        }
+        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
+	#if (EVO==0)
+	sprintf(nevo,"_v0");
+	#elif (EVO==1)
+	sprintf(nevo,"_tlp");
+	#else
+	sprintf(nevo,"_mcs");
+	#endif
+                
+	#if (Tneg>0)
+	sprintf(ntneg,"_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
+	#else
+	sprintf(ntneg,"");
+	#endif
+        sprintf(meas->ftname_pars,"%s%s%s",ngeral,nevo,ntneg);
+        free(ngeral);
+        free(nevo);
+        free(ntneg);
+
+	return;
+}
+/************************************************
+*       Free Allocated Memory for time		*
+*       measurements				*
+*************************************************/
+void freeMemTM(TimeMeasures *meas){
+	
+	free(meas->ftname_pars);
+	#ifdef GENTIME
+	free(timeb);
+	#endif
+
+	return;
+}
 /******************************************
 *	Open Global Files                 *
 *******************************************/
@@ -90,7 +173,22 @@ void openFiles(TimeMeasures *meas){
                         ok=1;
                 }
         }
-        sprintf(name,"%snumheventsXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+	sprintf(name,"%scorrXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+        meas->file_tmeas=fopen(name,"w");
+        if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
+#endif
+#ifdef GENTIME
+        while(ok==0){
+                sprintf(name,"%sgentimeXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
+                meas->file_tmeas=fopen(name,"r");
+                if(meas->file_tmeas!=NULL){
+                        ++id;
+                        fclose(meas->file_tmeas);
+                }else{
+                        ok=1;
+                }
+        }
+	sprintf(name,"%sgentimeXt_%s_%ld.dat",fdatapath,meas->ftname_pars,id);
         meas->file_tmeas=fopen(name,"w");
         if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
 #endif
@@ -331,23 +429,22 @@ void save_config(TimeMeasures *meas){
 	calcInvFreq(freqInvH);
 	
 	
-	idlisth=0;
         for(i = 0; i < L; ++i){//linha
                 for(j = 0; j < L; ++j){//coluna
                         id=j+i*L;
-			if(idlisth>nh-1){
+			idlisth=inverselisth[id];
+			
+			if(idlisth>=listh->usize){//@id not on the list of alive hosts
 				fprintf(fconfig,"%d %d %d\n",i,j,-1);
-			}else{
-				if(id<listh->vec[idlisth]){//@id not on the list of alive hosts
-					fprintf(fconfig,"%d %d %d\n",i,j,-1);
-				}else{//id==listh->vec[idlisth], @id is alive
-					fprintf(fconfig,"%d %d %f\n",i,j,freqInvH[idlisth]);
-					++idlisth;
-				}
+				
+			}else{//id==listh->vec[idlisth], @id is alive
+				fprintf(fconfig,"%d %d %f\n",i,j,freqInvH[idlisth]);
+				
 			}
-                }
+			
+		}
                 fprintf(fconfig,"\n");
-        }
+	}
 
 	/*********filling gnuplot file**********************************************/
         if(L>=100){
@@ -475,46 +572,11 @@ void invDistXt(TimeMeasures *meas){
 ****************************************************/
 void numHostEventsPerDtXt(TimeMeasures *meas){
 
-
-	#if (NETWORK==0)
 	if(meas->Tnow==meas->Ti){
 		fprintf(meas->file_tmeas,"#1:time 2:#of host events per Dt_ref 3:#of host births per Dt_ref 4:#of host deaths per Dt_ref 5:#of hosts\n");
 	}
 	fprintf(meas->file_tmeas,"%f %d %d %d %d\n",meas->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,listh->usize);
 	printf("%f %d %d %d %d\n",meas->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,listh->usize);
-	#else
-	int i;
-	double meanb_lin[2],meanb_col[2],meand_lin[2],meand_col[2],stdb_lin,stdb_col,stdd_lin,stdd_col;
-	if(meas->Tnow==meas->Ti){
-		fprintf(meas->file_tmeas,"#1:time 2:#of H events 3:#ofbirths 4:#ofdeaths 5:meanb_lin 6:err_blin 7:meanb_col 8:err_bcol 9:meand_lin 10:err_dlin 11:meand_col 12:err_dcol 13:#of hosts\n");
-	}
-	
-	for(i=0; i<2; ++i){
-		meanb_lin[i]=0.;
-		meanb_col[i]=0.;
-		meand_lin[i]=0.; 
-		meand_col[i]=0.;
-	}
-
-	for(i=0; i<L; ++i){
-		meanb_lin[0]+=(double)meas->numb_lin[i]/L;
-		meanb_lin[1]+=(double)meas->numb_lin[i]*meas->numb_lin[i]/L;
-		meanb_col[0]+=(double)meas->numb_col[i]/L;
-		meanb_col[1]+=(double)meas->numb_col[i]*meas->numb_col[i]/L;
-		
-		meand_lin[0]+=(double)meas->numd_lin[i]/L;
-		meand_lin[1]+=(double)meas->numd_lin[i]*meas->numd_lin[i]/L;
-		meand_col[0]+=(double)meas->numd_col[i]/L;
-		meand_col[1]+=(double)meas->numd_col[i]*meas->numd_col[i]/L;
-	}
-	stdb_lin=sqrt(meanb_lin[1]-meanb_lin[0]*meanb_lin[0]);
-	stdb_col=sqrt(meanb_col[1]-meanb_col[0]*meanb_col[0]);
-	stdd_lin=sqrt(meand_lin[1]-meand_lin[0]*meand_lin[0]);
-	stdd_col=sqrt(meand_col[1]-meand_col[0]*meand_col[0]);
-
-	fprintf(meas->file_tmeas,"%f %d %d %d %f %f %f %f %f %f %f %f %d\n",meas->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,meanb_lin[0],stdb_lin,meanb_col[0],stdb_col,meand_lin[0],stdd_lin,meand_col[0],stdd_col,listh->usize);
-	printf("t=%f nev=%d nb=%d nd=%d mbl=%f errbl=%f mbc=%f errbc=%f mdl=%f errdl=%f mdc=%f errdc=%f nh=%d\n",meas->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,meanb_lin[0],stdb_lin,meanb_col[0],stdb_col,meand_lin[0],stdd_lin,meand_col[0],stdd_col,listh->usize);
-	#endif
 
 	return;
 }
@@ -524,23 +586,45 @@ void numHostEventsPerDtXt(TimeMeasures *meas){
 *  considering                                     *
 ****************************************************/
 void spatialCorrXt(TimeMeasures *meas){
-	int i,idvx,idvy,dist;
-	double corr_tot,*corr;
-
-	corr=(double *)calloc(2,sizeof(double));
+	int dist;
+	double corr_tot,corr[2];
 
 	if(meas->Tnow==meas->Ti){
-		fprintf(meas->file_tmeas,"#1:time 2:corrx 3:corry 4:corr 5:#of hosts\n");
+		if(meas->file_tmeas==NULL){
+			printf("You are trying to write in a file that doesn't exist.\n");
+			exit(1);
+		}else{
+			fprintf(meas->file_tmeas,"#1:time 2:corrx 3:corry 4:corr 5:#of hosts\n");
+			printf("#1:time 2:corrx 3:corry 4:corr 5:#of hosts\n");
+		}
 	}
 
 	dist=1;
-	corr_tot=spatialCorr(host,N,dist,RIGHT,DOWN,neighbor,corr);/*sending: 1-state vector,2-square lattice size, 3-distance for calculating spatial correlation
+	corr_tot=spatialCorr(host,N,dist,RIGHT,DOWN,neighbor,&corr);/*sending: 1-state vector,2-square lattice size, 3-distance for calculating spatial correlation
 						 *4-index of horizontal neighbors (right or left), 5-index of vertical neighbors (top or bottom)
 						 *5-vector for storing vertical and horizontal correlations*/ 
 	fprintf(meas->file_tmeas,"%f %f %f %f %d\n",meas->Tnow,corr[0],corr[1],corr_tot,listh->usize);
 	printf("t=%f corrx=%f corry=%f corr=%f nh=%d\n",meas->Tnow,corr[0],corr[1],corr_tot,listh->usize);
 
-	free(corr);
+	return;
+}
+/***************************************************
+*  calculating average host generation time        *
+****************************************************/
+void genHostTime(TimeMeasures *meas){
+	double mean_gtime;
+	if(meas->Tnow==meas->Ti){
+		fprintf(meas->file_tmeas,"#1:time 2:#mean host generation time 3:#of repr. events used 4:#of hosts\n");
+	}
+	
+	if(meas->ngh==0){
+		mean_gtime=0.;
+	}else{
+		mean_gtime=(double)meas->timegh/meas->ngh;
+	}
+	fprintf(meas->file_tmeas,"%f %f %d %d\n",meas->Tnow,mean_gtime,meas->ngh,listh->usize);
+	printf("t=%f <timegh>=%f sample=%d nh=%d\n",meas->Tnow,mean_gtime,meas->ngh,listh->usize);
+
 	return;
 }
 /***************************************************
@@ -565,9 +649,12 @@ void measures(TimeMeasures *meas){
 	}
         #endif
         #ifdef SAVE_CONFIG
-	if((meas->Tnow>=meas->Ti)&&(meas->nfiles<NF)){
-		printf("Time (measuring):%d\n",meas->NTnow);
+	double err=1e-7;
+	if((meas->Tnow>=meas->saveT-err)&&(meas->Tnow<=meas->saveT+err)&&(meas->nfiles<NF)){
+		printf("Time of measure:%f,  ",meas->Tnow);
 		save_config(meas);
+		meas->saveT=meas->Tnow+(double)NInterv*Dt_ref;
+		printf("Next time:%f\n",meas->saveT);
 		++meas->nfiles;
 	}
         #endif
@@ -588,6 +675,9 @@ void measures(TimeMeasures *meas){
         #endif
 	#ifdef CORRxT
 	spatialCorrXt(meas);
+        #endif
+	#ifdef GENTIME
+	genHostTime(meas);
         #endif
 
 

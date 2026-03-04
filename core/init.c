@@ -85,60 +85,6 @@ void allocateMemory(Event *event,TimeMeasures *meas){
         list_newd->size=N;
         list_newd->usize=0;
 	memset(list_newd->vec,0,sizeof(int)*N);
-	//Time measures structs
-	#ifdef TMEAS
-		#if (NETWORK==1)
-			#ifdef NUMHEVENTSxT
-			meas->numb_lin=(int *)calloc(L,sizeof(int));
-			meas->numd_lin=(int *)calloc(L,sizeof(int));
-			meas->numb_col=(int *)calloc(L,sizeof(int));
-			meas->numd_col=(int *)calloc(L,sizeof(int));
-			#endif
-		#endif
-	meas->idh_h1=0.;
-	meas->nfiles=0;
-	meas->Ti=0.;
-	meas->Tf=TF;
-	meas->NTf=NTf_me;
-	meas->saveT=0;
-	meas->dth=Dt_ref;
-	meas->ftnpars_size=400;
-	meas->ftname_pars=(char *)calloc(meas->ftnpars_size,sizeof(char));
-
-	char *ngeral=(char *)calloc(200,sizeof(char));
-	char *nevo = (char *)calloc(50,sizeof(char));
-	char *ntneg = (char *)calloc(50,sizeof(char));
-	char nparam[4][10];
-	double param[4];
-	param[0]=Bacv;
-	param[1]=spar->cost;
-	param[2]=spar->mu;
-	param[3]=spar->mig;
-	for(i=0; i<4; ++i){
-		if(param[i]==0){
-			sprintf(nparam[i],"0");
-		}else{
-			sprintf(nparam[i],"1e%d",(int)log10(param[i]));
-		}	
-	}
-	sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
-		#if (EVO==0)
-		sprintf(nevo,"_dthmax%de%d_v0",mf,ef);
-		#elif (EVO==1)
-		sprintf(nevo,"_tlp");
-		#else 
-		sprintf(nevo,"_mcs");
-		#endif
-		#if (Tneg>0)
-		sprintf(ntneg,"_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
-		#else
-		sprintf(ntneg,"");
-		#endif
-	sprintf(meas->ftname_pars,"%s%s%s",ngeral,nevo,ntneg);
-	free(ngeral);
-	free(nevo);
-	free(ntneg);
-	#endif
 
 	#if (NETWORK!=0)//not the well-mixed/complete graph case
 	/*network array: e.g. neighbor[k][idh]=idh_viz (label of the k-th neighbor of host @idh is @idh_viz)*/
