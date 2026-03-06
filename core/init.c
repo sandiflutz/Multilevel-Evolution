@@ -23,13 +23,17 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	for(i=0; i<N; ++i){
         	bac[i]=(double *)calloc(TYPES,sizeof(double));
 	}
+        costvec=(double **)calloc(N,sizeof(double *));
+	for(i=0; i<N; ++i){
+        	costvec[i]=(double *)calloc(TYPES,sizeof(double));
+	}
 	
 	inverselisth=(int *)calloc(N,sizeof(int));
 
 	dtVec=(double *) calloc(DTVSIZE,sizeof(double));
 	m0=1;
 	e0=-7;
-	mf=5;
+	mf=1;
 	ef=-2;
 	logSpacedVec(dtVec,e0,ef,m0,mf,DTVSIZE);/*filling dt vector @dtVec with values from m0*10^(e0) to mf*10^(ef) logarithmic spaced
 					       *passing: 1)dt vector,2)e0,3)ef,4)m0,5)mf,6)size of the dt vector  
@@ -39,7 +43,6 @@ void allocateMemory(Event *event,TimeMeasures *meas){
         
 	fdatapath=(char *)malloc(sizeof(char)*50);
 	sprintf(fdatapath,"data_manipulation/");
-	
 	/****structs****/
         
 	//system parameters necessary for the equations of the microbial
@@ -59,7 +62,6 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	spar->sd=Sd;
 	spar->sigma=SIGMA;
 	spar->micr=(double *)calloc(N,sizeof(double));
-	spar->s=(double *)calloc(TYPES,sizeof(double));
 	spar->inv=(double *)calloc(TYPES,sizeof(double));
 
 	//host events struct
@@ -79,13 +81,6 @@ void allocateMemory(Event *event,TimeMeasures *meas){
         listh->size=N;
         listh->usize=0;
 
-        list_newd = malloc(sizeof(DynList));
-        if (!list_newd) { perror("malloc"); exit(1);}
-        list_newd->vec = (int *)calloc(N,sizeof(int));
-        list_newd->size=N;
-        list_newd->usize=0;
-	memset(list_newd->vec,0,sizeof(int)*N);
-
 	#if (NETWORK!=0)//not the well-mixed/complete graph case
 	/*network array: e.g. neighbor[k][idh]=idh_viz (label of the k-th neighbor of host @idh is @idh_viz)*/
 	neighbor=(int **)calloc(N,sizeof(int *));
@@ -94,8 +89,8 @@ void allocateMemory(Event *event,TimeMeasures *meas){
         }
 	alive_viz = malloc(sizeof(DynList));
         if (!alive_viz) { perror("malloc"); exit(1);}
-        alive_viz->vec=(int *)calloc(VIZ,sizeof(int));
-        alive_viz->size=VIZ;
+        alive_viz->vec=(int *)calloc(VIZ+1,sizeof(int));//max. number of neighbor + focus host
+        alive_viz->size=VIZ+1;
         alive_viz->usize=0;
         #endif
 
@@ -128,6 +123,7 @@ void initialStateFixedFrac(void){
                                 bac[i][j]=Bac0/TYPES;
                         }
 		}else{
+			host=0;
 			listh->vec[N-1-ne]=i;//empty sites are stored at the end of the list of hosts;
 			inverselisth[i]=N-1-ne;
 			++ne;
@@ -137,7 +133,6 @@ void initialStateFixedFrac(void){
         }
 
 	listh->usize=nh;
-	list_newd->usize=0;
 
         return;
 }
@@ -173,6 +168,7 @@ void initialStateUniD(void){
                                 bac[i][j]*=Bac0/norm;
                         }
 		}else{
+			host[i]=0;
 			listh->vec[N-1-ne]=i;//empty sites are stored at the end of the list of hosts;
 			inverselisth[i]=N-1-ne;
 			++ne;
@@ -182,7 +178,6 @@ void initialStateUniD(void){
         }
 
 	listh->usize=nh;
-	list_newd->usize=0;
 
         return;
 }
@@ -228,6 +223,7 @@ void initialStateNormD(void){
 				bac[i][j]=bacinit[j];
 			}
 		}else{
+                        host[i]=0;
 			listh->vec[N-1-ne]=i;//empty sites are stored at the end of the list of hosts
 			inverselisth[i]=N-1-ne;
 			++ne;
@@ -237,7 +233,6 @@ void initialStateNormD(void){
         }
 
 	listh->usize=nh;
-	list_newd->usize=0;
 
 	free(bacinit);
         return;
@@ -275,7 +270,6 @@ void initialStateSingleH(TimeMeasures *meas){
 	exchange(listh->vec,0,meas->idh_h1);
 
 	listh->usize=1;
-	list_newd->usize=0;
 
         return;
 }
@@ -289,7 +283,6 @@ void setInvestmentsPaper(void){
 
         for(i=0; i<TYPES; ++i){
                 spar->inv[i]=(2.*(i+1)-1)/(2.*TYPES);
-		spar->s[i]=1.;
         }
 
         return;
@@ -316,15 +309,38 @@ void setInvestments(void){
 	neutral=TYPES-Tpos-Tneg;/*=0 if there is no neutral type and =1 otherwise*/
 	for(i=0; i<Tneg; ++i){
 		spar->inv[i]=(double)(i-Tneg)/ty_maior;
-		spar->s[i]=-1.;
 	}
 	for(i=Tneg; i<=Tpos+Tneg; ++i){
 		spar->inv[i]=(double)(i-Tneg)/ty_maior + dty*(1.-(double)neutral);/*if there is a neutral type, its index is i=Tneg, and inv[Tneg]=0.. otherwise this is the index 
 										   *if there is no neutral type, index i=Tneg is the index of the first positive type, and its investiment is inv[Tneg]=dty*/
-		spar->s[i]=1.;
 	}
 
         return;
+}
+/************************************************************************
+* Set Cost Vector: 							*
+* 	*Tneg=0: costvec[id_host][id_type]=cost*inv[id_type]		*	 
+* 	*Tneg>0: costvec[id_host][id_type]=cost*inv[id_type]*func	*
+*************************************************************************/
+void setCostVec(void){
+	int i,j;
+
+	#if (Tneg==0)
+	for(i=0; i<N; ++i){
+		for(j=0; j<TYPES; ++j){
+			costvec[i][j]=spar->cost*spar->inv[j];
+		}
+	}
+	#else
+	int idh,nh;
+	nh=listh->usize;
+	for(i=0; i<nh; ++i){
+		idh=listh->usize;
+		updateCosts(idh,spar->micr[idh],spar->cost,spar->inv,costvec,bac);//from bac.c
+	}
+	#endif
+
+	return;
 }
 /****************************************************************************
  *                     Set Initial Conditions                               *
@@ -343,6 +359,8 @@ void setCI(TimeMeasures *meas){
 	#else
 		initialStateFixedFrac();
 	#endif
+	setCostVec();
+	
 	return;
 }
 /****************************************************************************

@@ -39,6 +39,12 @@ void setInvestmentsPaper(void);
 * Set Investments (0<=investment<=1)             *
 **************************************************/
 void setInvestments(void);
+/************************************************************************
+* Set Cost Vector:                                                      *
+*       *Tneg=0: costvec[id_host][id_type]=cost*inv[id_type]            *
+*       *Tneg>0: costvec[id_host][id_type]=cost*inv[id_type]*func       *
+*************************************************************************/
+void setCostVec(void);
 /****************************************************************************
  *                     Set Initial Conditions                               *
  ***************************************************************************/

@@ -1,4 +1,9 @@
 # -------------------------------------------------------
+#  TERMINAL TEXT STYLE                                    
+# -------------------------------------------------------
+BOLD := \033[1m
+RESET := \033[0m
+# -------------------------------------------------------
 #  MACRO default name                                    
 # -------------------------------------------------------
 MACRO = TMEAS
@@ -10,8 +15,13 @@ MEASURE_MACROS = \
 	AVERINVxT \
 	MEANBFRACxT \
 	NUMHEVENTSxT \
+	CORRxT \
+	GENTIME \
 	DENSb1xT \
 	SAVE_CONFIG \
+
+TESTING_MACROS = \
+	DEBUG_SELECT_EV \
 # -------------------------------------------------------
 #  Compiler and flags
 # -------------------------------------------------------
@@ -32,13 +42,28 @@ OBJS = $(SRCS:.c=.o)
 #  Final executable name
 # -------------------------------------------------------
 EXEC = exec_$(MACRO).out
-
 # -------------------------------------------------------
 #  Default rule
 # -------------------------------------------------------
-all: $(OBJS)
+all: 
+	@echo "To see options and syntax:\n make help\n"	
+# -------------------------------------------------------
+#  Main program
+# -------------------------------------------------------
+main: $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
 	@echo "Built executable: $(EXEC)"
+# -------------------------------------------------------
+#  DEBUG: for testing routines
+# -------------------------------------------------------
+SRCS_DB = debug.c $(CORE)
+
+OBJS_DB = $(SRCS_DB:.c=.o)
+
+debug: $(OBJS_DB)
+	$(CC) $(OBJS_DB) -o $(EXEC) $(LDFLAGS)
+	@echo "Built executable: $(EXEC)"
+
 # -------------------------------------------------------
 #  Compilation step for each .c file
 # -------------------------------------------------------
@@ -64,18 +89,23 @@ cleanall:
 #  choose what to measure 
 # -------------------------------------------------------
 help:
-	@echo ""
-	@echo "Available measurement MACRO options:"
+	@echo "\nAvailable measurement MACRO options:"
 	@$(foreach m,$(MEASURE_MACROS),echo "  - $(m)";)
 	@echo ""
 	@echo "Example:"
-	@echo "	make MACRO=AVERINVxT EXEC=invXt.out"
+	@echo "	make main MACRO=AVERINVxT EXEC=invXt.out\n"
+	@echo "Available testing MACRO options:"
+	@$(foreach m,$(TESTING_MACROS),echo "  - $(m)";)
 	@echo ""
+	@echo "Example:"
+	@echo "	make debug MACRO=DEBUG_SELECT_EV EXEC=db_selectev.out\n"
 	@echo "Other options:"
 	@echo "  - clean objects: make cleanobj"
 	@echo "  - clean executables: make cleanexec"
 	@echo "  - clean all objects and executables: make cleanall"
-	@echo ""
+	@echo "\nImportant:"
+	@echo "  - Choose executable names with $(BOLD).out$(RESET) as extention to make sure the options $(BOLD)cleanobj$(RESET) and $(BOLD)cleanall$(RESET) work properly"
+	@echo "  - Remember to erase old objects before compiling the system.\n"
 # -------------------------------------------------------
 #  Phony targets
 # -------------------------------------------------------

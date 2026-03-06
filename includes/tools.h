@@ -84,12 +84,12 @@ void exchangeF(double *list, int id1, int id2);
 *    find the number of live neighbors of a specific host using the neighbors       *
 *    matrix and the list of live hosts. Store live neighbors positions              *
 ************************************************************************************/
-void searchLiveNeighbors(int dead,int idh,int *host,int **neighbor,DynList *alive_viz);
+void searchLiveNeighbors(int sa,int idh,int *state,int **neighbors,DynList *alive_viz);
 /************************************************************************************
 *    find the number of empty sites in the neighborhood of a specific site using    *
 *    the neighbors matrix. Store the neighboring empty sites positions              *
 ************************************************************************************/
-void searchEmptyNeighbors(int se,int idh,int *host,int **neighbor,DynList *empty_viz);
+void searchEmptyNeighbors(int se,int idh,int *state,int **neighbors,DynList *empty_viz);
 /************************************************************************************
 *    find the number of live neighbors using the neighbors matrix and              *
 *    the list of live hosts. Store live neighbors positions                        *
@@ -122,7 +122,7 @@ void classifyNeighbors(int **neighbor,int **clneighbor,int nviz,int sites);
 *       Randomly select a neighbor from           *
 *       a neighbors list, from indexes 1d1 to id2 *
 ***************************************************/
-int randNeighbor(int id,int *vec,int id1,int id2,int size);
+int randNeighborID(int id,int *vec,int id1,int id2,int size);
 /*************************************************
 *       Set network links between sites          *
 **************************************************/
@@ -166,7 +166,7 @@ double minNum(double a, double b);
  ***************************************************/
 void logSpacedVec(double *vec,double e0,double ef,double m0, double mf, int size);
 /***************************************************
-*  calculate spatial corretation for a square      *
+*  calculate spatial corretation for a square      *hostReprDynamics(
 *  lattice type of system                          *
 ****************************************************/
 double spatialCorr(int *state,int sites, int dist,int right,int down,int **neighbor,double *corr);

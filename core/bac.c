@@ -5,118 +5,6 @@
 #include"tools.h"
 #include"bac.h"
 
-
-/********************************************
- * integration of the microbial equations   *
- * using euler method                       *
- ********************************************/
-void bac_euler(double dt,SysParams *sp){
-	int i,j,jpl,jmi,idh1,k,idh2,nh,nv;
-	double birth,death,migr_in,migr_out,func,**bac_tmp,micr_neg,eps=0.0001;
-	double mut=sp->mu;//mutation rate
-        double cost=sp->cost;//cost of helping for an ideal helper
-        double birthr=sp->beta;//birth rate of a neutral bacteria
-        double deathr=sp->delta;//bacteria death rate
-        double mig=sp->mig;//migration rate
-
-	bac_tmp=(double **)calloc(N,sizeof(double *));
-	for(i=0; i<N; ++i){
-		bac_tmp[i]=(double *)calloc(TYPES, sizeof(double));
-	}
-
-        nh=listh->usize;
-	
-        for(i=0; i<nh; ++i){
-                idh1=listh->vec[i];
-                
-		#if (NETWORK!=0)
-                searchLiveNeighbors(0,idh1,host,neighbor,alive_viz);
-		nv=alive_viz->usize;
-                #endif
-		#if (Tneg>0)
-		micr_neg=0.;
-		for(j=0; j<Tneg; ++j){
-			micr_neg+=bac[idh1][j];
-		}
-		micr_neg/=sp->micr[idh1];
-		for(j=0; j<Tneg; ++j){
-			sp->s[j]=expCostReduc(micr_neg,CRnn0,CRnn1,eps);
-		}
-		for(j=Tneg; j<=Tpos+Tneg; ++j){
-			sp->s[j]=expCostReduc(micr_neg,CRnp0,CRnp1,eps);
-		}
-                #endif
-
-                for(j=0; j<TYPES;++j){
-                        /*births*/
-                        birth=(1.-mut)*(1.-cost*sp->s[j]*sp->inv[j])*birthr*bac[idh1][j];//division of type j
-		      	jpl=j+1;
-                        jmi=j-1;
-                      	/*my way: when j=0(j=TYPES-1) only mutation to j+1(j-1) happens, with rate mu (instead of mu/2) - this is what the paper do for TYPES=2 but not for TYPES=100*/
-			#if (MUT_BIRTH_DYN==0)
-                        if(j==0){
-                                jmi=jpl;
-                        }else if(j==TYPES-1){
-                                jpl=jmi;
-                        }
-                        birth+=0.5*mut*(1.-cost*sp->s[jpl]*sp->inv[jpl])*birthr*bac[idh1][jpl];//division of type j+1 -> mutation into j
-                        birth+=0.5*mut*(1.-cost*sp->s[jmi]*sp->inv[jmi])*birthr*bac[idh1][jmi];//division of type j-1 -> mutation into j
-			#else
-                      	/*paper way: when j=0(j=TYPES-1), only mutation to j+1(j-1) happens, with rate mu/2*/
-                        if(j==0){
-				birth+=0.5*mut*(1.-cost*sp->s[jpl]*sp->inv[jpl])*birthr*bac[idh1][jpl];//division of type j+1 -> mutation into j
-                        }else if(j==TYPES-1){
-				birth+=0.5*mut*(1.-cost*sp->s[jmi]*sp->inv[jmi])*birthr*bac[idh1][jmi];//division of type j-1 -> mutation into j
-			}else{
-				birth+=0.5*mut*(1.-cost*sp->s[jpl]*sp->inv[jpl])*birthr*bac[idh1][jpl];//division of type j+1 -> mutation into j
-				birth+=0.5*mut*(1.-cost*sp->s[jmi]*sp->inv[jmi])*birthr*bac[idh1][jmi];//division of type j-1 -> mutation into j
-			}
-			#endif
-                        /*death*/
-                        death=deathr*sp->micr[idh1]*bac[idh1][j];
-                        /*migrations*/
-                        migr_out=mig*bac[idh1][j];//emmigration
-
-                        #if (NETWORK==0)//complete graph
-			migr_in=0.;
-                        for(k=0; k<nh;++k){
-                                idh2=listh->vec[k];
-                                migr_in+=mig*bac[idh2][j];
-                        }
-                        migr_in=(migr_in-mig*bac[idh1][j])/(nh-1.);
-                        #else
-			migr_in=0.;
-			for(k=0; k<nv-1; ++k){//the last element of the alive neighbors list @alive_viz.vec[nv-1] is the focus host id
-                                idh2=alive_viz->vec[k];
-                                migr_in+=mig*bac[idh2][j];
-                        }
-			if(nv>0){
-				migr_in/=(double)nv;
-			}
-                        #endif
-
-                        func=birth-death-migr_out+migr_in;
-
-			bac_tmp[idh1][j]=bac[idh1][j]+func*dt;
-                }
-		
-        }
-
-	for(i=0; i<nh; ++i){
-		idh1=listh->vec[i];
-		sp->micr[idh1]=0.;
-		for(j=0;j<TYPES; ++j){
-			bac[idh1][j]=bac_tmp[idh1][j];
-			sp->micr[idh1]+=bac[idh1][j];
-		}
-	}
-
-	for(i=0; i<N; ++i){
-		free(bac_tmp[i]);
-	}
-	free(bac_tmp);
-	return;
-}
 /****************************************************************
  *     cost reduction function caused by negative types         *
  *     of bacteria                                              *
@@ -131,4 +19,144 @@ double expCostReduc(double x, double a,double b,double eps){
 	}
 	
 	return func;
+}
+/************************************************************************
+ *	update costs multiplicative factor acording to the amount	* 
+ *	of negative microbial types					*
+ ************************************************************************/
+void updateCosts(int idh,double mtot,double c0,double *w,double **cvec,double **bstate){
+	int j;
+	double mneg,eps=1e-6;
+		
+	mneg=0.;
+		
+	for(j=0; j<Tneg; ++j){
+		mneg+=bstate[idh][j];
+	}
+	mneg/=mtot;
+
+	for(j=0; j<Tneg; ++j){
+		cvec[idh][j]=expCostReduc(mneg,CRnn0,CRnn1,eps);
+		cvec[idh][j]*=c0*w[j];
+	}
+	for(j=Tneg; j<=Tpos+Tneg; ++j){
+		cvec[idh][j]=expCostReduc(mneg,CRnp0,CRnp1,eps);
+		cvec[idh][j]*=c0*w[j];
+	}
+
+	return;
+}
+/********************************************************
+* 	integration of the microbial equations		*
+* 	using euler method				*
+ ********************************************************/
+void bacDyn(int idh,double dt,DynList *liveviz,double **btmp){
+	int j,jpl,jmi,k,idviz,nv;
+	double birth,death,migr_in,migr_out,func;
+	
+	double mut=spar->mu;//mutation rate
+        double birthr=spar->beta;//birth rate of a neutral bacteria
+        double deathr=spar->delta;//bacteria death rate
+        double mig=spar->mig;//migration rate
+
+
+	nv=liveviz->usize;
+	for(j=0; j<TYPES;++j){
+		/*births*/
+		birth=(1.-mut)*(1.-costvec[idh][j])*birthr*bac[idh][j];//division of type j
+		jpl=j+1;
+		jmi=j-1;
+                /*my way: when j=0(j=TYPES-1) only mutation to j+1(j-1) happens, with rate mu (instead of mu/2) - this is what the paper do for TYPES=2 but not for TYPES=100*/
+		#if (MUT_BIRTH_DYN==0)
+		if(j==0){
+			jmi=jpl;
+		}else if(j==TYPES-1){
+			jpl=jmi;
+		}
+		birth+=0.5*mut*(1.-costvec[idh][jpl])*birthr*bac[idh][jpl];//division of type j+1 -> mutation into j
+		birth+=0.5*mut*(1.-costvec[idh][jmi])*birthr*bac[idh][jmi];//division of type j-1 -> mutation into j
+		#else
+                /*paper way: when j=0(j=TYPES-1), only mutation to j+1(j-1) happens, with rate mu/2*/
+		if(j==0){
+			birth+=0.5*mut*(1.-costvec[idh][jpl])*birthr*bac[idh][jpl];//division of type j+1 -> mutation into j
+		}else if(j==TYPES-1){
+			birth+=0.5*mut*(1.-costvec[idh][jmi])*birthr*bac[idh][jmi];//division of type j-1 -> mutation into j
+		}else{
+			birth+=0.5*mut*(1.-costvec[idh][jpl])*birthr*bac[idh][jpl];//division of type j+1 -> mutation into j
+			birth+=0.5*mut*(1.-costvec[idh][jmi])*birthr*bac[idh][jmi];//division of type j-1 -> mutation into j
+		}
+		#endif
+		/*death*/
+		death=deathr*spar->micr[idh]*bac[idh][j];
+		/*migrations*/
+		migr_out=mig*bac[idh][j];//emmigration
+
+		//immigration
+		migr_in=0.;
+		for(k=0; k<nv; ++k){//the last element of the alive neighbors list @alive_viz.vec[nv-1] is the focus host id
+			idviz=liveviz->vec[k];
+			migr_in+=mig*bac[idviz][j];
+		}
+		if(nv>0){
+			migr_in=(migr_in-mig*bac[idh][j])/((double)nv-1.);
+		}
+		func=birth-death-migr_out+migr_in;
+		btmp[idh][j]=bac[idh][j]+func*dt;
+//		printf("BCD: btmp[%d][%d]=%f\n",idh,j,btmp[idh][j]);
+        }
+
+	return;
+}
+/****************************************************************
+ * Microbial layer evolution (for a time interval=dt)	*
+ ****************************************************************/
+void evoBac(double dt){
+	int i,j,idh,nh;
+	double **bac_tmp;
+	
+	bac_tmp=(double **)calloc(N,sizeof(double *));
+	for(i=0; i<N; ++i){
+		bac_tmp[i]=(double *)calloc(TYPES, sizeof(double));
+	}
+        
+	nh=listh->usize;
+	#if (Tneg>0)
+        for(i=0; i<nh; ++i){
+                idh=listh->vec[i];
+		updateCosts(idh,spar->micr[idh],spar->inv,spar->cost,costvec,bac);
+	}
+	#endif
+
+        for(i=0; i<nh; ++i){
+                idh=listh->vec[i];
+
+		#if (NETWORK==0)//complete graph
+		bacDyn(idh,dt,listh,bac_tmp);
+                #else//square lattice
+                searchLiveNeighbors(1,idh,host,neighbor,alive_viz);
+		bacDyn(idh,dt,alive_viz,bac_tmp);
+                #endif
+//		for(j=0; j<TYPES; ++j){
+//			if(i==0)printf("EB: costvec[%d][%d]=%f bac[%d][%d]=%f btmp[%d][%d]=%f\n",idh,j,costvec[idh][j],idh,j,bac[idh][j],idh,j,bac_tmp[idh][j]);
+//		}
+	}
+	
+
+
+
+	//updating microbial states
+	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
+		spar->micr[idh]=0.;
+		for(j=0;j<TYPES; ++j){
+			bac[idh][j]=bac_tmp[idh][j];
+			spar->micr[idh]+=bac[idh][j];
+		}
+	}
+
+	for(i=0; i<N; ++i){
+		free(bac_tmp[i]);
+	}
+	free(bac_tmp);
+	return;
 }

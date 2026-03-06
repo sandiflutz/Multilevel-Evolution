@@ -11,13 +11,13 @@
 /*****************declaring routines order**************************/
 void callSetSystem(void);
 void callSysDynamics(double tf);
+void callSysDynamics1H(double tf);
 void freeMemory(void);
 /******global variables*********************************************/
 Event event;
 TimeMeasures meas;
 /****************Program's Routines*****************************/
 int main(void){
-	int i;
         
 	/*setting the system*/
 	callSetSystem();
@@ -33,20 +33,29 @@ int main(void){
 	callSysDynamics(meas.Tf);
 	#elif defined(CORRxT)||defined(NUMHEVENTSxT)||defined(GENTIME)
         openFiles(&meas);
-	meas.Tf=1000.;
+	meas.Tf=5000.;
 	callSysDynamics(meas.Tf);
 	closeFiles(&meas);
 	#else
+	int i;
 	for(i=0; i<SAMPLE; ++i){
 		setCI(&meas);
         	openFiles(&meas);
 		
+		#if (CI!=2)
 		callSysDynamics(meas.Tf);
+		#else
+		callSysDynamics1H(meas.Tf);
+		#endif
 		
 		closeFiles(&meas);
 	}
 	#endif
 	freeMemTM(&meas);
+#endif
+#ifdef TESTE_DYN
+	meas.Tf=1.;
+	callSysDynamics(meas.Tf);
 #endif
 
 	freeMemory();
@@ -61,15 +70,11 @@ void callSetSystem(void){
 
         return;
 }
-/******************************************
-*          time loop                     *
-******************************************/
+/****************************************
+*          general time loop		*
+*****************************************/
 void callSysDynamics(double tf){
-	int numsteps,nh,dnumsteps;
-	int *inverselisth_tmp=(int *)calloc(N,sizeof(int));
-	DynList listh_tmp;
-	listh_tmp.vec=(int *)calloc(N,sizeof(int));
-	listh_tmp.size=listh->size;
+	int i,numsteps,nh,nevents,dnumsteps;
 
 	numsteps=0;
 	event.timeE=0.;
@@ -86,27 +91,47 @@ void callSysDynamics(double tf){
 			#endif
 		#endif
 		
-		#if (CI!=2)//not the single host case
-		/*host dynamics (all routines in this block are from evo.c)*/
 		calcHostEvents(&event);
-			#if (EVO==0)//evolution using adjustment of host time step (as in the original paper)
-				dnumsteps=evolveHostDtH(&event,&listh_tmp,inverselisth_tmp,&meas);
-			#elif (EVO==1)
-				event.dtE=Dt_ref;
-				evolveHostTLP(&event,&listh_tmp,inverselisth_tmp,&meas);
-			#endif
-		/**************/
+		dnumsteps=hostNTSPerBacNTS(&event);
+		nevents=event.usizeE;
+		for(i=0; i<nevents; ++i){
+			event.cprobE[i]*=event.dtE;
+		}
+		printf("time=%f\n",event.timeE);
+		#if (NETWORK==0)//complete graph
+		evolveHostCG(dnumsteps,&event,&meas);
+		#else//square lattice
+		evolveHostSL(dnumsteps,&event,&meas);
 		#endif
 		nh=listh->usize;
 
-		bac_euler(Dt_ref,spar);//from bac_eu.c
+		evoBac(Dt_ref);
 		
 		event.timeE+=Dt_ref;
                 numsteps+=dnumsteps;
         }
 
-	free(inverselisth_tmp);
-	free(listh_tmp.vec);
+        return;
+}
+/****************************************
+*          1 host time loop 		*
+*****************************************/
+void callSysDynamics1H(double tf){
+	int numsteps;
+
+	numsteps=0;
+	event.timeE=0.;
+	while(event.timeE<=tf){
+		#ifdef TMEAS
+		meas.NTnow=numsteps;
+		meas.Tnow=event.timeE;
+		measures(&meas);
+		#endif
+		evoBac(Dt_ref);
+		event.timeE+=Dt_ref;
+                ++numsteps;
+        }
+
         return;
 }
 /******************************************
@@ -121,12 +146,15 @@ void freeMemory(void){
 		free(bac[i]);
 	}
 	free(bac);
+        for(i=0; i<N; ++i){
+		free(costvec[i]);
+        }
+	free(costvec);
         
 	free(dtVec);
 	free(fdatapath);
 
 	//Structs and their arrays
-	free(spar->s);
 	free(spar->inv);
 	free(spar->micr);
 	free(spar);

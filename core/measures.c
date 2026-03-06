@@ -1,5 +1,6 @@
 /* meaures.c */
-#include <time.h>
+#include<time.h>
+#include<math.h>
 #include"globals.h"
 #include"tools.h"
 #include"measures.h"
@@ -53,13 +54,6 @@ void allocateMemTM(TimeMeasures *meas){
                 }
         }
         sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
-	#if (EVO==0)
-	sprintf(nevo,"_v0");
-	#elif (EVO==1)
-	sprintf(nevo,"_tlp");
-	#else
-	sprintf(nevo,"_mcs");
-	#endif
                 
 	#if (Tneg>0)
 	sprintf(ntneg,"_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
@@ -217,7 +211,7 @@ void calcInvDens(double *densInvH){
 		idh=listh->vec[i];
 		densInvH[i]=0.;
 		for(j=0; j<TYPES; ++j){
-			densInvH[i]+=bac[idh][j]*spar->s[j]*spar->inv[j];
+			densInvH[i]+=bac[idh][j]*spar->inv[j];
 		}
 	}
 
@@ -234,7 +228,7 @@ void calcInvFreq(double *freqInvH){
 		idh=listh->vec[i];
 		freqInvH[i]=0.;
 		for(j=0; j<TYPES; ++j){
-			freqInvH[i]+=bac[idh][j]*spar->s[j]*spar->inv[j]/spar->micr[idh];
+			freqInvH[i]+=bac[idh][j]*spar->inv[j]/spar->micr[idh];
 		}
 	}
 
@@ -272,7 +266,7 @@ void densB1Xt(TimeMeasures *meas){
 	
 	averinv=0.;
 	for(j=0; j<TYPES; ++j){
-		averinv+=bac[meas->idh_h1][j]*spar->s[j]*spar->inv[j]/spar->micr[meas->idh_h1];
+		averinv+=bac[meas->idh_h1][j]*spar->inv[j]/spar->micr[meas->idh_h1];
 	}
 	
 	fprintf(meas->file_tmeas,"%f %f %f %f %f %d\n",meas->Tnow,averinv,bac[meas->idh_h1][0]/spar->micr[meas->idh_h1],bac[meas->idh_h1][1]/spar->micr[meas->idh_h1],spar->micr[meas->idh_h1],meas->NTnow);
@@ -600,7 +594,7 @@ void spatialCorrXt(TimeMeasures *meas){
 	}
 
 	dist=1;
-	corr_tot=spatialCorr(host,N,dist,RIGHT,DOWN,neighbor,&corr);/*sending: 1-state vector,2-square lattice size, 3-distance for calculating spatial correlation
+	corr_tot=spatialCorr(host,N,dist,RIGHT,DOWN,neighbor,corr);/*sending: 1-state vector,2-square lattice size, 3-distance for calculating spatial correlation
 						 *4-index of horizontal neighbors (right or left), 5-index of vertical neighbors (top or bottom)
 						 *5-vector for storing vertical and horizontal correlations*/ 
 	fprintf(meas->file_tmeas,"%f %f %f %f %d\n",meas->Tnow,corr[0],corr[1],corr_tot,listh->usize);
