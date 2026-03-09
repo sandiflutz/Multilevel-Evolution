@@ -14,10 +14,10 @@ void updateCosts(int idh,double mtot,double c0,double *w,double **cvec,double **
  * integration of the microbial equations   *
  * using euler method                       *
  ********************************************/
-void bacDyn(int idh,double dt,DynList *liveviz,double **btmp);
+void bacDyn(int idh,double dt,DynList *liveviz,double **btmp,double time);
 /****************************************************************
  * Microbial layer evolution (for a time interval=dt)   *
  ****************************************************************/
-void evoBac(double dt);
+void evoBac(double dt,double time);
 #endif
 

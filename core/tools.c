@@ -539,14 +539,14 @@ int upperBoundStrict(double nr,double *vec, int vsize){
 *   3)calls the bissectionSearch routine to find the     *
 *   position, in the vector, the number belongs to.      *
 *********************************************************/
-int selectEvent(double *event,int size){
+int selectEvent(double nr,double *event,int size){
         int id;
-        double nr,*cprob;
+        double *cprob;
 
 	cprob=(double *)calloc(size,sizeof(double));
 	cumulProb(size,event,cprob);
 
-        nr=FRANDOM*cprob[size-1];
+      //  nr=FRANDOM*cprob[size-1];
         id=upperBoundStrict(nr, cprob, size);
 
 	free(cprob);
@@ -557,11 +557,10 @@ int selectEvent(double *event,int size){
 *         using the respective cumulative      *
 *         probability vector                   *
 ************************************************/
-int selectEventCP(double *cprob,int size){
+int selectEventCP(double nr,double *cprob,int size){
         int id;
-        double nr;
 
-        nr=FRANDOM*cprob[size-1];
+      //  nr=FRANDOM*cprob[size-1];
         id=upperBoundStrict(nr, cprob, size);
 
 	return id;

@@ -67,7 +67,7 @@ void calcHostEvents(Event *event){
 ****************************************************************/
 void setMicrKidsNorm(int idp, int idk){
         int i,ns,p;
-        double fk,fp,norm,*cprob=NULL;
+        double nr,fk,fp,norm,*cprob=NULL;
 
 
         cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
@@ -79,7 +79,8 @@ void setMicrKidsNorm(int idp, int idk){
         norm=0.;
         ns=0;
         while(ns<BSAMPLES){
-		p=selectEventCP(cprob,TYPES);
+		nr=FRANDOM*cprob[TYPES-1];
+		p=selectEventCP(nr,cprob,TYPES);
 		fp=bac[idp][p]/spar->micr[idp];
                 fk=truncGaussRandNum(fp,spar->sigma,0.,1.);
                 bac[idk][p]+=fk;
@@ -104,7 +105,7 @@ void setMicrKidsNorm(int idp, int idk){
 ****************************************************************/
 void setMicrKidsPoiss(int idp, int idk){
         int i,ns,p,sample;
-        double mean,*cprob=NULL;
+        double nr,mean,*cprob=NULL;
 
 
         cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
@@ -123,7 +124,8 @@ void setMicrKidsPoiss(int idp, int idk){
 		sample=(int)(fmax((double)sample,0.));
 	}
         while(ns<sample){
-		p=selectEventCP(cprob,TYPES);
+		nr=FRANDOM*cprob[TYPES-1];
+		p=selectEventCP(nr,cprob,TYPES);
                 bac[idk][p]+=(double)Bacv/sample;
 		++ns;
         }
@@ -249,7 +251,8 @@ int hostNTSPerBacNTS(Event *event){
 *	the complete graph version				*
 *****************************************************************/
 int evolveHostCG(int dnumsteps,Event *event, TimeMeasures *meas){
-	int i,idh,idlist,ide,idk,ne,nh,nr,nd,*listr,*listd;
+	int i,idh,idlist,ide,idk,ne,nh,nb,nd,*listb,*listd;
+	double nr;
 	DynList empty_viz;
 	
 	nh=listh->usize;
@@ -265,55 +268,56 @@ int evolveHostCG(int dnumsteps,Event *event, TimeMeasures *meas){
 		}
 	}
                 
-	listr=(int *)calloc(dnumsteps,sizeof(int));
+	listb=(int *)calloc(dnumsteps,sizeof(int));
 	listd=(int *)calloc(dnumsteps,sizeof(int));
-	nr=0;
+	nb=0;
 	nd=0;
 
 	for(i=0; i<dnumsteps; ++i){
-		event->whichE=selectEventCP(event->cprobE,event->usizeE);
-		idh=listh->vec[event->whichE%nh];
-		if(host[idh]==1){//if chosen host is alive and the system has more than 1 host
-			switch(event->whichE/nh){
-				case 0: 
-					ne=empty_viz.usize;
-					if(ne>0){
-						ide=randNeighborID(idh,empty_viz.vec,0,ne,empty_viz.size);//randomly chooses an index of an empty site, stored on empty_viz.vec
-						idk=empty_viz.vec[ide];//host id of the empty site is ide'th element of empty_viz.vec
-						
-						hostBirth(idh,idk);//site @idk receives offspring of @idh
-						
-						listr[nr]=idk;//@idk is stored on the list of newhosts (during this time interval of Dt_ref)
-						++nr;//number of new hosts
-						exchange(empty_viz.vec,ide,ne-1);
-						--empty_viz.usize;//decreasing the number of available empty sites
-						//measures	
-						#ifdef GENTIME
-						timeb[idk]=meas->Tnow+Dt_ref;//time of birth of host @idk
-						if(timeb[idh]>=0.){
-							meas->timegh+=(meas->Tnow+Dt_ref-timeb[idh]);//host @idh first reproduction time is the current time minos the time of its birth
-							timeb[idh]=-1.;//just the first reproduction of an individual counts
-							++meas->ngh;
+		nr=FRANDOM;
+		if(nr<event->cprobE[event->usizeE-1]){
+			event->whichE=selectEventCP(nr,event->cprobE,event->usizeE);
+			idh=listh->vec[event->whichE%nh];
+			if(host[idh]==1){//if chosen host is alive and the system has more than 1 host
+				switch(event->whichE/nh){
+					case 0: 
+						ne=empty_viz.usize;
+						if(ne>0){
+							ide=randNeighborID(idh,empty_viz.vec,0,ne,empty_viz.size);//randomly chooses an index of an empty site, stored on empty_viz.vec
+							idk=empty_viz.vec[ide];//host id of the empty site is ide'th element of empty_viz.vec
+							hostBirth(idh,idk);//site @idk receives offspring of @idh
+							listb[nb]=idk;//@idk is stored on the list of newhosts (during this time interval of Dt_ref)
+							++nb;//number of new hosts
+							exchange(empty_viz.vec,ide,ne-1);
+							--empty_viz.usize;//decreasing the number of available empty sites
+							//measures	
+							#ifdef GENTIME
+							timeb[idk]=meas->Tnow+Dt_ref;//time of birth of host @idk
+							if(timeb[idh]>=0.){
+								meas->timegh+=(meas->Tnow+Dt_ref-timeb[idh]);//host @idh first reproduction time is the current time minos the time of its birth
+								timeb[idh]=-1.;//just the first reproduction of an individual counts
+								++meas->ngh;
+							}
+							#endif
 						}
+						break;
+					case 1: 
+						hostDeath(idh);
+						listd[nd]=idh;//list of sites that received offspring during the Dt_ref time interval
+						++nd;
+						#ifdef GENTIME
+						timeb[idh]=-1.;
 						#endif
-					}
-					break;
-				case 1: 
-					hostDeath(idh);
-					listd[nd]=idh;//list of sites that received offspring during the Dt_ref time interval
-					++nd;
-					#ifdef GENTIME
-					timeb[idh]=-1.;
-					#endif
-					break;
+						break;
+				}
 			}
 		}
 	}
 	                
 	/*updating hosts dynamic list*/
-	for(i=0; i<nr; ++i){
+	for(i=0; i<nb; ++i){
 		nh=listh->usize;
-		idh=listr[i];
+		idh=listb[i];
 		idlist=inverselisth[idh];
 		exchange(inverselisth,listh->vec[nh],idh);
 		exchange(listh->vec,nh,idlist);
@@ -331,12 +335,12 @@ int evolveHostCG(int dnumsteps,Event *event, TimeMeasures *meas){
 	
 	/**************/
 	#ifdef NUMHEVENTSxT
-	meas->numb=nr;
+	meas->numb=nb;
 	meas->numd=nd;
 	#endif
 
 	free(empty_viz.vec);
-	free(listr);
+	free(listb);
 	free(listd);
 	return dnumsteps;
 }
@@ -345,7 +349,8 @@ int evolveHostCG(int dnumsteps,Event *event, TimeMeasures *meas){
 *	the lattice version					*
 *****************************************************************/
 void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
-	int i,idh,idlist,ide,idk,ne,nh,nr,nd,*listr,*listd;
+	int i,idh,idlist,ide,idk,ne,nh,nb,nd,*listb,*listd;
+	double nr;
 	DynList empty_viz;
 	
 	nh=listh->usize;
@@ -353,56 +358,59 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 	empty_viz.size=VIZ;
 	empty_viz.vec = (int *)calloc(empty_viz.size,sizeof(int));
                 
-	listr=(int *)calloc(dnumsteps,sizeof(int));
+	listb=(int *)calloc(dnumsteps,sizeof(int));
 	listd=(int *)calloc(dnumsteps,sizeof(int));
-	nr=0;
+	nb=0;
 	nd=0;
 
-	for(i=0; i<N; ++i){
-		if((inverselisth[listh->vec[i]]!=i))printf("lhost[%d]=%d ilhost[%d]=%d\n",i,listh->vec[i],listh->vec[i],inverselisth[listh->vec[i]]);
-	}
+//	for(i=0; i<N; ++i){
+//		if((inverselisth[listh->vec[i]]!=i))printf("lhost[%d]=%d ilhost[%d]=%d\n",i,listh->vec[i],listh->vec[i],inverselisth[listh->vec[i]]);
+//	}
 	nh=listh->usize;
 	for(i=0; i<dnumsteps; ++i){
-		event->whichE=selectEventCP(event->cprobE,event->usizeE);
-		idh=listh->vec[event->whichE%nh];
-		if(host[idh]==1){//if chosen host is alive and the system has more than 1 host
-			switch(event->whichE/nh){
-				case 0: 
-					searchEmptyNeighbors(0,idh,host,neighbor,&empty_viz);
-					ne=empty_viz.usize;
-					if(ne>0){
-						ide=randNeighborID(idh,empty_viz.vec,0,ne,empty_viz.size);//randomly chooses an index of an empty site, stored on empty_viz.vec
-						idk=empty_viz.vec[ide];//host id of the empty site is ide'th element of empty_viz.vec
-						listr[nr]=idk;//list of sites that received offspring during the Dt_ref time interval
-						++nr;
-						hostBirth(idh,idk);
-						//measures	
-						#ifdef GENTIME
-						timeb[idk]=meas->Tnow+Dt_ref;//time of birth of host @idk
-						if(timeb[idh]>=0.){
-							meas->timegh+=(meas->Tnow+Dt_ref-timeb[idh]);//host @idh first reproduction time is the current time minos the time of its birth
-							timeb[idh]=-1.;//just the first reproduction of an individual counts
-							++meas->ngh;
+		nr=FRANDOM;
+		if(nr<event->cprobE[event->usizeE-1]){
+			event->whichE=selectEventCP(nr,event->cprobE,event->usizeE);
+			idh=listh->vec[event->whichE%nh];
+			if(host[idh]==1){//if chosen host is alive and the system has more than 1 host
+				switch(event->whichE/nh){
+					case 0: 
+						searchEmptyNeighbors(0,idh,host,neighbor,&empty_viz);
+						ne=empty_viz.usize;
+						if(ne>0){
+							ide=randNeighborID(idh,empty_viz.vec,0,ne,empty_viz.size);//randomly chooses the index of an empty site, stored on empty_viz.vec
+							idk=empty_viz.vec[ide];//host id of the empty site, idk, is the ide-th element of empty_viz.vec
+							listb[nb]=idk;//list of sites that receive offspring during the Dt_ref time interval
+							++nb;
+							hostBirth(idh,idk);
+							//measures	
+							#ifdef GENTIME
+							timeb[idk]=meas->Tnow+Dt_ref;//time of birth of host @idk
+							if(timeb[idh]>=0.){
+								meas->timegh+=(meas->Tnow+Dt_ref-timeb[idh]);//host @idh first reproduction time is the current time minos the time of its birth
+								timeb[idh]=-1.;//just the first reproduction of an individual counts
+								++meas->ngh;
+							}
+							#endif
 						}
+						break;
+					case 1: 
+						listd[nd]=idh;//list of sites that died during the Dt_ref time interval
+						++nd;
+						hostDeath(idh);
+						#ifdef GENTIME
+						timeb[idh]=-1.;
 						#endif
-					}
-					break;
-				case 1: 
-					listd[nd]=idh;//list of sites that received offspring during the Dt_ref time interval
-					++nd;
-					hostDeath(idh);
-					#ifdef GENTIME
-					timeb[idh]=-1.;
-					#endif
-					break;
+						break;
+				}
 			}
 		}
 	}
 	                
 	/*updating hosts dynamic list*/
-	for(i=0; i<nr; ++i){
+	for(i=0; i<nb; ++i){
 		nh=listh->usize;
-		idh=listr[i];
+		idh=listb[i];
 		idlist=inverselisth[idh];
 		exchange(inverselisth,listh->vec[nh],idh);
 		exchange(listh->vec,nh,idlist);
@@ -420,12 +428,12 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 	
 	/**************/
 	#ifdef NUMHEVENTSxT
-	meas->numb=nr;
+	meas->numb=nb;
 	meas->numd=nd;
 	#endif
 
 	free(empty_viz.vec);
-	free(listr);
+	free(listb);
 	free(listd);
 	return;
 }

@@ -144,13 +144,13 @@ int upperBoundStrict(double nr,double *vec, int vsize);
 *   3)calls the bissectionSearch routine to find the     *
 *   position, in the vector, the number belongs to.      *
 *********************************************************/
-int selectEvent(double *event,int size);
+int selectEvent(double nr,double *event,int size);
 /***********************************************
 *         randomly selects and event           *
 *         using the respective cumulative      *
 *         probability vector                   *
 ************************************************/
-int selectEventCP(double *cprob,int size);
+int selectEventCP(double nr,double *cprob,int size);
 /***********************************************
 *           Find the largest element           *
 *           of a vector and returns            *

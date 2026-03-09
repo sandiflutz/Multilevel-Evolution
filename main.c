@@ -33,7 +33,7 @@ int main(void){
 	callSysDynamics(meas.Tf);
 	#elif defined(CORRxT)||defined(NUMHEVENTSxT)||defined(GENTIME)
         openFiles(&meas);
-	meas.Tf=5000.;
+	meas.Tf=10000.;
 	callSysDynamics(meas.Tf);
 	closeFiles(&meas);
 	#else
@@ -54,7 +54,7 @@ int main(void){
 	freeMemTM(&meas);
 #endif
 #ifdef TESTE_DYN
-	meas.Tf=1.;
+	meas.Tf=Dt_ref;
 	callSysDynamics(meas.Tf);
 #endif
 
@@ -97,7 +97,6 @@ void callSysDynamics(double tf){
 		for(i=0; i<nevents; ++i){
 			event.cprobE[i]*=event.dtE;
 		}
-		printf("time=%f\n",event.timeE);
 		#if (NETWORK==0)//complete graph
 		evolveHostCG(dnumsteps,&event,&meas);
 		#else//square lattice
@@ -105,10 +104,13 @@ void callSysDynamics(double tf){
 		#endif
 		nh=listh->usize;
 
-		evoBac(Dt_ref);
+		evoBac(Dt_ref,event.timeE);
 		
 		event.timeE+=Dt_ref;
                 numsteps+=dnumsteps;
+		#ifdef TMEAS
+		meas.dth=event.dtE;
+		#endif
         }
 
         return;
@@ -127,7 +129,7 @@ void callSysDynamics1H(double tf){
 		meas.Tnow=event.timeE;
 		measures(&meas);
 		#endif
-		evoBac(Dt_ref);
+		evoBac(Dt_ref,event.timeE);
 		event.timeE+=Dt_ref;
                 ++numsteps;
         }

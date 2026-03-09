@@ -50,7 +50,7 @@ void updateCosts(int idh,double mtot,double c0,double *w,double **cvec,double **
 * 	integration of the microbial equations		*
 * 	using euler method				*
  ********************************************************/
-void bacDyn(int idh,double dt,DynList *liveviz,double **btmp){
+void bacDyn(int idh,double dt,DynList *liveviz,double **btmp,double time){
 	int j,jpl,jmi,k,idviz,nv;
 	double birth,death,migr_in,migr_out,func;
 	
@@ -97,12 +97,11 @@ void bacDyn(int idh,double dt,DynList *liveviz,double **btmp){
 			idviz=liveviz->vec[k];
 			migr_in+=mig*bac[idviz][j];
 		}
-		if(nv>0){
+		if(nv>1){
 			migr_in=(migr_in-mig*bac[idh][j])/((double)nv-1.);
 		}
 		func=birth-death-migr_out+migr_in;
 		btmp[idh][j]=bac[idh][j]+func*dt;
-//		printf("BCD: btmp[%d][%d]=%f\n",idh,j,btmp[idh][j]);
         }
 
 	return;
@@ -110,7 +109,7 @@ void bacDyn(int idh,double dt,DynList *liveviz,double **btmp){
 /****************************************************************
  * Microbial layer evolution (for a time interval=dt)	*
  ****************************************************************/
-void evoBac(double dt){
+void evoBac(double dt,double time){
 	int i,j,idh,nh;
 	double **bac_tmp;
 	
@@ -131,14 +130,11 @@ void evoBac(double dt){
                 idh=listh->vec[i];
 
 		#if (NETWORK==0)//complete graph
-		bacDyn(idh,dt,listh,bac_tmp);
+		bacDyn(idh,dt,listh,bac_tmp,time);
                 #else//square lattice
                 searchLiveNeighbors(1,idh,host,neighbor,alive_viz);
-		bacDyn(idh,dt,alive_viz,bac_tmp);
+		bacDyn(idh,dt,alive_viz,bac_tmp,time);
                 #endif
-//		for(j=0; j<TYPES; ++j){
-//			if(i==0)printf("EB: costvec[%d][%d]=%f bac[%d][%d]=%f btmp[%d][%d]=%f\n",idh,j,costvec[idh][j],idh,j,bac[idh][j],idh,j,bac_tmp[idh][j]);
-//		}
 	}
 	
 

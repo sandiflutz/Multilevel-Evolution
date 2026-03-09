@@ -61,6 +61,8 @@
 
 /***************System**Structure*********************************************************************************************************************************************************************/
 /***host**layer******/
+#define NETWORK         1		/*0: well-mixed
+					 *1: square-lattice*/
 #if (TAB==1)
 	#define L               224	/*linear size of the system (for the square lattice case)*/
 #elif (TAB==2)
@@ -70,8 +72,6 @@
 #endif
 
 #define N               (L*L)		/*size number of sites*/
-#define NETWORK         1		/*0: well-mixed
-					 *1: square-lattice*/
 #if (NETWORK==0)
         #define VIZ	N		/*number of neighbors in the well-mixed*/
 #else
@@ -103,7 +103,7 @@
   	#define INV     	0       /*investment function:
 			     		*0 (paper version): inv[j]=(2(j+1)-1)/(2*TYPES)
 			     		*1: inv[j]=(j-Tneg)/Tpos (where Tpos=# of positive types, Tneg=# of negative types=TYPES-1-Tpos)*/
-	#define MUT_BIRTH_DYN  	0	/*0 (my version): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu 
+	#define MUT_BIRTH_DYN  	1	/*0 (my version): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu 
 					* 1 (paper version for TYPES=100): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu/2 
 					* (all other types mutate from j to j+1 with rate mu/2 and from j to j-1 with rate mu/2) 
 					*/

@@ -53,7 +53,11 @@ void allocateMemTM(TimeMeasures *meas){
                         sprintf(nparam[i],"1e%d",(int)log10(param[i]));
                 }
         }
+	#if (MUT_BIRTH_DYN==1)
+        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s_MBD1",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
+	#else
         sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
+	#endif
                 
 	#if (Tneg>0)
 	sprintf(ntneg,"_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
@@ -332,7 +336,7 @@ void averInvestmentXt(TimeMeasures *meas){
 	double averinv,*densInvH,tot_micr;
 	
 	if(meas->Tnow==meas->Ti){
-		fprintf(meas->file_tmeas,"#1:time 2:average cumulative investment 3:average microbial density 4:#of hosts 5:dens_host 6:#of time steps\n");
+		fprintf(meas->file_tmeas,"#1:time 2:average cumulative investment 3:average microbial density 4:#of hosts 5:dens_host 6:#of time steps 7:dth\n");
 	}
 
 	/****setting investiment density per host vector*****/
@@ -353,8 +357,8 @@ void averInvestmentXt(TimeMeasures *meas){
 	
 
 	/*storing data*/
-        fprintf(meas->file_tmeas,"%f %f %f %d %f %d\n",meas->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,meas->NTnow);
-        printf("t=%f averinv=%f avmicrdens=%f nh=%d nh/N=%f numsteps=%d\n",meas->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,meas->NTnow);
+        fprintf(meas->file_tmeas,"%f %f %f %d %f %d %f\n",meas->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,meas->NTnow,meas->dth);
+        printf("t=%f averinv=%f avmicrdens=%f nh=%d nh/N=%f numsteps=%d dth=%f\n",meas->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,meas->NTnow,meas->dth);
 
 	/*freeing allocated memory*/
 	free(densInvH);
