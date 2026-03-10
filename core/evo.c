@@ -69,32 +69,39 @@ void setMicrKidsNorm(int idp, int idk){
         int i,ns,p;
         double nr,fk,fp,norm,*cprob=NULL;
 
-
-        cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
-	cprob[0]=bac[idp][0]/spar->micr[idp];
-        for(i=1; i<TYPES; ++i){
-                cprob[i]=cprob[i-1]+bac[idp][i]/spar->micr[idp];
-        }
-
-        norm=0.;
-        ns=0;
-        while(ns<BSAMPLES){
-		nr=FRANDOM*cprob[TYPES-1];
-		p=selectEventCP(nr,cprob,TYPES);
-		fp=bac[idp][p]/spar->micr[idp];
+	if(TYPES==2){
+		fp=bac[idp][1]/spar->micr[idp];
                 fk=truncGaussRandNum(fp,spar->sigma,0.,1.);
-                bac[idk][p]+=fk;
-                norm+=fk;
-                ++ns;
+                bac[idk][1]=fk*Bacv;
+		bac[idk][0]=(1.-fk)*Bacv;
+
+	}else{
+		cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
+		cprob[0]=bac[idp][0]/spar->micr[idp];
+		for(i=1; i<TYPES; ++i){
+			cprob[i]=cprob[i-1]+bac[idp][i]/spar->micr[idp];
+		}
+
+		norm=0.;
+		ns=0;
+		while(ns<BSAMPLES){
+			nr=FRANDOM*cprob[TYPES-1];
+			p=selectEventCP(nr,cprob,TYPES);
+			fp=bac[idp][p]/spar->micr[idp];
+			fk=truncGaussRandNum(fp,spar->sigma,0.,1.);
+			bac[idk][p]+=fk;
+			norm+=fk;
+			++ns;
         }
 
         for(i=0; i<TYPES; ++i){
-                bac[idk][i]=bac[idk][i]*Bacv/norm;//normalizing bac so the sum of microbes in host idk is bv
+                bac[idk][i]*=Bacv/norm;//normalizing bac so the sum of microbes in host idk is bv
         }
+	}
 
 	spar->micr[idk]=Bacv;
 
-        free(cprob);
+       // free(cprob);
         return;
 }
 /***************************************************************
@@ -163,6 +170,33 @@ void hostDeath(int idh){
 	spar->micr[idh]=0.;
 
         return;
+}
+/************************************************
+*	After a host is chosen to 		*
+*	reproduce, it has a probability		* 
+*	to reproduce that depends on the	* 
+*	number of empty sites available		*
+*	to them. This routine returns 		*
+*	this probability			*
+*************************************************/
+double birthFunc(int ne,int nemax){
+	double de,fb;
+
+	fb=0.;
+
+	if(spar->migh==0.){//no host migration
+		if(ne>0)fb=1.;//simplest case: heaviside step function
+	}else{//host migration
+		if(nemax==0){
+			printf("Maximum number of empty sites, passed to birthFunc(), cannot be 0.");
+			exit(1);
+		}else{
+			de=(double)ne/nemax;
+			fb=de;//simplest case with migration
+		}
+	}
+
+	return fb;
 }
 /****************************************
 *	moviment of hosts:		*
@@ -256,16 +290,16 @@ int evolveHostCG(int dnumsteps,Event *event, TimeMeasures *meas){
 	DynList empty_viz;
 	
 	nh=listh->usize;
-	empty_viz.usize=0;
 	
 	empty_viz.size=N-nh;
+	empty_viz.usize=0;
 	empty_viz.vec = (int *)calloc(empty_viz.size,sizeof(int));
 	for(i=0; i<empty_viz.size; ++i){
 		ide=listh->vec[i+nh];
-		if(host[ide]==0){
-			empty_viz.vec[i]=listh->vec[i+nh];
-			 ++empty_viz.usize;
-		}
+		//if(host[ide]==0){
+		empty_viz.vec[i]=listh->vec[i+nh];
+		++empty_viz.usize;
+	//	}
 	}
                 
 	listb=(int *)calloc(dnumsteps,sizeof(int));
@@ -349,8 +383,9 @@ int evolveHostCG(int dnumsteps,Event *event, TimeMeasures *meas){
 *	the lattice version					*
 *****************************************************************/
 void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
-	int i,idh,idlist,ide,idk,ne,nh,nb,nd,*listb,*listd;
-	double nr;
+	int i,idh,idlist,idlistk,ide,idk,ne,nh,nb,nd,nm,*listb,*listd,*listm;
+	double nr1,nr2,fb,fm;
+	double mh=spar->migh;
 	DynList empty_viz;
 	
 	nh=listh->usize;
@@ -362,22 +397,27 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 	listd=(int *)calloc(dnumsteps,sizeof(int));
 	nb=0;
 	nd=0;
+	if(spar->migh!=0.){
+		listm=(int *)calloc(dnumsteps,sizeof(int));
+	}
+	nm=0;
 
-//	for(i=0; i<N; ++i){
-//		if((inverselisth[listh->vec[i]]!=i))printf("lhost[%d]=%d ilhost[%d]=%d\n",i,listh->vec[i],listh->vec[i],inverselisth[listh->vec[i]]);
-//	}
 	nh=listh->usize;
 	for(i=0; i<dnumsteps; ++i){
-		nr=FRANDOM;
-		if(nr<event->cprobE[event->usizeE-1]){
-			event->whichE=selectEventCP(nr,event->cprobE,event->usizeE);
+		nr1=FRANDOM;
+		if(nr1<event->cprobE[event->usizeE-1]){
+			event->whichE=selectEventCP(nr1,event->cprobE,event->usizeE);
 			idh=listh->vec[event->whichE%nh];
 			if(host[idh]==1){//if chosen host is alive and the system has more than 1 host
 				switch(event->whichE/nh){
 					case 0: 
 						searchEmptyNeighbors(0,idh,host,neighbor,&empty_viz);
-						ne=empty_viz.usize;
-						if(ne>0){
+						ne=empty_viz.usize;//number of empty sites in the neighborhood
+
+						fb=birthFunc(ne,VIZ);/*if there is no host migration, returns heaviside(ne), ne/VIZ otherwise*/
+						nr2=FRANDOM;
+						fm=(1.-fb)*mh;
+						if(nr2<fb){//birth
 							ide=randNeighborID(idh,empty_viz.vec,0,ne,empty_viz.size);//randomly chooses the index of an empty site, stored on empty_viz.vec
 							idk=empty_viz.vec[ide];//host id of the empty site, idk, is the ide-th element of empty_viz.vec
 							listb[nb]=idk;//list of sites that receive offspring during the Dt_ref time interval
@@ -392,6 +432,9 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 								++meas->ngh;
 							}
 							#endif
+						}else if(nr2<fm+fb){//host migration
+							listm[nm]=idh;
+							++nm;	
 						}
 						break;
 					case 1: 
@@ -408,7 +451,7 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 	}
 	                
 	/*updating hosts dynamic list*/
-	for(i=0; i<nb; ++i){
+	for(i=0; i<nb; ++i){//reproduction list
 		nh=listh->usize;
 		idh=listb[i];
 		idlist=inverselisth[idh];
@@ -416,7 +459,7 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 		exchange(listh->vec,nh,idlist);
 		++listh->usize;
 	}
-	for(i=0; i<nd; ++i){
+	for(i=0; i<nd; ++i){//death list
 		nh=listh->usize;
 		idh=listd[i];
 		idlist=inverselisth[idh];
@@ -425,6 +468,19 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 		host[idh]=0;
 		--listh->usize;
 	}
+	for(i=0; i<nm; ++i){//host migration list
+		idh=listm[i];
+		if(host[idh]==1){//host is still alive
+			idk=neighbor[idh][(int)(FRANDOM*VIZ)];//random neighbor
+			hostMoviment(idh,idk);//idh and idviz change places
+			
+			idlist=inverselisth[idh];
+			idlistk=inverselisth[idk];
+			exchange(inverselisth,idh,idk);
+			exchange(listh->vec,idlist,idlistk);
+
+		}
+	}
 	
 	/**************/
 	#ifdef NUMHEVENTSxT
@@ -432,6 +488,9 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 	meas->numd=nd;
 	#endif
 
+	if(spar->migh>0.){
+		free(listm);
+	}
 	free(empty_viz.vec);
 	free(listb);
 	free(listd);

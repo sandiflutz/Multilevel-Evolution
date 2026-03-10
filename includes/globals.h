@@ -32,7 +32,7 @@
 	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #endif
 
-#define SIGMA     	0.01		/*variance of the trucated normal distribution for the inheritance of helpful microbes*/
+#define SIGMA     	0.05		/*variance of the trucated normal distribution for the inheritance of helpful microbes*/
 #define DTVSIZE   	19		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
 					 *the host dynamics so the probability of 2 consecutive host events during a @Dt_ref time interval is <0.01
 					 *paper uses 19 when TYPES=2 and 29 otherwise (??)*/
@@ -91,24 +91,33 @@
 					 *3: all types of bacteria start with a fixed fraction of 1/TYPES */
 #endif
 /***Routine Choices*********************************************************************************************************************************************************************************/
+#if (TYPES==2)
+	#define TV			0	/*rule for vertical transmission: 0=normal dist. (around parent bac. type freq.),1=poisson dist. for the sample size */
+#else
+	#define TV			1	/*rule for vertical transmission: 0=normal dist. (around parent bac. type freq.),1=poisson dist. for the sample size */
+#endif
 #if ((TYPES==2)&&(Tpos==TYPES-1))
-	#define INV     	1       /*(don't change it)! Investment function when there is just 2 types is given by inv[j]=(j-Tmin)/Tpos):  
-					* 0 or 1: if the types are neutral and positive
-					* 0 and -1: if the types are neutral and negative*/
+	#define INV     	1	/*to decide which investment function to use (use 1 for TYPES=2). 
+					 *0: paper's version for TYPES=100 (don't use this for TYPES=2): inv[j]=(2(j+1)-1)/(2*TYPES)
+					 *1: my version and papers' version for TYPES=2 (work with negative types as well): inv[j]=(j-Tmin)/Tpos)  
+					 *Ex. with TYPES=2 with or without negative types: 
+					 *	->inv[j]=0 or 1 (if the types are neutral and positive)
+					 *	->inv[j]=0 and -1 (if the types are neutral and negative)*/
+
 	#define MUT_BIRTH_DYN  	0	/*0 (my version): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu 
-					* 1 (paper version for TYPES=100): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu/2 
-					* (all other types mutate from j to j+1 with rate mu/2 and from j to j-1 with rate mu/2) 
+					 *1 (paper version for TYPES=100): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu/2 
+					 * (all other types mutate from j to j+1 with rate mu/2 and from j to j-1 with rate mu/2) 
 					*/
 #else
   	#define INV     	0       /*investment function:
 			     		*0 (paper version): inv[j]=(2(j+1)-1)/(2*TYPES)
 			     		*1: inv[j]=(j-Tneg)/Tpos (where Tpos=# of positive types, Tneg=# of negative types=TYPES-1-Tpos)*/
+
 	#define MUT_BIRTH_DYN  	1	/*0 (my version): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu 
 					* 1 (paper version for TYPES=100): mutation from type 0 to type 1, or from @TYPES-1 to @TYPES-2 happen with rate mu/2 
 					* (all other types mutate from j to j+1 with rate mu/2 and from j to j-1 with rate mu/2) 
 					*/
 #endif
-#define TV			0	/*rule for vertical transmission: 0=normal dist. (around parent bac. type freq.),1=poisson dist. for the sample size */
 /****parameters for measures/sampling and related things*************************************************************/
 #define TF		250000.         /*host maximum time (measured using continuous values for the times steps)*/
 #define NTS		10e7            /*maximum number of timesteps*/
@@ -116,7 +125,7 @@
 					 * 0:png (good for creating animations later)
 					 * * 1:eps*/
 #define NF		1000             /*number of files for routines that create scripts for images*/
-#define NInterv		100             /*Ninterv*Dt_ref=time interval between snapshots taken*/
+#define NInterv		1000             /*Ninterv*Dt_ref=time interval between snapshots taken*/
 #define NTf_me		10000            /*time (in #of time steps) to stop a measure*/
 #define NT0_me		0               /*time to start a measure*/
 #define SAMPLE		100             /*number of files with raw data that are going to be produce for measurements that require it*/
@@ -131,8 +140,8 @@
 #define Bac0      1.            /*initial bacteria density in each host (t=0)*/
 #define H0        K_H           /*initial number of hosts*/
 #define BSAMPLES  10            /*number of bacteria samples passed from a parent host to its offspring*/
-#define MEANinv0  0.
-#define STDinv0   0.01
+#define MEANinv0  0.		/**/
+#define STDinv0   0.01		/**/
 /***LABELING (nothing to change here)***/
 //square lattice labels
 #define UP		0 /*label of the top neighbor (for the square lattice)*/

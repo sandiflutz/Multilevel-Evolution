@@ -161,10 +161,19 @@ int findMaxElement(int size,double *max_e,double *vec);
  * return the smallest number  between @a and @b         *
  ********************************************************/
 double minNum(double a, double b);
-/****************************************************
- * Create fill a vector with log spaced elements    *
- ***************************************************/
+/********************************************************
+ *	Create fill a vector with log spaced elements	*
+ ********************************************************/
 void logSpacedVec(double *vec,double e0,double ef,double m0, double mf, int size);
+/********************************************************
+ * 		Build a histogram			*
+ ********************************************************/
+void buildHistogram(double binsize,int nbins,int visize,double *vec,int *hist);
+/********************************************************
+*  calculate the root mean square of the elements       *
+*  from index idi to index idf of a vector vec[]        *
+*********************************************************/
+double calcRMSError(int *vec,int idi, int idf);
 /***************************************************
 *  calculate spatial corretation for a square      *hostReprDynamics(
 *  lattice type of system                          *

@@ -614,6 +614,44 @@ void logSpacedVec(double *vec,double e0,double ef,double m0, double mf, int size
 
 	return;
 }
+/********************************************************
+ *              Build a histogram                       *
+ ********************************************************/
+void buildHistogram(double binsize,int nbins,int vsize,double *vec,int *hist){
+        int i,id;
+
+        for(i=0; i<binsize; ++i){
+                hist[i]=0;
+        }
+        for(i=0; i<vsize; ++i){
+                id=(int)(vec[i]/binsize);
+                ++hist[id];
+        }
+
+        return;
+}
+/********************************************************
+*  calculate the root mean square of the elements	* 
+*  from index idi to index idf of a vector vec[]	*
+*********************************************************/
+double calcRMSError(int *vec,int idi, int idf){
+	int i,sample;
+	double aver=0.,aver2=0., err=0.;
+
+	sample=idf-idi;
+	for(i=idi; i<=idf; ++i){
+		aver+=vec[i];
+		aver2+=vec[i]*vec[i];
+	}
+	aver/=(double)sample;
+	aver2/=(double)sample;
+	for(i=idi; i<=idf; ++i){
+		err+=aver2-aver*aver;
+	}
+	err=sqrt(err);
+
+	return err;
+}
 /***************************************************
 *  calculate spatial corretation for a square      *
 *  lattice type of system                          *

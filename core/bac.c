@@ -132,7 +132,7 @@ void evoBac(double dt,double time){
 		#if (NETWORK==0)//complete graph
 		bacDyn(idh,dt,listh,bac_tmp,time);
                 #else//square lattice
-                searchLiveNeighbors(1,idh,host,neighbor,alive_viz);
+		searchLiveNeighbors(1,idh,host,neighbor,alive_viz);
 		bacDyn(idh,dt,alive_viz,bac_tmp,time);
                 #endif
 	}

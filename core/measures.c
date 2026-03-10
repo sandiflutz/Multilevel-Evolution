@@ -54,9 +54,9 @@ void allocateMemTM(TimeMeasures *meas){
                 }
         }
 	#if (MUT_BIRTH_DYN==1)
-        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s_MBD1",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
+        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_Mh%0.1f_CI%d_TV%d_Bv%s_cost%s_mu%s_mig%s_MBD1",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,spar->migh,CI,spar->sigma,TV,nparam[0],nparam[1],nparam[2],nparam[3]);
 	#else
-        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_sigma%0.2f_Bv%s_cost%s_mu%s_mig%s",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,spar->sigma,nparam[0],nparam[1],nparam[2],nparam[3]);
+        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_Mh%0.1fCI%d_TV%d_Bv%s_cost%s_mu%s_mig%s",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,spar->migh,CI,spar->sigma,TV,nparam[0],nparam[1],nparam[2],nparam[3]);
 	#endif
                 
 	#if (Tneg>0)
