@@ -92,14 +92,19 @@ void callSysDynamics(double tf){
 		#endif
 		
 		calcHostEvents(&event);
+		#if (EVO==0)//complete graph with adjustable host dt
 		dnumsteps=hostNTSPerBacNTS(&event);
 		nevents=event.usizeE;
 		for(i=0; i<nevents; ++i){
 			event.cprobE[i]*=event.dtE;
 		}
-		#if (NETWORK==0)//complete graph
 		evolveHostCG(dnumsteps,&event,&meas);
-		#else//square lattice
+		#elif (EVO==1)//square lattice with adjustable host dt
+		dnumsteps=hostNTSPerBacNTS(&event);
+		nevents=event.usizeE;
+		for(i=0; i<nevents; ++i){
+			event.cprobE[i]*=event.dtE;
+		}
 		evolveHostSL(dnumsteps,&event,&meas);
 		#endif
 		nh=listh->usize;

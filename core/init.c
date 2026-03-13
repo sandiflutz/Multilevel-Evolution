@@ -61,6 +61,7 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	spar->sb=Sb;
 	spar->sd=Sd;
 	spar->sigma=SIGMA;
+	spar->fvert=Fvert;
 	spar->micr=(double *)calloc(N,sizeof(double));
 	spar->inv=(double *)calloc(TYPES,sizeof(double));
 
@@ -123,7 +124,7 @@ void initialStateFixedFrac(void){
                                 bac[i][j]=Bac0/TYPES;
                         }
 		}else{
-			host=0;
+			host[i]=0;
 			listh->vec[N-1-ne]=i;//empty sites are stored at the end of the list of hosts;
 			inverselisth[i]=N-1-ne;
 			++ne;
@@ -325,6 +326,11 @@ void setInvestments(void){
 void setCostVec(void){
 	int i,j;
 
+	/*setting investment vector*/
+	setInvestments();
+	
+	/*stting cost vector*/
+
 	#if (Tneg==0)
 	for(i=0; i<N; ++i){
 		for(j=0; j<TYPES; ++j){
@@ -332,11 +338,12 @@ void setCostVec(void){
 		}
 	}
 	#else
-	int idh,nh;
-	nh=listh->usize;
-	for(i=0; i<nh; ++i){
-		idh=listh->usize;
-		updateCosts(idh,spar->micr[idh],spar->cost,spar->inv,costvec,bac);//from bac.c
+	for(i=0; i<N; ++i){
+		if(host[i]==1){
+			updateCosts(idh,spar->micr[idh],spar->cost,spar->inv,costvec,bac);//from bac.c
+		}else{
+			memset(costVec[i],0.,sizeof(double)*TYPES);
+		}
 	}
 	#endif
 
@@ -372,12 +379,6 @@ void setSystem(Event *event,TimeMeasures *meas){
 
 	/*Allocating memory*/
 	allocateMemory(event,meas);
-	/*setting investment vector*/
-	#if (INV==0) 
-		setInvestmentsPaper();
-	#else
-		setInvestments();
-	#endif
 
 	/*setting hosts network*/	
 	#if(NETWORK==1)

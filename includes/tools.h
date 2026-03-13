@@ -20,10 +20,28 @@ typedef struct{
 long int factorial(int n);
 /********************************************************
 *   Normal Distribution: calculates and returns         *
-*   the probability of x in a normal distribution       *
-*   with standard deviation of 1 and mean of 0          *
+*   the probability density function value of a 
+*   stardart normal in x				*
 ********************************************************/
 double normalProb(double x);
+/****************************************************************
+*      Abramowitz and Stegun approximation to                   *
+*      the complementary cumulative distribution function       *
+*      for a standart normal (and Horner's method).             *
+*      Source:                                                  *
+*      https://www.johndcook.com/blog/normal_cdf_inverse/       *
+*****************************************************************/
+double rationalApprox(double t);
+/****************************************************************
+*     Return a value x from the inverse cumulative              *
+*     distribution function of a standart normal                *
+*****************************************************************/
+double invNormalCDF(double p);
+/****************************************************************
+*     Return the cumulative distribution function for a normal  *
+*     distribution of x                                         *
+*****************************************************************/
+double normalCDF(double x);
 /****************************************************************
 *     Generate a gaussian random number                         *
 *****************************************************************/
@@ -32,6 +50,11 @@ double gaussRandNum(double mean, double var);
 *     Generate a gaussian random number (from a truncated dist.)   *
 ******************************************************************/
 double truncGaussRandNum(double mean, double var,double a,double b);
+/********************************************************
+ *   return a random number from a truncated normal     *
+ *   distribution                                       *
+ ********************************************************/
+double truncNormRandNum(double mean, double std, double min,double max);
 /****************************************************************
 *      Draw a random integer from a poisson distribution o      *
 *      mean @lambda                                             *
@@ -184,4 +207,9 @@ double spatialCorr(int *state,int sites, int dist,int right,int down,int **neigh
 *  lattice type of system in 1 direction only      *
 ****************************************************/
 double spatialCorr1d(int *state,int sites, int dist,int id_direction,int **neighbor);
+/****************************************
+ *      Heaviside Step Function         *
+ *      for x in (-1.,1]                *
+ ***************************************/
+double stepFuncBounded(double x);
 #endif

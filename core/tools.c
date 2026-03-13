@@ -1,5 +1,4 @@
 /*tools.c*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -38,6 +37,56 @@ double normalProb(double x){
         return p;
 }
 /****************************************************************
+*      Abramowitz and Stegun approximation to 			*
+*      the complementary cumulative distribution function	*
+*      for a standart normal (and Horner's method). 		*
+*      Source: 							*
+*      https://www.johndcook.com/blog/normal_cdf_inverse/	*
+*****************************************************************/
+double rationalApprox(double t){
+	double x,c[3],d[3];
+
+	c[0] = 2.515517;
+	c[1] = 0.802853;
+	c[2] = 0.010328;
+
+	d[0] = 1.432788;
+	d[1] = 0.189269;
+	d[2] = 0.001308;
+
+	x = t-((c[2]*t+c[1])*t)+c[0]/(((d[2]*t + d[1])*t + d[0])*t + 1.);
+
+	return x;
+}
+/****************************************************************
+*     Return a value x from the inverse cumulative 		*
+*     distribution function of a standart normal		*
+*****************************************************************/
+double invNormalCDF(double p){
+	double t,finvcdf;
+
+	if(p<0.){
+		t=-sqrt(-2.*log(p));
+	}else{
+		t=sqrt(-2.*log(1-p));
+	}
+	
+	finvcdf=rationalApprox(t);
+	
+	return finvcdf;
+}
+/****************************************************************
+*     Return the cumulative distribution function for a normal 	*
+*     distribution of x						*
+*****************************************************************/
+double normalCDF(double x){
+	double fcdf;
+
+	fcdf=(1.+erf(x/sqrt(2.)))/2.;
+
+	return fcdf;
+}
+/****************************************************************
 *     Generate a gaussian random number                         *
 *****************************************************************/
 double gaussRandNum(double mean, double var){
@@ -67,18 +116,18 @@ double gaussRandNum(double mean, double var){
 /******************************************************************
 *     Generate a gaussian random number (from a truncated dist.)  *
 *******************************************************************/
-double truncGaussRandNum(double mean, double var,double a,double b){
+double truncGaussRandNum(double mean, double sigma,double xmax,double xmin){
         double x,y,r,nr,fac;
 
         do{//reject samples outside of the range [a;b]
                 do{
-                        x=2.*FRANDOM-1.;//random number between -1 and 1
-                        y=2.*FRANDOM-1.;
+			x=2.*FRANDOM-1.;//random number between -1 and 1
+			y=2.*FRANDOM-1.;
 
                         r=x*x+y*y;
                 }while(r>1. || r==0.);
 
-                fac=var*sqrt(-2.*log(r)/r);
+                fac=sigma*sqrt(-2.*log(r)/r);
 
                 x=fac*x+mean;
                 y=fac*y+mean;
@@ -89,7 +138,7 @@ double truncGaussRandNum(double mean, double var,double a,double b){
                         nr=y;
                 }
 
-        } while( nr<=a || nr >= b);
+        } while( nr<=xmax || nr >= xmin);
 
         return nr;
 }
@@ -699,4 +748,11 @@ double spatialCorr1d(int *state,int sites, int dist,int id_direction,int **neigh
 	corr_dir/=(double)sites;
 
         return corr_dir;
+}
+/****************************************
+ * 	Heaviside Step Function		*
+ * 	for x in (-1.,1]		*
+ ***************************************/
+double stepFuncBounded(double x){
+	return (ceil(x));
 }

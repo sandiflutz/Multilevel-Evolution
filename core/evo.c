@@ -12,11 +12,14 @@
 *****************************************************************/
 double calcAcumInvest(int index){
         int j;
-	double cinv,kbac=spar->kbac;
-
+	double cinv,fneg,kbac=spar->kbac;
 
         cinv=0.;
-       	for(j=0; j<TYPES; ++j){
+
+       	for(j=0; j<Tneg; ++j){
+		cinv+=bac[index][j]*spar->inv[j]/kbac;
+        }
+       	for(j=Tneg; j<TYPES; ++j){
 		cinv+=bac[index][j]*spar->inv[j]/kbac;
         }
 
@@ -59,50 +62,86 @@ void calcHostEvents(Event *event){
 	free(w);
         return;
 }
-/***************************************************************
-*     Set microbial frequencies for the offspring of hosr @idp *
-*     Bacteria types and their frequencies are randomly        *
-*     selected using a normal distrution around the bacteria   *
-*     frequencies on the parent                                *
-****************************************************************/
+/****************************************************************
+*     Set microbial frequencies for the offspring of host @idp 	*
+*     Bacteria types and their frequencies are randomly        	*
+*     selected using a normal distribution around the bacteria	*
+*     frequencies on the parent.                               	*
+*****************************************************************/
 void setMicrKidsNorm(int idp, int idk){
         int i,ns,p;
         double nr,fk,fp,norm,*cprob=NULL;
+	double std=spar->sigma;
 
-	if(TYPES==2){
-		fp=bac[idp][1]/spar->micr[idp];
-                fk=truncGaussRandNum(fp,spar->sigma,0.,1.);
-                bac[idk][1]=fk*Bacv;
-		bac[idk][0]=(1.-fk)*Bacv;
-
-	}else{
-		cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
-		cprob[0]=bac[idp][0]/spar->micr[idp];
-		for(i=1; i<TYPES; ++i){
-			cprob[i]=cprob[i-1]+bac[idp][i]/spar->micr[idp];
-		}
-
-		norm=0.;
-		ns=0;
-		while(ns<BSAMPLES){
-			nr=FRANDOM*cprob[TYPES-1];
-			p=selectEventCP(nr,cprob,TYPES);
-			fp=bac[idp][p]/spar->micr[idp];
-			fk=truncGaussRandNum(fp,spar->sigma,0.,1.);
-			bac[idk][p]+=fk;
-			norm+=fk;
-			++ns;
-        }
-
-        for(i=0; i<TYPES; ++i){
-                bac[idk][i]*=Bacv/norm;//normalizing bac so the sum of microbes in host idk is bv
-        }
+		
+	cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
+	cprob[0]=bac[idp][0]/spar->micr[idp];
+		
+	for(i=1; i<TYPES; ++i){
+		cprob[i]=cprob[i-1]+bac[idp][i]/spar->micr[idp];
+	}
+		
+	norm=0.;
+	ns=0;
+	while(ns<BSAMPLES){
+		nr=FRANDOM*cprob[TYPES-1];
+		p=selectEventCP(nr,cprob,TYPES);
+		fp=bac[idp][p]/spar->micr[idp];
+		fk=truncGaussRandNum(fp,std,0.,1.);
+		bac[idk][p]+=fk;
+		norm+=fk;
+		++ns;
+	}
+	
+	free(cprob);
+	for(i=0; i<TYPES; ++i){
+		bac[idk][i]*=Bacv/norm;//normalizing bac so the sum of microbes in host idk is bv
 	}
 
 	spar->micr[idk]=Bacv;
 
-       // free(cprob);
         return;
+}
+/****************************************************************
+*     Set microbial frequencies for the offspring of host @idp 	*
+*     Bacteria types and their frequencies are randomly        	*
+*     selected using a normal distribution around the bacteria	*
+*     frequencies on the parent. 				*
+*     -In this version, the amount of 				*
+*     bacteria passed to the children are disappear from	*
+*     the parent. 						*
+*     -The amount of bacteria passed is a fixed frequency Fp 	*
+*     of the amount of bacteria in the parent.			*
+*     -Types of bacteria, in the parent, that have a frequency	*
+*     of fp<sigma are not included the kids microbiome		*
+*****************************************************************/
+void setMicrKidsNormPass(int idp, int idk){
+	int j;
+	double fpj,fkj,nk,norm;
+	double np=spar->micr[idp];
+	double std=spar->sigma;
+	double fv=spar->fvert;
+	
+	nk=np*fv;
+	norm=0.;
+	for(j=0; j<TYPES; ++j){
+		fpj=bac[idp][j]/np;
+		if(fpj>fv){
+			fkj=truncGaussRandNum(fpj,std,0.,1.);
+			norm+=fkj;
+			bac[idk][j]=fkj;
+		}
+	}
+	
+	spar->micr[idp]=0.;
+	for(j=0; j<TYPES; ++j){
+		bac[idk][j]*=nk/norm;
+		bac[idp][j]-=bac[idk][j];
+		spar->micr[idp]+=bac[idp][j];
+	}
+
+
+	return;
 }
 /***************************************************************
 *     Set microbial frequencies for the offspring of hosr @idp *
@@ -149,8 +188,10 @@ void hostBirth(int idp, int idk){
         host[idk]=1;
 	#if (TV==0)//vertical transmission using a normal dist.
 	setMicrKidsNorm(idp,idk);//set new host microbiome
-	#else//vertical transmission using a poisson dist.
-	setMicrKidsPoiss(idp,idk);//set new host microbiome
+	#elif (TV==1)//vertical transmission using a normal dist. with parent host loosing a fraction of their microbiome
+	setMicrKidsNormPass(idp,idk);
+	#else
+	setMicrKidsPoiss(idp,idk);
 	#endif
 
 
@@ -179,21 +220,20 @@ void hostDeath(int idh){
 *	to them. This routine returns 		*
 *	this probability			*
 *************************************************/
-double birthFunc(int ne,int nemax){
+double birthFunc(int ne,int nemax,int whichfunc){
 	double de,fb;
+		
+	if(nemax==0){
+		printf("Maximum number of empty sites, passed to birthFunc(), cannot be 0.");
+		exit(1);
+	}else{
+		de=(double)ne/nemax;
+	}
 
-	fb=0.;
-
-	if(spar->migh==0.){//no host migration
-		if(ne>0)fb=1.;//simplest case: heaviside step function
+	if(whichfunc==0){//no host migration
+		fb=ceil(de);//simplest case: heaviside step function
 	}else{//host migration
-		if(nemax==0){
-			printf("Maximum number of empty sites, passed to birthFunc(), cannot be 0.");
-			exit(1);
-		}else{
-			de=(double)ne/nemax;
-			fb=de;//simplest case with migration
-		}
+		fb=de;//simplest case with migration
 	}
 
 	return fb;
@@ -397,12 +437,11 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 	listd=(int *)calloc(dnumsteps,sizeof(int));
 	nb=0;
 	nd=0;
-	if(spar->migh!=0.){
+	if(mh>0.){
 		listm=(int *)calloc(dnumsteps,sizeof(int));
 	}
 	nm=0;
 
-	nh=listh->usize;
 	for(i=0; i<dnumsteps; ++i){
 		nr1=FRANDOM;
 		if(nr1<event->cprobE[event->usizeE-1]){
@@ -414,7 +453,7 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 						searchEmptyNeighbors(0,idh,host,neighbor,&empty_viz);
 						ne=empty_viz.usize;//number of empty sites in the neighborhood
 
-						fb=birthFunc(ne,VIZ);/*if there is no host migration, returns heaviside(ne), ne/VIZ otherwise*/
+						fb=birthFunc(ne,VIZ,BFunc);/*if there is no host migration, returns heaviside(ne), ne/VIZ otherwise*/
 						nr2=FRANDOM;
 						fm=(1.-fb)*mh;
 						if(nr2<fb){//birth
