@@ -16,10 +16,7 @@ double calcAcumInvest(int index){
 
         cinv=0.;
 
-       	for(j=0; j<Tneg; ++j){
-		cinv+=bac[index][j]*spar->inv[j]/kbac;
-        }
-       	for(j=Tneg; j<TYPES; ++j){
+       	for(j=0; j<TYPES; ++j){
 		cinv+=bac[index][j]*spar->inv[j]/kbac;
         }
 
@@ -69,11 +66,13 @@ void calcHostEvents(Event *event){
 *     frequencies on the parent.                               	*
 *****************************************************************/
 void setMicrKidsNorm(int idp, int idk){
-        int i,ns,p;
+        int i,id,id1,id2,ns,p;
         double nr,fk,fp,norm,*cprob=NULL;
 	double std=spar->sigma;
+	double *gaussample;
 
-		
+	gaussample = (double *)calloc(GSAMPLE,sizeof(double));
+
 	cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
 	cprob[0]=bac[idp][0]/spar->micr[idp];
 		
@@ -87,7 +86,9 @@ void setMicrKidsNorm(int idp, int idk){
 		nr=FRANDOM*cprob[TYPES-1];
 		p=selectEventCP(nr,cprob,TYPES);
 		fp=bac[idp][p]/spar->micr[idp];
-		fk=truncGaussRandNum(fp,std,0.,1.);
+		normalRandSample(fp,std,0.,1.,GSAMPLE,gaussample);
+		id=(int)(FRANDOM*GSAMPLE);
+		fk=gaussample[id];
 		bac[idk][p]+=fk;
 		norm+=fk;
 		++ns;
@@ -100,6 +101,7 @@ void setMicrKidsNorm(int idp, int idk){
 
 	spar->micr[idk]=Bacv;
 
+	free(gaussample);
         return;
 }
 /****************************************************************
@@ -108,39 +110,57 @@ void setMicrKidsNorm(int idp, int idk){
 *     selected using a normal distribution around the bacteria	*
 *     frequencies on the parent. 				*
 *     -In this version, the amount of 				*
-*     bacteria passed to the children are disappear from	*
+*     bacteria passed to the children may disappear from	*
 *     the parent. 						*
 *     -The amount of bacteria passed is a fixed frequency Fp 	*
 *     of the amount of bacteria in the parent.			*
 *     -Types of bacteria, in the parent, that have a frequency	*
-*     of fp<sigma are not included the kids microbiome		*
+*     of fp<eps are not included the kids microbiome		*
 *****************************************************************/
 void setMicrKidsNormPass(int idp, int idk){
-	int j;
+	int id,j;
 	double fpj,fkj,nk,norm;
 	double np=spar->micr[idp];
 	double std=spar->sigma;
 	double fv=spar->fvert;
+	double *gaussample;
+
+	gaussample = (double *)calloc(GSAMPLE,sizeof(double));
 	
+	#if (WLMicr==0)
+	nk=Bacv;
+	#else//in this case part of the parent's microbes are give away to their children
 	nk=np*fv;
+	#endif
 	norm=0.;
 	for(j=0; j<TYPES; ++j){
 		fpj=bac[idp][j]/np;
 		if(fpj>fv){
-			fkj=truncGaussRandNum(fpj,std,0.,1.);
+			normalRandSample(fpj,std,0.,1.,GSAMPLE,gaussample);
+			id=(int)(FRANDOM*GSAMPLE);
+			fkj=gaussample[id];
 			norm+=fkj;
 			bac[idk][j]=fkj;
 		}
 	}
 	
+
+	#if (WLMicr==0)
+	for(j=0; j<TYPES; ++j){
+		bac[idk][j]*=nk/norm;
+	}
+	#else//part of the parent's microbes are give away to their children
 	spar->micr[idp]=0.;
 	for(j=0; j<TYPES; ++j){
 		bac[idk][j]*=nk/norm;
 		bac[idp][j]-=bac[idk][j];
 		spar->micr[idp]+=bac[idp][j];
 	}
+	#endif
 
+	spar->micr[idk]=nk;
 
+	free(gaussample);
 	return;
 }
 /***************************************************************
@@ -194,6 +214,16 @@ void hostBirth(int idp, int idk){
 	setMicrKidsPoiss(idp,idk);
 	#endif
 
+
+	/****measuraments****/
+	#ifdef DIFBACOMPxT
+		#if (OFFCOMP==0)
+		storeBacDiffComp(idp,idk);
+		#else
+		offcomp->vecf[offcomp->usizef]=calcAcumInvest(idk)/spar->micr[idk];
+		++offcomp->usizef;
+		#endif
+	#endif
 
         return;
 }

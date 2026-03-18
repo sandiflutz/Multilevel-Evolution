@@ -10,10 +10,10 @@ typedef struct{
 }DynList;//(fake) dynamic list
 
 typedef struct{
-        double *vecf;//list of integers
-        int sizef;//real size
-        int usizef;//size of the part being used (usize<=size)
-}DynListF;//(fake) dynamic list of fluctuating point numbers 
+	double *vecf;
+	int sizef;
+	int usizef;
+}DynVec;
 /********************************************************
  *                 Factorial                            *
  ********************************************************/
@@ -45,16 +45,16 @@ double normalCDF(double x);
 /****************************************************************
 *     Generate a gaussian random number                         *
 *****************************************************************/
-double gaussRandNum(double mean, double var);
+double gaussRandNum(double mean, double sigma);
 /*******************************************************************
 *     Generate a gaussian random number (from a truncated dist.)   *
 ******************************************************************/
-double truncGaussRandNum(double mean, double var,double a,double b);
-/********************************************************
- *   return a random number from a truncated normal     *
- *   distribution                                       *
- ********************************************************/
-double truncNormRandNum(double mean, double std, double min,double max);
+double truncGaussRandNum(double mean, double sigma,double xmin,double xmax);
+/****************************************************************
+*       Generate a sample of normaly distributed                *
+*       random numbers in the range [xmin;xmax]                 *
+*****************************************************************/
+void normalRandSample(double mean, double sigma,double xmin,double xmax,int sample,double *randvec);
 /****************************************************************
 *      Draw a random integer from a poisson distribution o      *
 *      mean @lambda                                             *
@@ -65,16 +65,12 @@ int poissonRandKnuth(double lambda);
 *  increment the size of the list                                                   *
 *************************************************************************************/
 void listSimpleAdd(DynList *list,int add_elem);
-/**************Double List Version***********************************/
-void listSimpleAddF(DynListF *list,double add_elem);
 /************************************************************************************
 *  Simple subtraction of an element of a list: take the lest element of the         *
 *  list and add it to the position of the element being subtracted and then         *
 *  decrement the size of the list                                                   *
 *************************************************************************************/
 void listSimpleSub(DynList *list,int id_e);
-/**************Double List Version***********************************/
-void listSimpleSubF(DynListF *list,int id_e);
 /***********************************************************************************
 *      Add an element of a list (size=@size and currently used size=@usize).       *
 *      Elements added to the part of the list being used come from the             *
@@ -83,8 +79,6 @@ void listSimpleSubF(DynListF *list,int id_e);
 *      position of this element (in the second part of the list)                   *  
 ************************************************************************************/
 void listAdd(DynList *list,int add_elem,int id_e);
-/**************Double List Version***********************************/
-void listAddF(DynListF *list,double add_elem,int id_e);
 /***********************************************************************************
 *      Subtract an element of a list (size=@size and currently used size=@usize).  *
 *      Elements subtracted from the list are stored in the second part of the list *
@@ -93,8 +87,6 @@ void listAddF(DynListF *list,double add_elem,int id_e);
 *      old position of this element (in the first part of the list)                *
 ************************************************************************************/
 void listSub(DynList *list,int sub_elem,int id_e);
-/**************Double List Version***********************************/
-void listSubF(DynListF *list,double sub_elem,int id_e);
 /****************************************************************
 *       exchange 2 elements of a list of integers               *
 *****************************************************************/
@@ -196,7 +188,7 @@ void buildHistogram(double binsize,int nbins,int visize,double *vec,int *hist);
 *  calculate the root mean square of the elements       *
 *  from index idi to index idf of a vector vec[]        *
 *********************************************************/
-double calcRMSError(int *vec,int idi, int idf);
+double *calcRMSError(double *vec,int idi, int idf);
 /***************************************************
 *  calculate spatial corretation for a square      *hostReprDynamics(
 *  lattice type of system                          *

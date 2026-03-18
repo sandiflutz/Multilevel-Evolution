@@ -13,4 +13,5 @@ double *timeb = NULL;
 char *fdatapath;
 DynList *listh = NULL;
 DynList *alive_viz = NULL;
+DynVec *offcomp = NULL;
 SysParams *spar = NULL;

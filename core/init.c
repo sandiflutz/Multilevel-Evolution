@@ -94,8 +94,8 @@ void allocateMemory(Event *event,TimeMeasures *meas){
         alive_viz->size=VIZ+1;
         alive_viz->usize=0;
         #endif
-
-        return;
+       
+       	return;
 }
 /*****************************************************
 *   Populates Host and Microbial layer               *
@@ -326,9 +326,6 @@ void setInvestments(void){
 void setCostVec(void){
 	int i,j;
 
-	/*setting investment vector*/
-	setInvestments();
-	
 	/*stting cost vector*/
 
 	#if (Tneg==0)
@@ -356,6 +353,8 @@ void setCI(TimeMeasures *meas){
 
 	meas->Tnow=0.;
 	meas->NTnow=0;
+	/*setting investment vector*/
+	setInvestments();
 	/*setting initial state (alive hosts and bacteria abundances)*/
 	#if (CI==0)//uniform distribution
 		initialStateUniD();

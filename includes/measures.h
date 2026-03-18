@@ -19,19 +19,25 @@ void openFiles(TimeMeasures *meas);
 *               Close Global Files            *
 ***********************************************/
 void closeFiles(TimeMeasures *meas);
-/**********************************************
- * calculate investment density per Host     *
- **********************************************/
+/****************************************************************
+ *      calculate investment density per Host:                  *
+ *      densInvH[host]=sum_type(bac[host][type]*inv[type])      *
+ ****************************************************************/
 void calcInvDens(double *densInvH);
-/**********************************************
- * calculate investment frequency per Host    *
- **********************************************/
+/************************************************************************
+*      calculate investment frequency per Host:                        	*
+*      freqInvH[host]=sum_type(bac[host][type]*inv[type])/micr[host]   	*
+************************************************************************/
 void calcInvFreq(double *freqInvH);
-/**********************************************************************
- * calculate investment distribution among                            *
- * hosts                                                              *
- **********************************************************************/
-void calcInvDist(double binsize, double *hist_inv, double *freqInvH); 
+/****************************************************************
+*      calculate investment distribution among hosts           *
+****************************************************************/
+void calcInvDist(double binsize,double *hist_inv,double *freqInvH);
+/****************************************************************************************
+*       calculate current average investment in the system:                             *
+*       averInv=sum_host(sum_type(bac[host][type]))/total amount of bac. in the system  *
+****************************************************************************************/
+double calcAverInv(double *densInvH);
 /************************************************
 *   store the current average investment level  *
 *   in an isolate host                          *
@@ -69,6 +75,18 @@ void numHostEventsPerDtXt(TimeMeasures *meas);
 *  considering                                     *
 ****************************************************/
 void spatialCorrXt(TimeMeasures *meas);
+/********************************************************
+ *  store average difference in microbial composition   *
+ *  between host @idp and its children @idk             *
+ ********************************************************/
+void storeBacDiffComp(int idp,int idk);
+/********************************************************
+*       Measure average difference of hosts parents     *
+*       and their childrens microbial composition       *
+*       over time (to compare different vertical        *
+*       transmission approachs)                         *
+*********************************************************/
+void difMicrCompXt(TimeMeasures *meas);
 /***************************************************
 *  calculating average host generation time        *
 ****************************************************/

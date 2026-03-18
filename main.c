@@ -25,21 +25,20 @@ int main(void){
         
 #ifdef TMEAS
 	allocateMemTM(&meas);
+	meas.saveT=meas.Ti;
+	meas.Ti=0.;
 	#if defined(SAVE_CONFIG)||defined(INV_DIST)
 	meas.Tf=NF*NInterv*Dt_ref+1.;	
 	meas.nfiles=0;
-	meas.Ti=0.;
-	meas.saveT=meas.Ti;
 	callSysDynamics(meas.Tf);
-	#elif defined(CORRxT)||defined(NUMHEVENTSxT)||defined(GENTIME)
+	#elif defined(CORRxT)||defined(NUMHEVENTSxT)||defined(GENTIME)||(DIFBACOMPxT)
         openFiles(&meas);
-	meas.Tf=10000.;
+	meas.Tf=50000.;
 	callSysDynamics(meas.Tf);
 	closeFiles(&meas);
 	#else
 	int i;
 	for(i=0; i<SAMPLE; ++i){
-		setCI(&meas);
         	openFiles(&meas);
 		
 		#if (CI!=2)
@@ -48,6 +47,7 @@ int main(void){
 		callSysDynamics1H(meas.Tf);
 		#endif
 		
+		setCI(&meas);
 		closeFiles(&meas);
 	}
 	#endif

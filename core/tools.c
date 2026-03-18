@@ -89,18 +89,16 @@ double normalCDF(double x){
 /****************************************************************
 *     Generate a gaussian random number                         *
 *****************************************************************/
-double gaussRandNum(double mean, double var){
+double gaussRandNum(double mean, double sigma){
         double x,y,r,nr,fac;
-
                	
 	do{
 		x=2.*FRANDOM-1.;//random number between -1 and 1
 		y=2.*FRANDOM-1.;
 		r=x*x+y*y;
-                
 	}while(r>1. || r==0.);
                 
-	fac=var*sqrt(-2.*log(r)/r);
+	fac=sigma*sqrt(-2.*log(r)/r);
                 
 	x=fac*x+mean;
 	y=fac*y+mean;
@@ -116,31 +114,46 @@ double gaussRandNum(double mean, double var){
 /******************************************************************
 *     Generate a gaussian random number (from a truncated dist.)  *
 *******************************************************************/
-double truncGaussRandNum(double mean, double sigma,double xmax,double xmin){
-        double x,y,r,nr,fac;
+double truncGaussRandNum(double mean, double sigma,double xmin,double xmax){
+        double nr;
 
-        do{//reject samples outside of the range [a;b]
-                do{
-			x=2.*FRANDOM-1.;//random number between -1 and 1
-			y=2.*FRANDOM-1.;
-
-                        r=x*x+y*y;
-                }while(r>1. || r==0.);
-
-                fac=sigma*sqrt(-2.*log(r)/r);
-
-                x=fac*x+mean;
-                y=fac*y+mean;
-
-                if(FRANDOM<0.5){
-                        nr=x;
-                }else{
-                        nr=y;
-                }
-
-        } while( nr<=xmax || nr >= xmin);
+        do{//reject samples outside of the range [xmin;xmax]
+		nr=gaussRandNum(mean,sigma);
+        } while( nr<xmin || nr > xmax);
 
         return nr;
+}
+/****************************************************************
+*     	Generate a sample of normaly distributed		*
+*     	random numbers in the range [xmin;xmax]			*
+*****************************************************************/
+void normalRandSample(double mean, double sigma,double xmin,double xmax,int sample,double *randvec){
+	int numr;
+        double x,y,r,fac;
+               	
+	numr=0;
+        while(numr<sample){
+		do{
+			x=2.*FRANDOM-1.;//random number between -1 and 1
+			y=2.*FRANDOM-1.;
+			r=x*x+y*y;
+		}while(r>1. || r==0.);
+		fac=sigma*sqrt(-2.*log(r)/r);
+                
+		x=fac*x+mean;
+		y=fac*y+mean;
+
+		if((x>=xmin)&&(x<=xmax)){
+			randvec[numr]=x;
+			++numr;
+		}
+		if((numr<sample)&&(y>=xmin)&&(y<=xmax)){
+			randvec[numr]=y;
+			++numr;
+		}
+	}
+
+        return;
 }
 /****************************************************************
 *      Draw a random integer from a poisson distribution o      *
@@ -176,18 +189,6 @@ void listSimpleAdd(DynList *list,int add_elem){
 
 	return;
 }
-/**************Double List Version***********************************/
-void listSimpleAddF(DynListF *list,double add_elem){
-
-	if((list->usizef)<(list->sizef)){
-		list->vecf[list->usizef]=add_elem;
-		++list->usizef;
-	}else{
-                exit(EXIT_FAILURE);
-        }
-
-	return;
-}
 /************************************************************************************
 *  Simple subtraction of an element of a list: take the lest element of the         *
 *  list and add it to the position of the element being subtracted and then         *
@@ -198,18 +199,6 @@ void listSimpleSub(DynList *list,int id_e){
 	if(list->usize>0){
 		list->vec[id_e]=list->vec[list->usize-1];
 		--list->usize;
-	}else{
-                exit(EXIT_FAILURE);
-        }
-
-	return;
-}
-/**************Double List Version***********************************/
-void listSimpleSubF(DynListF *list,int id_e){
-
-	if(list->usizef>0){
-		list->vecf[id_e]=list->vecf[list->usizef-1];
-		--list->usizef;
 	}else{
                 exit(EXIT_FAILURE);
         }
@@ -238,21 +227,6 @@ void listAdd(DynList *list,int add_elem,int id_e){
 
         return;
 }
-/**************Double List Version***********************************/
-void listAddF(DynListF *list,double add_elem,int id_e){
-	double old_elem;
-
-	if((list->usizef)<(list->sizef)){
-		old_elem=list->vecf[list->usizef];
-		list->vecf[list->usizef]=add_elem;
-		list->vecf[id_e]=old_elem;
-		++list->usizef;
-	}else{
-                exit(EXIT_FAILURE);
-        }
-
-        return;
-}
 /***********************************************************************************
 *      Subtract an element of a list (size=@size and currently used size=@usize).  *
 *      Elements subtracted from the list are stored in the second part of the list *
@@ -271,22 +245,6 @@ void listSub(DynList *list,int sub_elem,int id_e){
 	}else{
                 exit(EXIT_FAILURE);
         }
-
-        return;
-}
-/**************Double List Version***********************************/
-void listSubF(DynListF *list,double sub_elem,int id_e){
-	double old_elem;
-
-	if(list->usizef>0){
-		old_elem=list->vecf[id_e];
-		list->vecf[id_e]=list->vecf[list->usizef-1];
-		list->vecf[list->usizef-1]=old_elem;
-		--list->usizef;
-	}else{
-                exit(EXIT_FAILURE);
-        }
-	
 
         return;
 }
@@ -669,7 +627,7 @@ void logSpacedVec(double *vec,double e0,double ef,double m0, double mf, int size
 void buildHistogram(double binsize,int nbins,int vsize,double *vec,int *hist){
         int i,id;
 
-        for(i=0; i<binsize; ++i){
+        for(i=0; i<nbins; ++i){
                 hist[i]=0;
         }
         for(i=0; i<vsize; ++i){
@@ -683,23 +641,27 @@ void buildHistogram(double binsize,int nbins,int vsize,double *vec,int *hist){
 *  calculate the root mean square of the elements	* 
 *  from index idi to index idf of a vector vec[]	*
 *********************************************************/
-double calcRMSError(int *vec,int idi, int idf){
+double *calcRMSError(double *vec,int idi, int idf){
 	int i,sample;
 	double aver=0.,aver2=0., err=0.;
+	double *stats=(double *)calloc(2,sizeof(double));
+
+	if(!stats)return NULL;
 
 	sample=idf-idi;
 	for(i=idi; i<=idf; ++i){
 		aver+=vec[i];
-		aver2+=vec[i]*vec[i];
 	}
 	aver/=(double)sample;
-	aver2/=(double)sample;
 	for(i=idi; i<=idf; ++i){
-		err+=aver2-aver*aver;
+		err+=(vec[i]-aver)*(vec[i]-aver);
 	}
-	err=sqrt(err);
+	err=sqrt(err/(double)sample);
+	
+	stats[0]=aver;
+	stats[1]=err;
 
-	return err;
+	return stats;
 }
 /***************************************************
 *  calculate spatial corretation for a square      *

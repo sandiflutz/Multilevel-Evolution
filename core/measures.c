@@ -37,11 +37,23 @@ void allocateMemTM(TimeMeasures *meas){
 		}
 	}
 	#endif
+	#ifdef DIFBACOMPxT
+	offcomp = malloc(sizeof(DynVec));
+        if (!offcomp) { perror("malloc"); exit(1);}
+        offcomp->vecf=(double *)calloc(K_H,sizeof(double));//max. number of neighbor + focus host
+	memset(offcomp->vecf,0.,sizeof(double)*K_H);
+        offcomp->sizef=K_H;
+        offcomp->usizef=0;
+	#endif
 
         meas->ftnpars_size=400;
         meas->ftname_pars=(char *)calloc(meas->ftnpars_size,sizeof(char));
 
+	#if(TV==1)
+        param[0]=Fvert;
+	#else
         param[0]=Bacv;
+	#endif
         param[1]=spar->cost;
         param[2]=spar->mu;
         param[3]=spar->mig;
@@ -53,10 +65,10 @@ void allocateMemTM(TimeMeasures *meas){
                         sprintf(nparam[i],"1e%d",(int)log10(param[i]));
                 }
         }
-	#if((EVO==0)||(EVO==1))
-        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->migh);
+	#if(TV==1)
+        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_LM%d_Fv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,WLMicr,nparam[0],nparam[1],nparam[2],nparam[3],spar->migh);
 	#else
-        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f_mcs",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->migh);
+        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->migh);
 	#endif
                 
 	#if (Tneg>0)
@@ -80,6 +92,10 @@ void freeMemTM(TimeMeasures *meas){
 	free(meas->ftname_pars);
 	#ifdef GENTIME
 	free(timeb);
+	#endif
+	#ifdef DIFBACOMPxT
+	free(offcomp->vecf);
+        free(offcomp);
 	#endif
 
 	return;
@@ -190,6 +206,30 @@ void openFiles(TimeMeasures *meas){
         meas->file_tmeas=fopen(name,"w");
         if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
 #endif
+#ifdef DIFBACOMPxT
+        while(ok==0){
+		#if (OFFCOMP==0)
+                sprintf(name,"%spkcompdifXt_%s_Nb%d_%ld.dat",fdatapath,meas->ftname_pars,SAMPLE,id);
+		#else
+                sprintf(name,"%soffainvXt_%s_Nb%d_%ld.dat",fdatapath,meas->ftname_pars,SAMPLE,id);
+		#endif
+                meas->file_tmeas=fopen(name,"r");
+                if(meas->file_tmeas!=NULL){
+                        ++id;
+                        fclose(meas->file_tmeas);
+                }else{
+                        ok=1;
+                }
+        }
+	#if (OFFCOMP==0)
+	sprintf(name,"%spkcompdifXt_%s_Nb%d_%ld.dat",fdatapath,meas->ftname_pars,SAMPLE,id);
+	#else
+	sprintf(name,"%soffainvXt_%s_Nb%d_%ld.dat",fdatapath,meas->ftname_pars,SAMPLE,id);
+	#endif
+        meas->file_tmeas=fopen(name,"w");
+        if (meas->file_tmeas==NULL) { perror("malloc"); exit(1);}
+#endif
+
         free(name);
         return;
 }
@@ -204,9 +244,10 @@ void closeFiles(TimeMeasures *meas){
 
 	return;
 }
-/**********************************************
- * calculate investment density per Host     *
- **********************************************/
+/****************************************************************
+ *	calculate investment density per Host:			*
+ * 	densInvH[host]=sum_type(bac[host][type]*inv[type])     	*
+ ****************************************************************/
 void calcInvDens(double *densInvH){
 	int i,idh,j,nh;
 	
@@ -221,9 +262,10 @@ void calcInvDens(double *densInvH){
 
 	return;
 }
-/**********************************************
- * calculate investment frequency per Host    *
- **********************************************/
+/************************************************************************
+ * 	calculate investment frequency per Host:    			*
+ * 	freqInvH[host]=sum_type(bac[host][type]*inv[type])/micr[host] 	*
+ ************************************************************************/
 void calcInvFreq(double *freqInvH){
 	int i,idh,j,nh;
 	
@@ -238,10 +280,9 @@ void calcInvFreq(double *freqInvH){
 
 	return;
 }
-/*******************************************************************
- * calculate investment distribution among                         *
- * hosts                                                           *
- *******************************************************************/
+/****************************************************************
+ * 	calculate investment distribution among hosts		*
+ ****************************************************************/
 void calcInvDist(double binsize,double *hist_inv,double *freqInvH){
 	int i,nh,id;
 
@@ -255,6 +296,28 @@ void calcInvDist(double binsize,double *hist_inv,double *freqInvH){
 
 
 	return;
+}
+/****************************************************************************************
+* 	calculate current average investment in the system:				*
+* 	averInv=sum_host(sum_type(bac[host][type]))/total amount of bac. in the system	*
+****************************************************************************************/
+double calcAverInv(double *densInvH){
+	int i,idh,nh;
+	double tot_micr,averinv;
+
+	nh=listh->usize;
+	calcInvDens(densInvH);
+	
+	averinv=0.;
+	tot_micr=0.;
+        for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
+		tot_micr+=spar->micr[idh];
+		averinv+=densInvH[i];
+        }
+	averinv/=tot_micr;//averaging over the whole microbe population
+	
+	return averinv;
 }
 /************************************************
 *   store the current average investment level  *
@@ -292,7 +355,7 @@ void meanFracXt(TimeMeasures *meas){
 		for(j=TYPES-2; j>=0; --j){
 			fprintf(meas->file_tmeas,"%d:mean freq. of bac of type=%d ",TYPES-j+1,j);
 		}
-		fprintf(meas->file_tmeas,"%d:numsteps\n",TYPES+2);
+		fprintf(meas->file_tmeas,"%d:numsteps %d:nh\n",TYPES+2,TYPES+3);
 	}
 	
 	nh=listh->usize;
@@ -310,10 +373,10 @@ void meanFracXt(TimeMeasures *meas){
 		avbacfreq[j]/=(double)nh;
 		/*storing data*/
 		fprintf(meas->file_tmeas,"%f ",avbacfreq[j]);
-		printf("%f ",avbacfreq[j]);
+		printf("<bac[%d]>=%f ",j,avbacfreq[j]);
 	}
-        fprintf(meas->file_tmeas,"%d\n",meas->NTnow);
-        printf("%d\n",meas->NTnow);
+        fprintf(meas->file_tmeas,"%d %d\n",meas->NTnow,nh);
+        printf("ns=%d nh=%d\n",meas->NTnow,nh);
 
 	free(avbacfreq);
 	return;
@@ -339,22 +402,18 @@ void averInvestmentXt(TimeMeasures *meas){
 		fprintf(meas->file_tmeas,"#1:time 2:average cumulative investment 3:average microbial density 4:#of hosts 5:dens_host 6:#of time steps 7:dth\n");
 	}
 
-	/****setting investiment density per host vector*****/
+	/****setting investiment density per host vector and calculating average investment in the system*****/
 	nh=listh->usize;
 	densInvH=(double *)calloc(nh,sizeof(double));/*indexes are the same as in @listh->vec[] 
-						      * (real host indexes are idh=listh->vec[i] (for 0<=i<nh)) */
-	calcInvDens(densInvH);
+						      * (host postion indexes are idh=listh->vec[i] (for 0<=i<nh)) */
+	memset(densInvH,0.,sizeof(double)*nh);
+	averinv=calcAverInv(densInvH);
 
-	/*********calculating average investment is the system***********/
-	averinv=0.;
 	tot_micr=0.;
-        for(i=0; i<nh; ++i){
-                idh=listh->vec[i];
+	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
 		tot_micr+=spar->micr[idh];
-		averinv+=densInvH[i];
-        }
-	averinv/=tot_micr;//averaging over the whole microbe population
-	
+	}
 
 	/*storing data*/
         fprintf(meas->file_tmeas,"%f %f %f %d %f %d %f\n",meas->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,meas->NTnow,meas->dth);
@@ -410,7 +469,7 @@ void save_config(TimeMeasures *meas){
         fgp = fopen(name_gp,"w");
 
 
-	/*********Defining point size for the gnuplot script****************************************/
+	/*********Defining point size for NIntervthe gnuplot script****************************************/
         if(L>=100){
                 pointsize=0.5;
         }else if(L>=50){
@@ -606,6 +665,73 @@ void spatialCorrXt(TimeMeasures *meas){
 
 	return;
 }
+/********************************************************
+ *  store average difference in microbial composition	*
+ *  between host @idp and its children @idk		*
+ ********************************************************/
+void storeBacDiffComp(int idp,int idk){
+	int j,new;
+        double mdiff;
+
+        mdiff=0.;
+        new=0;
+        for(j=0; j<TYPES; ++j){
+                if(bac[idp][j]!=0.){
+                        if(bac[idk][j]==0.){
+                                mdiff+=bac[idp][j];
+                        }else{
+                                mdiff+=bac[idp][j]-bac[idk][j];
+                        }
+                        ++new;
+                }
+        }
+        mdiff/=(double)new;
+        offcomp->vecf[offcomp->usizef]=mdiff;
+        ++offcomp->usizef;
+
+	return;
+}
+/********************************************************
+*  	Measure average difference of hosts parents	* 
+*  	and their childrens microbial composition 	*
+*  	over time (to compare different vertical 	*
+*  	transmission approachs)      			*
+*********************************************************/
+void difMicrCompXt(TimeMeasures *meas){
+	int numb;
+	int nh=listh->usize;
+	double averinv;
+	double *densInvH=(double *)calloc(nh,sizeof(double));
+
+
+	if(meas->Tnow==meas->Ti){
+		#if (OFFCOMP==0)
+		fprintf(meas->file_tmeas,"#1:time 2:mean parent-kid bac. comp. diff.  3:stardart deviation 4:average invest. 5:sample (#of repr.) 6:nh 7:nh/N\n");
+		#else
+		//<w[offspring]/micr[offspring]> is the mean of the acumulated investment divided by the amount of microbes received by newborns (average of last @SAMPLE reproductions)
+		fprintf(meas->file_tmeas,"#1:time 2:<w[offpring]/micr[offspring]>  3:stardart deviation 4:average invest. 5:sample (#of repr.) 6:nh 7:nh/N\n");
+		#endif
+	}
+
+	numb =offcomp->usizef;
+	if(numb>=SAMPLE){
+		double *stats=calcRMSError(offcomp->vecf,0,offcomp->usizef-1);
+	
+		memset(densInvH,0.,sizeof(double)*nh);
+		averinv=calcAverInv(densInvH);
+		
+		fprintf(meas->file_tmeas,"%f %f %f %f %d %d %f\n",meas->Tnow,stats[0],stats[1],averinv,numb,nh,(double)nh/N);
+		printf("t=%f mean=%f std=%f avinv=%f nb=%d nh=%d nh/N=%f\n",meas->Tnow,stats[0],stats[1],averinv,numb,nh,(double)nh/N);
+
+		//reset	
+		memset(offcomp->vecf,0.,sizeof(double)*offcomp->sizef);
+		offcomp->usizef=0;
+		free(stats);
+	}
+	
+	free(densInvH);
+	return;
+}
 /***************************************************
 *  calculating average host generation time        *
 ****************************************************/
@@ -637,8 +763,10 @@ void measures(TimeMeasures *meas){
 	}
         #endif
         #ifdef AVERINVxT
-	if((meas->Tnow>=meas->Ti)&&(meas->Tnow<=meas->Tf)){
+	double err=1e-7;
+	if((meas->Tnow>=meas->Ti)&&(meas->Tnow>=meas->saveT-err)&&(meas->Tnow<=meas->saveT+err)){
 		averInvestmentXt(meas);
+		meas->saveT=meas->Tnow+(double)NInterv*Dt_ref;
 	}
         #endif
         #ifdef MEANBFRACxT
@@ -651,7 +779,7 @@ void measures(TimeMeasures *meas){
 	if((meas->Tnow>=meas->saveT-err)&&(meas->Tnow<=meas->saveT+err)&&(meas->nfiles<NF)){
 		printf("Time of measure:%f,  ",meas->Tnow);
 		save_config(meas);
-		meas->saveT=meas->Tnow+(double)NInterv*Dt_ref;
+		meas->saveT=meas->Tnow+10.;
 		printf("Next time:%f\n",meas->saveT);
 		++meas->nfiles;
 	}
@@ -676,6 +804,9 @@ void measures(TimeMeasures *meas){
         #endif
 	#ifdef GENTIME
 	genHostTime(meas);
+        #endif
+	#ifdef DIFBACOMPxT
+	difMicrCompXt(meas);
         #endif
 
 

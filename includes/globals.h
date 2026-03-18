@@ -13,31 +13,16 @@
 #define EVO			1		/*0: stochastic dt for the host layer and complete graph 
 						 *1: stochastic dt for the host layer and complete graph and square lattice
 						 */ 
-#define TAB             	2		/*for choosing which set of values for some of the parameters to use: 1 or 2 for the specified fixed values below, and anything else for manually choosing*/
+#define TAB             	0		/*for choosing which set of values for some of the parameters to use: 1 or 2 for the specified fixed values below, and anything else for manually choosing*/
 
 #define Mh        		0.		/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
 #define	BFunc			0		/*to decide which host birth function of the frequency of available empty sites:
 						 *0: fb(x)=H(x) (heaviside step function)
 						 *1: fb(x)=x*/	
-#if (TAB!=0&&TAB!=1)
-#define Mu        		1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
-#define Theta     		1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-#define K_H      		500		/*carrying capacity for the host layer*/
-#define Rh      		0.05		/*carrying capacity for the host layer (if Rh=0.05, Kh=500 for L=100)*/
-#define Gh        		100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
-#define Bacv      		1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
-#endif
-
-#define Fvert      		1e-03		/*Fraction of vertical transmitted bacteria for the case where parent loose a fraction of their microbiome to their children*/
-#define SIGMA     		0.05		/*standart deviation of the trucated normal distribution for the inheritance of helpful microbes*/
-#define DTVSIZE   		29		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
-					 	*the host dynamics so the probability of 2 consecutive host events during a @Dt_ref time interval is <0.01
-					 	*paper uses 19 when TYPES=2 and 29 otherwise (??)*/
 
 #if (TAB==1)
 	#define Mu        	1e-09		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
 	#define Theta     	1e-06		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-	#define Rh      	0.1		/*carrying capacity for the host layer (if Rh=0.1, Kh=517 for L=224)*/
 	#define K_H      	5000		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
 	#define Gh        	10		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
 	#define Bacv      	1e-04		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
@@ -47,7 +32,18 @@
 	#define K_H      	500		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
 	#define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
 	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
+#else
+	#define Mu        	1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
+	#define Theta     	1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
+	#define K_H      	500		/*carrying capacity for the host layer*/
+	#define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
+	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #endif
+
+#define Fvert      		Bacv		/*Fraction of vertical transmitted bacteria for the case where parent may loose a fraction of their microbiome to their children*/
+#define SIGMA     		0.05		/*standart deviation of the trucated normal distribution for the inheritance of helpful microbes*/
+#define DTVSIZE   		19		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
+						 *paper uses 19 when TYPES=2 and 29 otherwise (??)*/
 /*****COST*******************************************************/
 #define Gamma     	1e-02		/*cost for helping when the investment is 1*/
 /***Parameters for cases where there are negative types*******************/
@@ -107,12 +103,17 @@
 						 *3: all types of bacteria start with a fixed fraction of 1/TYPES */
 #endif
 /***Routine Choices*********************************************************************************************************************************************************************************/
-#define TV			1	/*rule for vertical transmission: (for TYPES==2 choose 0 or 2)
+#define TV			2	/*rule for vertical transmission: (for TYPES==2 choose 0 or 2)
 					 *0=normal dist. (around parent bac. type freq.) 
 					 *1=normal dist. (around parent bac. type freq.) with the host parent loosing a fraction of their bacteria to their offspring
 					 *2=poisson distribuition for the number of times a type of bacteria from the parent host is chosen for the sample passed to the offspring*/
+#define WLMicr			0		/*0:parents dont loose bacteria to their childem
+						 *1:parents loose bacteria to their childem*/
+#define OFFCOMP			0	/*When DIFBACOMPxT is active: choose what to measure (related to offspring microbial composition) 
+					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
+					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			250000.         /*host maximum time (measured using continuous values for the times steps)*/
+#define TF			50000.         /*host maximum time (measured using continuous values for the times steps)*/
 #define NTS			10e7            /*maximum number of timesteps*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 					 	* 0:png (good for creating animations later)
@@ -122,6 +123,7 @@
 #define NTf_me			10000		/*time (in #of time steps) to stop a measure*/
 #define NT0_me			0		/*time to start a measure*/
 #define SAMPLE			100             /*number of files with raw data that are going to be produce for measurements that require it*/
+#define GSAMPLE			100		/*size of the vector of normaly distributed random numbers used on vertical transmission*/
 /********************************************************************************************************************************************************************/
 /*****Fixed Parameters**********/
 #define Beta      		1.		/*birth rate for neutral bacteria*/
@@ -146,7 +148,7 @@
 #define RightDown		6 /*label of the neighbor at the right-down diagonal (for the square lattice)*/
 #define LeftDown		7 /*label of the neighbor at the left-down diagonal (for the square lattice)*/
 /******defining a main MACRO for measures made during time evolution******/
-#if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(GENTIME)
+#if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(GENTIME)||defined(DIFBACOMPxT)
 	#define TMEAS
 #endif
 /********************************************
@@ -189,7 +191,7 @@ typedef struct{
         double Tf;//final time
         double Tnow;//current time
 	double saveT;//save data at this time
-	double dth;//time interval for the host layer
+	double dth;//time #ifdef DIFBACOMPxTinterval for the host layer
 	double timegh;
 	int ngh;
 	int NTf;//final time in number of steps
@@ -216,5 +218,6 @@ extern double *timeb;
 extern char *fdatapath;
 extern DynList *listh;
 extern DynList *alive_viz;
+extern DynVec *offcomp;
 extern SysParams *spar;
 #endif
