@@ -76,15 +76,18 @@ int hostNTSPerBacNTS(Event *event);
 *       Host Layer Evolution (for a time interval=Dt_ref) for   *
 *       the complete graph version                              *
 *****************************************************************/
-int evolveHostCG(int dnumsteps,Event *event, TimeMeasures *meas);
+int evolveHostCG(int dnumsteps,Event *event);
 /****************************************************************
 *       Host Layer Evolution (for a time interval=Dt_ref) for   *
 *       the lattice version                                     *
 *****************************************************************/
-void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas);
-/****************************************************************
-*       Host Layer Evolution (for a time interval=Dt_ref) for   *
-*       the lattice version with Monte Carlo type of evolution  *
-*****************************************************************/
-void evolveHostMCS(Event *event, TimeMeasures *meas);
+void evolveHostSL(int dnumsteps,Event *event);
+/****************************************
+*          general time loop            *
+*****************************************/
+void callSysDynamics(Event *event);
+/****************************************
+*          1 host time loop             *
+*****************************************/
+void callSysDynamics1H(Event *event);
 #endif

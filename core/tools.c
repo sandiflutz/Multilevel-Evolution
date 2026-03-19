@@ -641,12 +641,11 @@ void buildHistogram(double binsize,int nbins,int vsize,double *vec,int *hist){
 *  calculate the root mean square of the elements	* 
 *  from index idi to index idf of a vector vec[]	*
 *********************************************************/
-double *calcRMSError(double *vec,int idi, int idf){
+void calcRMSError(double *vec,int idi, int idf,double *stats){
 	int i,sample;
-	double aver=0.,aver2=0., err=0.;
-	double *stats=(double *)calloc(2,sizeof(double));
+	double aver=0., err=0.;
 
-	if(!stats)return NULL;
+	if(!stats)exit(1);
 
 	sample=idf-idi;
 	for(i=idi; i<=idf; ++i){
@@ -661,7 +660,7 @@ double *calcRMSError(double *vec,int idi, int idf){
 	stats[0]=aver;
 	stats[1]=err;
 
-	return stats;
+	return;
 }
 /***************************************************
 *  calculate spatial corretation for a square      *

@@ -188,7 +188,7 @@ void buildHistogram(double binsize,int nbins,int visize,double *vec,int *hist);
 *  calculate the root mean square of the elements       *
 *  from index idi to index idf of a vector vec[]        *
 *********************************************************/
-double *calcRMSError(double *vec,int idi, int idf);
+void calcRMSError(double *vec,int idi, int idf,double *stats);
 /***************************************************
 *  calculate spatial corretation for a square      *hostReprDynamics(
 *  lattice type of system                          *

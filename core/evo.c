@@ -5,6 +5,8 @@
 #include"randgen_ufrgs.h"
 #include"tools.h"
 #include"evo.h"
+#include"bac.h"
+#include"measures.h"
 
 /****************************************************************
 *     calculates the accumulated investment in host @index      *
@@ -66,12 +68,12 @@ void calcHostEvents(Event *event){
 *     frequencies on the parent.                               	*
 *****************************************************************/
 void setMicrKidsNorm(int idp, int idk){
-        int i,id,id1,id2,ns,p;
+        int i,id,ns,p;
         double nr,fk,fp,norm,*cprob=NULL;
 	double std=spar->sigma;
 	double *gaussample;
 
-	gaussample = (double *)calloc(GSAMPLE,sizeof(double));
+	gaussample = (double *)calloc(SAMPLE,sizeof(double));
 
 	cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
 	cprob[0]=bac[idp][0]/spar->micr[idp];
@@ -86,8 +88,8 @@ void setMicrKidsNorm(int idp, int idk){
 		nr=FRANDOM*cprob[TYPES-1];
 		p=selectEventCP(nr,cprob,TYPES);
 		fp=bac[idp][p]/spar->micr[idp];
-		normalRandSample(fp,std,0.,1.,GSAMPLE,gaussample);
-		id=(int)(FRANDOM*GSAMPLE);
+		normalRandSample(fp,std,0.,1.,SAMPLE,gaussample);
+		id=(int)(FRANDOM*SAMPLE);
 		fk=gaussample[id];
 		bac[idk][p]+=fk;
 		norm+=fk;
@@ -122,22 +124,22 @@ void setMicrKidsNormPass(int idp, int idk){
 	double fpj,fkj,nk,norm;
 	double np=spar->micr[idp];
 	double std=spar->sigma;
-	double fv=spar->fvert;
 	double *gaussample;
 
-	gaussample = (double *)calloc(GSAMPLE,sizeof(double));
+	gaussample = (double *)calloc(SAMPLE,sizeof(double));
 	
 	#if (WLMicr==0)
 	nk=Bacv;
 	#else//in this case part of the parent's microbes are give away to their children
+	double fv=spar->fvert;
 	nk=np*fv;
 	#endif
 	norm=0.;
 	for(j=0; j<TYPES; ++j){
 		fpj=bac[idp][j]/np;
-		if(fpj>fv){
-			normalRandSample(fpj,std,0.,1.,GSAMPLE,gaussample);
-			id=(int)(FRANDOM*GSAMPLE);
+		if(fpj>Fmin){
+			normalRandSample(fpj,std,0.,1.,SAMPLE,gaussample);
+			id=(int)(FRANDOM*SAMPLE);
 			fkj=gaussample[id];
 			norm+=fkj;
 			bac[idk][j]=fkj;
@@ -172,7 +174,6 @@ void setMicrKidsNormPass(int idp, int idk){
 void setMicrKidsPoiss(int idp, int idk){
         int i,ns,p,sample;
         double nr,mean,*cprob=NULL;
-
 
         cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
 	cprob[0]=bac[idp][0]/spar->micr[idp];
@@ -346,7 +347,7 @@ int hostNTSPerBacNTS(Event *event){
 	dt=adjustTimeStep(event->cprobE[event->usizeE-1]);
 	dnumsteps=ceil(Dt_ref/dt);
 	dt=Dt_ref/(double)dnumsteps;
-	event->dtE=dt;
+	stime->dth=dt;
 
 	return dnumsteps;
 }
@@ -354,7 +355,7 @@ int hostNTSPerBacNTS(Event *event){
 *	Host Layer Evolution (for a time interval=Dt_ref) for	*
 *	the complete graph version				*
 *****************************************************************/
-int evolveHostCG(int dnumsteps,Event *event, TimeMeasures *meas){
+int evolveHostCG(int dnumsteps,Event *event){
 	int i,idh,idlist,ide,idk,ne,nh,nb,nd,*listb,*listd;
 	double nr;
 	DynList empty_viz;
@@ -366,10 +367,8 @@ int evolveHostCG(int dnumsteps,Event *event, TimeMeasures *meas){
 	empty_viz.vec = (int *)calloc(empty_viz.size,sizeof(int));
 	for(i=0; i<empty_viz.size; ++i){
 		ide=listh->vec[i+nh];
-		//if(host[ide]==0){
 		empty_viz.vec[i]=listh->vec[i+nh];
 		++empty_viz.usize;
-	//	}
 	}
                 
 	listb=(int *)calloc(dnumsteps,sizeof(int));
@@ -396,9 +395,9 @@ int evolveHostCG(int dnumsteps,Event *event, TimeMeasures *meas){
 							--empty_viz.usize;//decreasing the number of available empty sites
 							//measures	
 							#ifdef GENTIME
-							timeb[idk]=meas->Tnow+Dt_ref;//time of birth of host @idk
+							timeb[idk]=stime->Tnow+Dt_ref;//time of birth of host @idk
 							if(timeb[idh]>=0.){
-								meas->timegh+=(meas->Tnow+Dt_ref-timeb[idh]);//host @idh first reproduction time is the current time minos the time of its birth
+								meas->timegh+=(stime->Tnow+Dt_ref-timeb[idh]);//host @idh first reproduction time is the current time minos the time of its birth
 								timeb[idh]=-1.;//just the first reproduction of an individual counts
 								++meas->ngh;
 							}
@@ -452,11 +451,12 @@ int evolveHostCG(int dnumsteps,Event *event, TimeMeasures *meas){
 *	Host Layer Evolution (for a time interval=Dt_ref) for	*
 *	the lattice version					*
 *****************************************************************/
-void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
+void evolveHostSL(int dnumsteps,Event *event){
 	int i,idh,idlist,idlistk,ide,idk,ne,nh,nb,nd,nm,*listb,*listd,*listm;
 	double nr1,nr2,fb,fm;
 	double mh=spar->migh;
 	DynList empty_viz;
+	double currentime=stime->Tnow+Dt_ref;
 	
 	nh=listh->usize;
 	empty_viz.usize=0;
@@ -494,12 +494,15 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 							hostBirth(idh,idk);
 							//measures	
 							#ifdef GENTIME
-							timeb[idk]=meas->Tnow+Dt_ref;//time of birth of host @idk
-							if(timeb[idh]>=0.){
-								meas->timegh+=(meas->Tnow+Dt_ref-timeb[idh]);//host @idh first reproduction time is the current time minos the time of its birth
-								timeb[idh]=-1.;//just the first reproduction of an individual counts
-								++meas->ngh;
+							meas->timeR[idk][nR[idk]] = currentime;//time of birth of host @idk (this event is happening in Tnow<time<Tnow+Dt_ref)
+							++nR[idk];
+							
+							meas->timeR[idh][nR[idh]] = currentime - meas->timeR[idh][nR[idh]-1];
+							if(nR[idh]==1){//first reproduction
+								timegh+=meas->timeR[idh][nR[idh]];
+								++ngh;
 							}
+							++nR[idh];
 							#endif
 						}else if(nr2<fm+fb){//host migration
 							listm[nm]=idh;
@@ -511,7 +514,10 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 						++nd;
 						hostDeath(idh);
 						#ifdef GENTIME
-						timeb[idh]=-1.;
+						for(j=0; j<nR[idh]; ++j){
+							meas->timeR[idh][j]=0.;
+						}
+						nR[idh]=0;
 						#endif
 						break;
 				}
@@ -564,4 +570,68 @@ void evolveHostSL(int dnumsteps,Event *event, TimeMeasures *meas){
 	free(listb);
 	free(listd);
 	return;
+}
+/****************************************
+*          general time loop            *
+*****************************************/
+void callSysDynamics(Event *event){
+        int i,numsteps,nh,nevents,dnumsteps;
+
+        numsteps=0;
+        nh=listh->usize;
+        dnumsteps=1;
+        while((stime->Tnow<=stime->Tf)&&(nh>0)){
+                #ifdef TMEAS
+                timeMeasures();
+                        #ifdef NUMHEVENTSxT
+                        meas->numb=0;
+                        meas->numd=0;
+                        #endif
+                #endif
+                #ifdef STEADY_STATE_MEAS
+                        if((stime->Tnow<=stime->Tf)&&(stime->Tnow>=stime->saveT-dtVec[0])&&(stime->Tnow<=stime->saveT+dtVec[0])){
+                                avinv->vecf[avinv->usizef]=calcAverInv();
+                                ++avinv->usizef;
+                        }
+                #endif
+
+                calcHostEvents(event);
+                dnumsteps=hostNTSPerBacNTS(event);
+                nevents=event->usizeE;
+                for(i=0; i<nevents; ++i){
+                        event->cprobE[i]*=stime->dth;
+                }
+                #if (EVO==0)//complete graph with adjustable host dt
+                evolveHostCG(dnumsteps,event);
+                #elif (EVO==1)//square lattice with adjustable host dt
+                evolveHostSL(dnumsteps,event);
+                #endif
+
+                nh=listh->usize;
+
+                evoBac(Dt_ref,stime->Tnow);
+
+                stime->Tnow+=Dt_ref;
+                numsteps+=dnumsteps;
+        }
+
+        return;
+}
+/****************************************
+*          1 host time loop             *
+*****************************************/
+void callSysDynamics1H(Event *event){
+        int numsteps;
+
+        numsteps=0;
+        while(stime->Tnow<=stime->Tf){
+                #ifdef TMEAS
+                timeMeasures();
+                #endif
+                evoBac(Dt_ref,stime->Tnow);
+                stime->Tnow+=Dt_ref;
+                ++numsteps;
+        }
+
+        return;
 }

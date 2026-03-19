@@ -41,6 +41,7 @@
 #endif
 
 #define Fvert      		Bacv		/*Fraction of vertical transmitted bacteria for the case where parent may loose a fraction of their microbiome to their children*/
+#define Fmin			0.01		/*if TV=1, a type of bacteria can only be vertically transmitted if its frequency in the donner is >Fmin*/
 #define SIGMA     		0.05		/*standart deviation of the trucated normal distribution for the inheritance of helpful microbes*/
 #define DTVSIZE   		19		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
 						 *paper uses 19 when TYPES=2 and 29 otherwise (??)*/
@@ -103,7 +104,7 @@
 						 *3: all types of bacteria start with a fixed fraction of 1/TYPES */
 #endif
 /***Routine Choices*********************************************************************************************************************************************************************************/
-#define TV			2	/*rule for vertical transmission: (for TYPES==2 choose 0 or 2)
+#define TV			1	/*rule for vertical transmission: (for TYPES==2 choose 0 or 2)
 					 *0=normal dist. (around parent bac. type freq.) 
 					 *1=normal dist. (around parent bac. type freq.) with the host parent loosing a fraction of their bacteria to their offspring
 					 *2=poisson distribuition for the number of times a type of bacteria from the parent host is chosen for the sample passed to the offspring*/
@@ -114,7 +115,6 @@
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
 #define TF			50000.         /*host maximum time (measured using continuous values for the times steps)*/
-#define NTS			10e7            /*maximum number of timesteps*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 					 	* 0:png (good for creating animations later)
 						* 1:eps*/
@@ -122,8 +122,7 @@
 #define NInterv			1000		/*Ninterv*Dt_ref=time interval between snapshots taken*/
 #define NTf_me			10000		/*time (in #of time steps) to stop a measure*/
 #define NT0_me			0		/*time to start a measure*/
-#define SAMPLE			100             /*number of files with raw data that are going to be produce for measurements that require it*/
-#define GSAMPLE			100		/*size of the vector of normaly distributed random numbers used on vertical transmission*/
+#define SAMPLE			100             /*general sample size of measures done within the program (during evolution or number of files produced with raw data)*/
 /********************************************************************************************************************************************************************/
 /*****Fixed Parameters**********/
 #define Beta      		1.		/*birth rate for neutral bacteria*/
@@ -151,6 +150,9 @@
 #if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(GENTIME)||defined(DIFBACOMPxT)
 	#define TMEAS
 #endif
+#if defined(AVINVxRH)
+	#define STEADY_STATE_MEAS
+#endif
 /********************************************
 *  Struct for System Parameters             *
 *********************************************/
@@ -175,35 +177,37 @@ typedef struct{
 } SysParams;
 
 typedef struct{
-        int sizeE;
-        int usizeE;
-        int whichE;
-        double dtE;
-        double timeE;
-        double *ratesE;
-        double *cprobE;
+        int sizeE;//maximum number of host events: birth and death to each host (=2*#ofsites in the system)
+        int usizeE;//number of host events counting just the number of live hosts  
+        int whichE;//index of the last event chosen
+        double *ratesE;//vector for the host event rates
+        double *cprobE;//vector for the cumulative probabilities of each host event
 } Event;
+typedef struct{
+	double dth;//host current timestep
+	double saveT;//next time to measure something
+        double transtime;//transient time
+	double timewindow;//time window to measure something
+        double Tf;//final time
+        double Tnow;//current time
+}SysTimes;
 /*******************************************
 *  Structs related to Measures             *
 *******************************************/
 typedef struct{
-        double Ti;//time of the first time measure
-        double Tf;//final time
-        double Tnow;//current time
-	double saveT;//save data at this time
-	double dth;//time #ifdef DIFBACOMPxTinterval for the host layer
-	double timegh;
+	double timegh;//generation time
 	int ngh;
-	int NTf;//final time in number of steps
-	int NTnow;//current time in number of steps
-	int nfiles;//number of data files already created
-        int idh_h1;
+	double **timeR;
+	double *nR;
 	int numb;
 	int numd;
-	char *ftname_pars;
-	int ftnpars_size;
-	FILE *file_tmeas;
-} TimeMeasures;
+} EvMeasures;
+typedef struct{
+	int fnsize;
+	char *fname;
+	char *fdatapath;
+	FILE *file;
+} GenFile;
 /***************************************************
  *            Global Variables                     *
  ***************************************************/
@@ -214,10 +218,12 @@ extern int *inverselisth;
 extern double **bac;
 extern double **costvec;
 extern double *dtVec;
-extern double *timeb;
-extern char *fdatapath;
 extern DynList *listh;
 extern DynList *alive_viz;
 extern DynVec *offcomp;
+extern DynVec *avinv;
 extern SysParams *spar;
+extern SysTimes *stime;
+extern GenFile *gfile;
+extern EvMeasures *meas;
 #endif

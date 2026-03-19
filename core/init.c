@@ -12,7 +12,7 @@
 *     allocate memory for global arrays and structs        *
 *     initialize system parameters                         *
 ************************************************************/
-void allocateMemory(Event *event,TimeMeasures *meas){
+void allocateMemory(Event *event){
         int i;
 	int e0,ef,m0,mf;//variable related to the range of dtVec: [m0*10^e0;mf*10^ef]
 
@@ -41,8 +41,6 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 					       *another option: dtVec[DTVSIZE-1]=0.05 is the value of the microbial time step in the original paper
 					       */
         
-	fdatapath=(char *)malloc(sizeof(char)*50);
-	sprintf(fdatapath,"data_manipulation/");
 	/****structs****/
         
 	//system parameters necessary for the equations of the microbial
@@ -65,6 +63,14 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	spar->micr=(double *)calloc(N,sizeof(double));
 	spar->inv=(double *)calloc(TYPES,sizeof(double));
 
+	//system times
+	stime = malloc(sizeof(SysTimes));
+        if (!stime) { perror("malloc"); exit(1);}
+	stime->Tnow=0.;
+	stime->Tf=TF;
+	stime->transtime=1500.;
+	stime->timewindow=1000.;
+	stime->dth=Dt_ref;
 	//host events struct
 	event->sizeE=2*N;
 	event->usizeE=0;
@@ -72,8 +78,6 @@ void allocateMemory(Event *event,TimeMeasures *meas){
 	memset(event->ratesE,0.,sizeof(double)*event->sizeE);
 	event->cprobE=(double *)calloc(event->sizeE,sizeof(double));
 	memset(event->cprobE,0.,sizeof(double)*event->sizeE);
-	event->timeE=0.;
-	event->dtE=Dt_ref;
 
 	//lists structs
         listh = malloc(sizeof(DynList));
@@ -242,7 +246,7 @@ void initialStateNormD(void){
 *   Populates Host layer with a single host          *
 *   Bacteria yypes are uniformly distributed         *
 *****************************************************/
-void initialStateSingleH(TimeMeasures *meas){
+void initialStateSingleH(void){
        int i;
         double norm;
 
@@ -252,23 +256,20 @@ void initialStateSingleH(TimeMeasures *meas){
 		spar->micr[i]=0.;
 	}
 	
-	meas->idh_h1=0;
-	host[meas->idh_h1]=1;
-	spar->micr[meas->idh_h1]=Bac0;
+	host[0]=1;
+	spar->micr[0]=Bac0;
 	norm=0.;
         for(i=0; i<TYPES; ++i){
-                bac[meas->idh_h1][i]=FRANDOM;
-                norm+=bac[meas->idh_h1][i];
+                bac[0][i]=FRANDOM;
+                norm+=bac[0][i];
         }
         for(i=0; i<TYPES; ++i){
-                bac[meas->idh_h1][i]*=Bac0/norm;
+                bac[0][i]*=Bac0/norm;
         }
         for(i=0; i<N; ++i){
                 listh->vec[i]=i;
 		inverselisth[i]=i;
         }
-	exchange(inverselisth,0,meas->idh_h1);
-	exchange(listh->vec,0,meas->idh_h1);
 
 	listh->usize=1;
 
@@ -349,10 +350,9 @@ void setCostVec(void){
 /****************************************************************************
  *                     Set Initial Conditions                               *
  ***************************************************************************/
-void setCI(TimeMeasures *meas){
+void setCI(void){
 
-	meas->Tnow=0.;
-	meas->NTnow=0;
+	stime->Tnow=0.;
 	/*setting investment vector*/
 	setInvestments();
 	/*setting initial state (alive hosts and bacteria abundances)*/
@@ -361,23 +361,24 @@ void setCI(TimeMeasures *meas){
 	#elif(CI==1)//frequencies come from normal distribution
 		initialStateNormD();
 	#elif(CI==2)//single host
-		initialStateSingleH(meas);
+		initialStateSingleH();
 	#else
 		initialStateFixedFrac();
 	#endif
 	setCostVec();
+
 	
 	return;
 }
 /****************************************************************************
  *                     Build System                                         *
  ***************************************************************************/
-void setSystem(Event *event,TimeMeasures *meas){
+void setSystem(Event *event){
 	
         (void)start_randomic(0);
 
 	/*Allocating memory*/
-	allocateMemory(event,meas);
+	allocateMemory(event);
 
 	/*setting hosts network*/	
 	#if(NETWORK==1)
@@ -385,7 +386,7 @@ void setSystem(Event *event,TimeMeasures *meas){
 	#endif
 
 	/*setting initial state (alive hosts and bacteria abundances)*/
-	setCI(meas);
+	setCI();
 
 	return;
 }

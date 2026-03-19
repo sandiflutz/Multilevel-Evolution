@@ -4,7 +4,7 @@
 *     allocate memory for global arrays and structs        *
 *     initialize system parameters                         *
 ************************************************************/
-void allocateMemory(Event *event,TimeMeasures *meas);
+void allocateMemory(Event *event);
 /*****************************************************
 *   Populates Host and Microbial layer               *
 *   Bacterial layer: types of bacteria               *
@@ -28,7 +28,7 @@ void initialStateNormD(void);
 *   Populates Host layer with a single host          *
 *   Bacteria yypes are uniformly distributed         *
 *****************************************************/
-void initialStateSingleH(TimeMeasures *meas);
+void initialStateSingleH(void);
 /*************************************************
 * Set Investments for a System with only helpers *
 * (different types of helpers,  0<investment<1   *
@@ -48,9 +48,9 @@ void setCostVec(void);
 /****************************************************************************
  *                     Set Initial Conditions                               *
  ***************************************************************************/
-void setCI(TimeMeasures *meas);
+void setCI(void);
 /****************************************************************************
 *                     Build System                                          *
 *****************************************************************************/
-void setSystem(Event *event,TimeMeasures *meas);
+void setSystem(Event *event);
 #endif

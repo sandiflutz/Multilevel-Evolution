@@ -10,12 +10,9 @@
 #include"measures.h"
 /*****************declaring routines order**************************/
 void callSetSystem(void);
-void callSysDynamics(double tf);
-void callSysDynamics1H(double tf);
 void freeMemory(void);
 /******global variables*********************************************/
 Event event;
-TimeMeasures meas;
 /****************Program's Routines*****************************/
 int main(void){
         
@@ -24,38 +21,39 @@ int main(void){
 	/**********/
         
 #ifdef TMEAS
-	allocateMemTM(&meas);
-	meas.saveT=meas.Ti;
-	meas.Ti=0.;
+	allocateMemTM();
+	stime->saveT=0.;
+	stime->Tf=stime->save+stime->timewindow+1.;	
 	#if defined(SAVE_CONFIG)||defined(INV_DIST)
-	meas.Tf=NF*NInterv*Dt_ref+1.;	
-	meas.nfiles=0;
-	callSysDynamics(meas.Tf);
+	stime->Tf=stime->save+stime->timewindow+1.;	
+	callSysDynamics(&event);
 	#elif defined(CORRxT)||defined(NUMHEVENTSxT)||defined(GENTIME)||(DIFBACOMPxT)
-        openFiles(&meas);
-	meas.Tf=50000.;
-	callSysDynamics(meas.Tf);
-	closeFiles(&meas);
+        openFiles();
+	callSysDynamics(&event);
+	closeFiles();
 	#else
 	int i;
 	for(i=0; i<SAMPLE; ++i){
-        	openFiles(&meas);
+        	openFiles();
 		
 		#if (CI!=2)
-		callSysDynamics(meas.Tf);
+		callSysDynamics(&event);
 		#else
-		callSysDynamics1H(meas.Tf);
+		callSysDynamics1H(&event);
 		#endif
 		
-		setCI(&meas);
-		closeFiles(&meas);
+		setCI();
+		closeFiles();
 	}
 	#endif
-	freeMemTM(&meas);
+	freeMemTM();
 #endif
-#ifdef TESTE_DYN
-	meas.Tf=Dt_ref;
-	callSysDynamics(meas.Tf);
+#ifdef STEADY_STATE_MEAS
+	int i;
+	stime->saveT=0.;
+	for(i=0; i<SAMPLE; ++i){
+		averInvXrh(&event);
+	}
 #endif
 
 	freeMemory();
@@ -66,78 +64,7 @@ int main(void){
  ******************************************/
 void callSetSystem(void){
 
-        setSystem(&event,&meas);
-
-        return;
-}
-/****************************************
-*          general time loop		*
-*****************************************/
-void callSysDynamics(double tf){
-	int i,numsteps,nh,nevents,dnumsteps;
-
-	numsteps=0;
-	event.timeE=0.;
-	nh=listh->usize;
-	dnumsteps=1;
-	while((event.timeE<=tf)&&(nh>0)){
-		#ifdef TMEAS
-		meas.NTnow=numsteps;
-		meas.Tnow=event.timeE;
-		measures(&meas);
-			#ifdef NUMHEVENTSxT
-			meas.numb=0;
-			meas.numd=0;
-			#endif
-		#endif
-		
-		calcHostEvents(&event);
-		#if (EVO==0)//complete graph with adjustable host dt
-		dnumsteps=hostNTSPerBacNTS(&event);
-		nevents=event.usizeE;
-		for(i=0; i<nevents; ++i){
-			event.cprobE[i]*=event.dtE;
-		}
-		evolveHostCG(dnumsteps,&event,&meas);
-		#elif (EVO==1)//square lattice with adjustable host dt
-		dnumsteps=hostNTSPerBacNTS(&event);
-		nevents=event.usizeE;
-		for(i=0; i<nevents; ++i){
-			event.cprobE[i]*=event.dtE;
-		}
-		evolveHostSL(dnumsteps,&event,&meas);
-		#endif
-		nh=listh->usize;
-
-		evoBac(Dt_ref,event.timeE);
-		
-		event.timeE+=Dt_ref;
-                numsteps+=dnumsteps;
-		#ifdef TMEAS
-		meas.dth=event.dtE;
-		#endif
-        }
-
-        return;
-}
-/****************************************
-*          1 host time loop 		*
-*****************************************/
-void callSysDynamics1H(double tf){
-	int numsteps;
-
-	numsteps=0;
-	event.timeE=0.;
-	while(event.timeE<=tf){
-		#ifdef TMEAS
-		meas.NTnow=numsteps;
-		meas.Tnow=event.timeE;
-		measures(&meas);
-		#endif
-		evoBac(Dt_ref,event.timeE);
-		event.timeE+=Dt_ref;
-                ++numsteps;
-        }
+        setSystem(&event);
 
         return;
 }
@@ -159,12 +86,12 @@ void freeMemory(void){
 	free(costvec);
         
 	free(dtVec);
-	free(fdatapath);
 
 	//Structs and their arrays
 	free(spar->inv);
 	free(spar->micr);
 	free(spar);
+	free(stime);
 
 #if (NETWORK!=0)
 	for(i=0; i<N; ++i){

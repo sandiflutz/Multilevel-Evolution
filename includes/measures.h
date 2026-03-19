@@ -5,20 +5,20 @@
 *     related to time measuraments. Initialize time 		*
 *     measurement parameters					*
 ****************************************************************/
-void allocateMemTM(TimeMeasures *meas);
+void allocateMemTM(void);
 /************************************************
 *       Free Allocated Memory for time          *
 *       measurements                            *
 *************************************************/
-void freeMemTM(TimeMeasures *meas);
+void freeMemTM(void);
 /******************************************
 *       Open Global Files                 *
 *******************************************/
-void openFiles(TimeMeasures *meas);
+void openFiles(void);
 /**********************************************
 *               Close Global Files            *
 ***********************************************/
-void closeFiles(TimeMeasures *meas);
+void closeFiles(void);
 /****************************************************************
  *      calculate investment density per Host:                  *
  *      densInvH[host]=sum_type(bac[host][type]*inv[type])      *
@@ -37,63 +37,70 @@ void calcInvDist(double binsize,double *hist_inv,double *freqInvH);
 *       calculate current average investment in the system:                             *
 *       averInv=sum_host(sum_type(bac[host][type]))/total amount of bac. in the system  *
 ****************************************************************************************/
-double calcAverInv(double *densInvH);
+double calcAverInv(void);
+/********************************************************
+*  Calculate the difference in microbial 		*
+*  composition between host @idp and its children @idk.*
+*  Store result in a vector where each element		* 
+*  correspond to a different event			*
+********************************************************/
+void storeBacDiffComp(int idp,int idk);
 /************************************************
 *   store the current average investment level  *
 *   in an isolate host                          *
 **************************************************/
-void densB1Xt(TimeMeasures *meas);
+void densB1Xt(void);
 /********************************************************
 * Stores the mean fraction of each type of bacteria in  *
 * the system                                            *
 *********************************************************/
-void meanFracXt(TimeMeasures *meas);
+void meanFracXt(void);
 /**********************************************
 *   store the frequency of beneficial         *
 *   bacteria in a single host                 *
 **********************************************/
-void averInvestmentXt(TimeMeasures *meas);
+void averInvestmentXt(void);
 /**************************************
 *  snapshot of host network           *
 *  The colors indicate the acumulated *
 *  investment of each host            *
 ***************************************/
-void save_config(TimeMeasures *meas);
+void save_config(void);
 /***********************************************
  * store investment distribution among and     *
  * create a gnuplot script to create graphics  *
  ***********************************************/
-void invDistXt(TimeMeasures *meas);
+void invDistXt(void);
 /***************************************************
 *  stores the number of host events per            *
 *  microbial time steps                            *
 ****************************************************/
-void numHostEventsPerDtXt(TimeMeasures *meas);
+void numHostEventsPerDtXt(void);
 /***************************************************
 *  calculate spatial corretation: both horizontal  *
 *  and vertical for a specific distance,           *
 *  considering                                     *
 ****************************************************/
-void spatialCorrXt(TimeMeasures *meas);
-/********************************************************
- *  store average difference in microbial composition   *
- *  between host @idp and its children @idk             *
- ********************************************************/
-void storeBacDiffComp(int idp,int idk);
+void spatialCorrXt(void);
 /********************************************************
 *       Measure average difference of hosts parents     *
 *       and their childrens microbial composition       *
 *       over time (to compare different vertical        *
 *       transmission approachs)                         *
 *********************************************************/
-void difMicrCompXt(TimeMeasures *meas);
+void difMicrCompXt(void);
 /***************************************************
-*  calculating average host generation time        *
+*  storing average host generation time in a file  *
 ****************************************************/
-void genHostTime(TimeMeasures *meas);
+void genHostTime(void);
+/****************************************************************
+*  Store in @SAMPLE files the average investment                *
+*  in the system as a function of the system carrying dilution  *
+*****************************************************************/
+void averInvXrh(Event *event);
 /***************************************************
 *  call routines that measure and store measures   *
 *  during the time loop                            *
 ****************************************************/
-void measures(TimeMeasures *meas);
+void timeMeasures(void);
 #endif
