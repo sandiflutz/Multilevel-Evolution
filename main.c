@@ -23,7 +23,6 @@ int main(void){
 #ifdef TMEAS
 	allocateMemTM();
 	stime->saveT=0.;
-	stime->Tf=stime->save+stime->timewindow+1.;	
 	#if defined(SAVE_CONFIG)||defined(INV_DIST)
 	stime->Tf=stime->save+stime->timewindow+1.;	
 	callSysDynamics(&event);

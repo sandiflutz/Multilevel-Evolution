@@ -53,13 +53,9 @@ void allocateMemory(Event *event){
 	spar->kbac=K_bac;
 	spar->mu=Mu;
 	spar->cost=Gamma;
-	spar->beta=Beta;
-	spar->delta=Delta;
 	spar->mig=Theta;
-	spar->sb=Sb;
-	spar->sd=Sd;
 	spar->sigma=SIGMA;
-	spar->fvert=Fvert;
+	spar->fmin=Fmin;
 	spar->micr=(double *)calloc(N,sizeof(double));
 	spar->inv=(double *)calloc(TYPES,sizeof(double));
 
@@ -68,8 +64,9 @@ void allocateMemory(Event *event){
         if (!stime) { perror("malloc"); exit(1);}
 	stime->Tnow=0.;
 	stime->Tf=TF;
-	stime->transtime=1500.;
-	stime->timewindow=1000.;
+	stime->tinterval=10.;
+	stime->transtime=15000.;
+	stime->timewindow=5000.;
 	stime->dth=Dt_ref;
 	//host events struct
 	event->sizeE=2*N;

@@ -40,8 +40,8 @@
 	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #endif
 
-#define Fvert      		Bacv		/*Fraction of vertical transmitted bacteria for the case where parent may loose a fraction of their microbiome to their children*/
-#define Fmin			0.01		/*if TV=1, a type of bacteria can only be vertically transmitted if its frequency in the donner is >Fmin*/
+#define Fvert			Bacv		/*if TV=1, and host parents loose part of their bacteria to their children, Fvert is the fraction os bacteria give away*/
+#define Fmin			1e-04		/*if TV=1, a type of bacteria can only be vertically transmitted if its frequency in the donner is >Fmin*/
 #define SIGMA     		0.05		/*standart deviation of the trucated normal distribution for the inheritance of helpful microbes*/
 #define DTVSIZE   		19		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
 						 *paper uses 19 when TYPES=2 and 29 otherwise (??)*/
@@ -110,7 +110,7 @@
 					 *2=poisson distribuition for the number of times a type of bacteria from the parent host is chosen for the sample passed to the offspring*/
 #define WLMicr			0		/*0:parents dont loose bacteria to their childem
 						 *1:parents loose bacteria to their childem*/
-#define OFFCOMP			0	/*When DIFBACOMPxT is active: choose what to measure (related to offspring microbial composition) 
+#define OFFCOMP			1	/*When DIFBACOMPxT is active: choose what to measure (related to offspring microbial composition) 
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
@@ -159,19 +159,13 @@
 typedef struct{
 	int kh;
 	int gh;
-	int idhost;
-	int idbac_help;
 	double kbac;
         double mu;//bacteria mutation rate
         double cost;//cost of helping for an ideal helper bacteria
-        double beta;//birth rate of a neutral bacteria
-        double delta;//bacteria death rate
         double mig;//bacteria migration rate
         double migh;//host migration coeficient
-	double sb;
-	double sd;
 	double sigma;
-	double fvert;
+	double fmin;
 	double *inv;
 	double *micr;
 } SysParams;
@@ -186,6 +180,7 @@ typedef struct{
 typedef struct{
 	double dth;//host current timestep
 	double saveT;//next time to measure something
+	double tinterval;//next time to measure something
         double transtime;//transient time
 	double timewindow;//time window to measure something
         double Tf;//final time

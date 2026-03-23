@@ -31,9 +31,9 @@ void calcHostEvents(Event *event){
         int i,idh,nh;
 	int gh=spar->gh;
 	int kh=spar->kh;
-	double beta=spar->beta;
-	double sb=spar->sb;
-	double sd=spar->sd;
+	double beta=Beta;
+	double sb=Sb;
+	double sd=Sd;
 	double *w=NULL;
 
 	nh=listh->usize;//number of hosts
@@ -131,7 +131,7 @@ void setMicrKidsNormPass(int idp, int idk){
 	#if (WLMicr==0)
 	nk=Bacv;
 	#else//in this case part of the parent's microbes are give away to their children
-	double fv=spar->fvert;
+	double fv=Fvert;
 	nk=np*fv;
 	#endif
 	norm=0.;
@@ -580,6 +580,7 @@ void callSysDynamics(Event *event){
         numsteps=0;
         nh=listh->usize;
         dnumsteps=1;
+	
         while((stime->Tnow<=stime->Tf)&&(nh>0)){
                 #ifdef TMEAS
                 timeMeasures();
@@ -589,9 +590,11 @@ void callSysDynamics(Event *event){
                         #endif
                 #endif
                 #ifdef STEADY_STATE_MEAS
-                        if((stime->Tnow<=stime->Tf)&&(stime->Tnow>=stime->saveT-dtVec[0])&&(stime->Tnow<=stime->saveT+dtVec[0])){
+                        if((stime->Tnow<stime->saveT+stime->timewindow)&&(stime->Tnow>=stime->saveT)){
                                 avinv->vecf[avinv->usizef]=calcAverInv();
                                 ++avinv->usizef;
+				printf("rh=%f time=%f avinv[%d]=%f\n",(double)spar->kh/N,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
+				stime->saveT+=10.;
                         }
                 #endif
 

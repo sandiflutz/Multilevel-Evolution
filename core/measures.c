@@ -28,11 +28,6 @@
 ************************************************************/
 void allocateMemTM(void){
 	int i;
-        char *ngeral=(char *)calloc(200,sizeof(char));
-        char *nevo = (char *)calloc(50,sizeof(char));
-        char *ntneg = (char *)calloc(50,sizeof(char));
-        char nparam[4][10];
-        double param[4];
 
         
 	#ifdef GENTIME
@@ -65,24 +60,28 @@ void allocateMemTM(void){
 	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
         sprintf(gfile->fdatapath,"data_manipulation/");
 
-	#if(TV==1)
-        param[0]=Fvert;
-	#else
+	/**file name components**/
+
+        char *ngeral=(char *)calloc(250,sizeof(char));
+        char *ntneg = (char *)calloc(50,sizeof(char));
+	int npar=5;
+        char nparam[npar][10];
+        double param[npar];
         param[0]=Bacv;
-	#endif
         param[1]=spar->cost;
         param[2]=spar->mu;
         param[3]=spar->mig;
+        param[4]=Fmin;
         
-	for(i=0; i<4; ++i){
-                if(param[i]==0){
+	for(i=0; i<npar; ++i){
+                if(param[i]==0.){
                         sprintf(nparam[i],"0");
                 }else{
                         sprintf(nparam[i],"1e%d",(int)log10(param[i]));
                 }
         }
 	#if(TV==1)
-        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_LM%d_Fv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,WLMicr,nparam[0],nparam[1],nparam[2],nparam[3],spar->migh);
+        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->migh);
 	#else
         sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->migh);
 	#endif
@@ -92,9 +91,8 @@ void allocateMemTM(void){
 	#else
 	sprintf(ntneg,"");
 	#endif
-        sprintf(gfile->fname,"%s%s%s",ngeral,nevo,ntneg);
+        sprintf(gfile->fname,"%s%s",ngeral,ntneg);
         free(ngeral);
-        free(nevo);
         free(ntneg);
 
 	return;
@@ -105,10 +103,10 @@ void allocateMemTM(void){
 *************************************************/
 void freeMemTM(void){
 	
-	free(gfile->fname);
-	free(gfile->fdatapath);
 	if(gfile->file!=NULL)fclose(gfile->file);
-	free(gfile);
+	if(gfile->fname!=NULL)free(gfile->fname);
+	if(gfile->fdatapath!=NULL)free(gfile->fdatapath);
+	if(gfile!=NULL)free(gfile);
 	#ifdef GENTIME
 	for(i=0; i<N; ++i){
 		free(timeR[i]);
@@ -117,8 +115,8 @@ void freeMemTM(void){
 	free(nR);
 	#endif
 	#ifdef DIFBACOMPxT
-	free(offcomp->vecf);
-        free(offcomp);
+	if(offcomp->vecf!=NULL)free(offcomp->vecf);
+        if(offcomp!=NULL)free(offcomp);
 	#endif
 
 	return;
@@ -233,7 +231,7 @@ void openFiles(void){
 #ifdef DIFBACOMPxT
         while(ok==0){
 		#if (OFFCOMP==0)
-                sprintf(name,"%spkcompdifXt_%s_Nb%d_%ld.dat",gfile->fdatapath,gfile->fname,SAMPLE,id);
+                sprintf(name,"%soffdifXt_%s_Nb%d_%ld.dat",gfile->fdatapath,gfile->fname,SAMPLE,id);
 		#else
                 sprintf(name,"%soffainvXt_%s_Nb%d_%ld.dat",gfile->fdatapath,gfile->fname,SAMPLE,id);
 		#endif
@@ -246,7 +244,7 @@ void openFiles(void){
                 }
         }
 	#if (OFFCOMP==0)
-	sprintf(name,"%spkcompdifXt_%s_Nb%d_%ld.dat",gfile->fdatapath,gfile->fname,SAMPLE,id);
+	sprintf(name,"%soffdifXt_%s_Nb%d_%ld.dat",gfile->fdatapath,gfile->fname,SAMPLE,id);
 	#else
 	sprintf(name,"%soffainvXt_%s_Nb%d_%ld.dat",gfile->fdatapath,gfile->fname,SAMPLE,id);
 	#endif
@@ -787,29 +785,32 @@ void genHostTime(void){
 void averInvXrh(Event *event){
 	int i,idh,nh,steady;
         int ok=0,namelen,dnl;
-	double rh,drh=0.05,eps=1e-2,tot_micr,stats[2];
+	double rh,drh=0.05,eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
 	double ttrans=stime->transtime;
-	double param[5];
+	int npar=5;
+	double param[npar];
 	unsigned long id;
-        char nparam[5][10];
+        char nparam[npar][10];
 	
        
 	/******seting file*************************************/ 
-        gfile=malloc(sizeof(GenFile));
+        //generic file struct
+	gfile=malloc(sizeof(GenFile));
 	if (!gfile) { perror("malloc"); exit(1);}
         gfile->fnsize=400;
         gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
 	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
         sprintf(gfile->fdatapath,"data_manipulation/");
 	
+	//file name components
         param[0]=Bacv;
         param[1]=spar->cost;
         param[2]=spar->mu;
         param[3]=spar->mig;
 	param[4]=Fmin;
 
-        for(i=0; i<5; ++i){
+        for(i=0; i<npar; ++i){
                 if(param[i]==0.){
                         sprintf(nparam[i],"0");
                 }else{
@@ -847,7 +848,7 @@ void averInvXrh(Event *event){
 
 	avinv=malloc(sizeof(DynVec));
 	if (!avinv) { perror("malloc"); exit(1);}
-	avinv->sizef=SAMPLE+1;
+	avinv->sizef=stime->timewindow/stime->tinterval+1;
 	avinv->usizef=0;
 	avinv->vecf=(double *)calloc(avinv->sizef,sizeof(double));
 
@@ -859,7 +860,6 @@ void averInvXrh(Event *event){
 	while(rh<=1.){
 		setCI();
 
-		stime->Tnow=0.;
 		stime->saveT=ttrans;
 		stime->Tf=stime->saveT+twind;
 		steady=0;
@@ -885,9 +885,9 @@ void averInvXrh(Event *event){
 		}
 		
 		fprintf(gfile->file,"%f %f %f %d %f %f\n",rh,stats[0],stats[1],nh,stime->Tf,tot_micr);
+		fflush(gfile->file);
 		printf("%f %f %f %d %f %f\n",rh,stats[0],stats[1],nh,stime->Tf,tot_micr);
 		
-//		memset(avinv->vecf,0.,sizeof(double)*avinv->sizef);
 		avinv->usizef=0;
 
 		rh+=drh;
@@ -926,8 +926,7 @@ void timeMeasures(void){
         #ifdef AVERINVxT
 	if((stime->Tnow>=stime->saveT-err)&&(stime->Tnow<=stime->saveT+err)){
 		averInvestmentXt();
-		double interval=stime->timewindow/(double)SAMPLE;
-		stime->saveT=stime->Tnow+interval;
+		stime->saveT+=stime->tinterval;
 	}
         #endif
         #ifdef MEANBFRACxT
@@ -956,15 +955,13 @@ void timeMeasures(void){
 	#ifdef NUMHEVENTSxT
 	if((stime->Tnow>=stime->saveT-err)&&(stime->Tnow<=stime->saveT+err)){
 		numHostEventsPerDtXt();
-		double interval=stime->timewindow/(double)SAMPLE;
-		stime->saveT=stime->Tnow+interval;
+		stime->saveT+=stime->tinterval;
 	}
         #endif
 	#ifdef CORRxT
 	if((stime->Tnow>=stime->saveT-err)&&(stime->Tnow<=stime->saveT+err)){
 		spatialCorrXt();
-		double interval=stime->timewindow/(double)SAMPLE;
-		stime->saveT=stime->Tnow+interval;
+		stime->saveT+=stime->tinterval;
 	}
         #endif
 	#ifdef GENTIME

@@ -55,8 +55,8 @@ void bacDyn(int idh,double dt,DynList *liveviz,double **btmp,double time){
 	double birth,death,migr_in,migr_out,func;
 	
 	double mut=spar->mu;//mutation rate
-        double birthr=spar->beta;//birth rate of a neutral bacteria
-        double deathr=spar->delta;//bacteria death rate
+        double birthr=Beta;//birth rate of a neutral bacteria
+        double deathr=Delta;//bacteria death rate
         double mig=spar->mig;//migration rate
 
 
