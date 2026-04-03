@@ -23,8 +23,7 @@ int main(void){
 #ifdef TMEAS
 	allocateMemTM();
 	stime->saveT=0.;
-	#if defined(SAVE_CONFIG)||defined(INV_DIST)
-	stime->Tf=stime->save+stime->timewindow+1.;	
+	#if defined(SAVE_CONFIG)||defined(INV_DIST)	
 	callSysDynamics(&event);
 	#elif defined(CORRxT)||defined(NUMHEVENTSxT)||defined(GENTIME)||(DIFBACOMPxT)
         openFiles();
@@ -32,7 +31,11 @@ int main(void){
 	closeFiles();
 	#else
 	int i;
+	stime->Tf=TF;
+	stime->tinterval=10.;
 	for(i=0; i<SAMPLE; ++i){
+		stime->saveT=0.;
+		stime->Tnow=0.;
         	openFiles();
 		
 		#if (CI!=2)
@@ -100,6 +103,7 @@ void freeMemory(void){
 
 	free(alive_viz->vec);
 	free(alive_viz);
+	free(rho_e);
 
 #endif
 	free(event.ratesE);

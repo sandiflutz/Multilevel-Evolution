@@ -5,9 +5,16 @@
 *****************************************************************/
 double calcAcumInvest(int index);
 /****************************************************
-* Calculates the host event rates: birth and death  *
+* Calculates the host reproduction and death rates  *
 *****************************************************/
-void calcHostEvents(Event *event);
+void calcHostRates(Event *event);
+/****************************************************************
+*   For non well-mixed cases:                                   *
+*   each host event rate, associated to host @i, is             *
+*   substituted by the average host rate in the group centered  *
+*   on @i                                                       *
+*****************************************************************/
+void setAverGrRate(Event *event);
 /****************************************************************
 *     Set microbial frequencies for the offspring of host @idp 	*
 *     Bacteria types and their frequencies are randomly        	*
@@ -44,15 +51,6 @@ void hostBirth(int idp, int idk);
 *       death of a host                               *
 *******************************************************/
 void hostDeath(int idh);
-/************************************************
-*       After a host is chosen to               *
-*       reproduce, it has a probability         *
-*       to reproduce that depends on the        *
-*       number of empty sites available         *
-*       to them. This routine returns           *
-*       this probability                        *
-*************************************************/
-double birthFunc(int ne,int nemax,int whichfunc);
 /****************************************
 *       moviment of hosts:              *
 *       2 neighbors exchange places     *
@@ -73,10 +71,34 @@ double adjustTimeStep(double maxprob);
  ****************************************************************/
 int hostNTSPerBacNTS(Event *event);
 /****************************************************************
+*       Update group vacancy frequency centered on site @idh    *
+*       due to a change in its state:                           *
+*       if site @idh is occupied, means there was a decrease    *
+*       in the number of empty sites in the group, otherwise,   *
+*       there was an increase.                                  *
+*****************************************************************/
+void updateEmptySpaceGrFreq(int idh);
+/********************************************************
+*       Choose site for migration:                      *
+*       states of sites @idm and one chosen are         *
+*       exchanged. Choice randomly chooses a            *
+*       neighboring site, according to probabilities    *
+*       that depend on vacancy (VIZ=#of neighbors):     *
+*               -prob[i]=1/VIZ, if neighbor is empty,   *
+*               -prob[i]=rho_e[i]/VIZ, otherwise        *
+*********************************************************/
+int chooseMigSite(int idm);
+/************************************************
+*       Dynamics for host migration events      *
+*       that happen in a Dt_ref (=microbial     *
+*       time step)                              *
+*************************************************/
+void hostMigrationDynamics(int dnumsteps,Event *event);
+/****************************************************************
 *       Host Layer Evolution (for a time interval=Dt_ref) for   *
 *       the complete graph version                              *
 *****************************************************************/
-int evolveHostCG(int dnumsteps,Event *event);
+void evolveHostCG(int dnumsteps,Event *event);
 /****************************************************************
 *       Host Layer Evolution (for a time interval=Dt_ref) for   *
 *       the lattice version                                     *

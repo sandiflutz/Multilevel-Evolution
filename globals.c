@@ -3,9 +3,8 @@
 #include"globals.h"
 int *host = NULL;
 int **neighbor = NULL;
-int **clneighbor = NULL;
-int *netlink = NULL;
-int *inverselisth=NULL;
+int *inverselisth = NULL;
+double *rho_e = NULL;
 double **bac = NULL;
 double **costvec;
 double *dtVec = NULL;

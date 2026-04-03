@@ -33,7 +33,7 @@ void allocateMemTM(void){
 	#ifdef GENTIME
 	meas->timegh=0.;
 	meas->ngh=0;
-	meas->nR =(double *)calloc(N,sizeof(double));
+	meas->nR =(int *)calloc(N,sizeof(int));
 	meas->timeR =(double **)calloc(N,sizeof(double *));
 	for(i=0; i<N; ++i){
 		meas->timeR[i]=(double *)calloc(10,sizeof(int));
@@ -81,9 +81,9 @@ void allocateMemTM(void){
                 }
         }
 	#if(TV==1)
-        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->migh);
+        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->mh);
 	#else
-        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->migh);
+        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
 	#endif
                 
 	#if (Tneg>0)
@@ -244,7 +244,7 @@ void openFiles(void){
                 }
         }
 	#if (OFFCOMP==0)
-	sprintf(name,"%soffdifXt_%s_Nb%d_%ld.dat",gfile->fdatapath,gfile->fname,SAMPLE,id);
+	sprintf(name,"%savfinvpkdifXt_%s_Nb%d_%ld.dat",gfile->fdatapath,gfile->fname,SAMPLE,id);
 	#else
 	sprintf(name,"%soffainvXt_%s_Nb%d_%ld.dat",gfile->fdatapath,gfile->fname,SAMPLE,id);
 	#endif
@@ -363,7 +363,7 @@ void storeBacDiffComp(int idp,int idk){
         new=0;
         for(j=0; j<TYPES; ++j){
                 if(bac[idp][j]!=0.){
-			mdiff+=bac[idp][j]-bac[idk][j];
+			mdiff+=spar->inv[j]*(bac[idp][j]/spar->micr[idp]-bac[idk][j]/spar->micr[idk]);
                         ++new;
                 }
         }
@@ -734,7 +734,7 @@ void difMicrCompXt(void){
 
 	if(stime->Tnow==0.){
 		#if (OFFCOMP==0)
-		fprintf(gfile->file,"#1:time 2:mean parent-kid bac. comp. diff.  3:stardart deviation 4:average invest. 5:sample (#of repr.) 6:nh 7:nh/N\n");
+		fprintf(gfile->file,"#1:time 2:average dif. between parent-offspring freqInv 3:stardart deviation 4:average invest. 5:sample (#of repr.) 6:nh 7:nh/N\n");
 		#else
 		//<w[offspring]/micr[offcalcAverInvspring]> is the mean of the acumulated investment divided by the amount of microbes received by newborns (average of last @SAMPLE reproductions)
 		fprintf(gfile->file,"#1:time 2:<w[offpring]/micr[offspring]>  3:stardart deviation 4:average invest. 5:sample (#of repr.) 6:nh 7:nh/N\n");
@@ -819,9 +819,9 @@ void averInvXrh(Event *event){
         }
 
 	#if (TV==1)
-	sprintf(gfile->fname,"N%d_Ty%d_Tp%d_Tn%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,NETWORK,Gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->migh);
+	sprintf(gfile->fname,"N%d_Ty%d_Tp%d_Tn%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,NETWORK,Gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->mh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_Tp%d_Tn%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->migh);
+	sprintf(gfile->fname,"N%d_Ty%d_Tp%d_Tn%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -924,10 +924,10 @@ void timeMeasures(void){
 	}
         #endif
         #ifdef AVERINVxT
-	if((stime->Tnow>=stime->saveT-err)&&(stime->Tnow<=stime->saveT+err)){
+//	if((stime->Tnow>=stime->saveT-err)&&(stime->Tnow<=stime->saveT+err)){
 		averInvestmentXt();
-		stime->saveT+=stime->tinterval;
-	}
+//		stime->saveT+=stime->tinterval;
+//	}
         #endif
         #ifdef MEANBFRACxT
 	if((stime->Tnow<=stime->Tf)){
@@ -938,7 +938,7 @@ void timeMeasures(void){
 	if((stime->Tnow>=stime->saveT-err)&&(stime->Tnow<=stime->saveT+err)){
 		printf("Time of measure:%f,  ",stime->Tnow);
 		save_config();
-		double interval=stime->timewindow/(double)NF;
+		double interval=stime->Tf/(double)NF;
 		stime->saveT=stime->Tnow+interval;
 		printf("Next time:%f\n",stime->saveT);
 	}

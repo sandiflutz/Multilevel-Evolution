@@ -1,24 +1,21 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
-#include <stdbool.h>
+#include<stdbool.h>
 #include<assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
 #include"tools.h"
 /************************************************************************************
 *                 Defining global constants and macros                              *
 *************************************************************************************/
 //parameters for the dynamics 
-#define EVO			1		/*0: stochastic dt for the host layer and complete graph 
-						 *1: stochastic dt for the host layer and complete graph and square lattice
+#define EVO			1		/*0: complete graph 
+						 *1: square lattice
 						 */ 
 #define TAB             	0		/*for choosing which set of values for some of the parameters to use: 1 or 2 for the specified fixed values below, and anything else for manually choosing*/
 
-#define Mh        		0.		/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
-#define	BFunc			0		/*to decide which host birth function of the frequency of available empty sites:
-						 *0: fb(x)=H(x) (heaviside step function)
-						 *1: fb(x)=x*/	
+#define Mh        		1.0		/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
 
 #if (TAB==1)
 	#define Mu        	1e-09		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
@@ -35,13 +32,13 @@
 #else
 	#define Mu        	1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
 	#define Theta     	1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-	#define K_H      	500		/*carrying capacity for the host layer*/
+	#define K_H      	5000		/*carrying capacity for the host layer*/
 	#define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
 	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #endif
 
 #define Fvert			Bacv		/*if TV=1, and host parents loose part of their bacteria to their children, Fvert is the fraction os bacteria give away*/
-#define Fmin			1e-04		/*if TV=1, a type of bacteria can only be vertically transmitted if its frequency in the donner is >Fmin*/
+#define Fmin			1e-03		/*if TV=1, a type of bacteria can only be vertically transmitted if its frequency in the donner is >Fmin*/
 #define SIGMA     		0.05		/*standart deviation of the trucated normal distribution for the inheritance of helpful microbes*/
 #define DTVSIZE   		19		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
 						 *paper uses 19 when TYPES=2 and 29 otherwise (??)*/
@@ -104,7 +101,7 @@
 						 *3: all types of bacteria start with a fixed fraction of 1/TYPES */
 #endif
 /***Routine Choices*********************************************************************************************************************************************************************************/
-#define TV			1	/*rule for vertical transmission: (for TYPES==2 choose 0 or 2)
+#define TV			2	/*rule for vertical transmission: (for TYPES==2 choose 0 or 2)
 					 *0=normal dist. (around parent bac. type freq.) 
 					 *1=normal dist. (around parent bac. type freq.) with the host parent loosing a fraction of their bacteria to their offspring
 					 *2=poisson distribuition for the number of times a type of bacteria from the parent host is chosen for the sample passed to the offspring*/
@@ -114,11 +111,11 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			50000.         /*host maximum time (measured using continuous values for the times steps)*/
+#define TF			20000.         /*host maximum time (measured using continuous values for the times steps)*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 					 	* 0:png (good for creating animations later)
 						* 1:eps*/
-#define NF			1000		/*number of files for routines that create scripts for images*/
+#define NF			10000		/*number of files for routines that create scripts for images*/
 #define NInterv			1000		/*Ninterv*Dt_ref=time interval between snapshots taken*/
 #define NTf_me			10000		/*time (in #of time steps) to stop a measure*/
 #define NT0_me			0		/*time to start a measure*/
@@ -163,7 +160,7 @@ typedef struct{
         double mu;//bacteria mutation rate
         double cost;//cost of helping for an ideal helper bacteria
         double mig;//bacteria migration rate
-        double migh;//host migration coeficient
+        double mh;//host migration coeficient
 	double sigma;
 	double fmin;
 	double *inv;
@@ -172,8 +169,6 @@ typedef struct{
 
 typedef struct{
         int sizeE;//maximum number of host events: birth and death to each host (=2*#ofsites in the system)
-        int usizeE;//number of host events counting just the number of live hosts  
-        int whichE;//index of the last event chosen
         double *ratesE;//vector for the host event rates
         double *cprobE;//vector for the cumulative probabilities of each host event
 } Event;
@@ -190,12 +185,12 @@ typedef struct{
 *  Structs related to Measures             *
 *******************************************/
 typedef struct{
-	double timegh;//generation time
-	int ngh;
-	double **timeR;
-	double *nR;
 	int numb;
 	int numd;
+	int ngh;
+	int *nR;
+	double timegh;//generation time
+	double **timeR;
 } EvMeasures;
 typedef struct{
 	int fnsize;
@@ -208,8 +203,8 @@ typedef struct{
  ***************************************************/
 extern int *host;
 extern int **neighbor;
-extern int **clneighbor;
 extern int *inverselisth;
+extern double *rho_e;
 extern double **bac;
 extern double **costvec;
 extern double *dtVec;

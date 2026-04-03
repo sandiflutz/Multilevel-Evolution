@@ -553,7 +553,6 @@ int selectEvent(double nr,double *event,int size){
 	cprob=(double *)calloc(size,sizeof(double));
 	cumulProb(size,event,cprob);
 
-      //  nr=FRANDOM*cprob[size-1];
         id=upperBoundStrict(nr, cprob, size);
 
 	free(cprob);
@@ -567,7 +566,6 @@ int selectEvent(double nr,double *event,int size){
 int selectEventCP(double nr,double *cprob,int size){
         int id;
 
-      //  nr=FRANDOM*cprob[size-1];
         id=upperBoundStrict(nr, cprob, size);
 
 	return id;

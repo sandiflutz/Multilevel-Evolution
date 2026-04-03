@@ -16,20 +16,35 @@ void allocateMemory(Event *event){
         int i;
 	int e0,ef,m0,mf;//variable related to the range of dtVec: [m0*10^e0;mf*10^ef]
 
+	/*host network*/
         host=(int *)calloc(N,sizeof(int));
 	memset(host,0,sizeof(int)*N);
+	
+	#if (NETWORK!=0)//not the well-mixed/complete graph case
+	/*network array: e.g. neighbor[k][idh]=idh_viz (label of the k-th neighbor of host @idh is @idh_viz)*/
+	neighbor=(int **)calloc(N,sizeof(int *));
+	for(i=0; i<N; ++i){
+                neighbor[i]=(int *)calloc(VIZ,sizeof(int));
+        }
+	/*vector that stores the frequency of empty sites in each group @i, centered on site @i */
+	rho_e=(double *)calloc(N,sizeof(double));
+        #endif
         
+	/*microbial abundance matrix: bac[i:host index][j:type of bacteria index]*/
         bac=(double **)calloc(N,sizeof(double *));
 	for(i=0; i<N; ++i){
         	bac[i]=(double *)calloc(TYPES,sizeof(double));
 	}
+	/*cost vector: proportional to the cost constant gamma*/
         costvec=(double **)calloc(N,sizeof(double *));
 	for(i=0; i<N; ++i){
         	costvec[i]=(double *)calloc(TYPES,sizeof(double));
 	}
 	
+	/**/	
 	inverselisth=(int *)calloc(N,sizeof(int));
 
+	/*subtimestep vector, to adjust number of times steps for host events*/
 	dtVec=(double *) calloc(DTVSIZE,sizeof(double));
 	m0=1;
 	e0=-7;
@@ -49,7 +64,7 @@ void allocateMemory(Event *event){
         if (!spar) { perror("malloc"); exit(1);}
 	spar->kh=K_H;
 	spar->gh=Gh;
-	spar->migh=Mh;
+	spar->mh=Mh;
 	spar->kbac=K_bac;
 	spar->mu=Mu;
 	spar->cost=Gamma;
@@ -68,13 +83,6 @@ void allocateMemory(Event *event){
 	stime->transtime=15000.;
 	stime->timewindow=5000.;
 	stime->dth=Dt_ref;
-	//host events struct
-	event->sizeE=2*N;
-	event->usizeE=0;
-	event->ratesE=(double *)calloc(event->sizeE,sizeof(double));
-	memset(event->ratesE,0.,sizeof(double)*event->sizeE);
-	event->cprobE=(double *)calloc(event->sizeE,sizeof(double));
-	memset(event->cprobE,0.,sizeof(double)*event->sizeE);
 
 	//lists structs
         listh = malloc(sizeof(DynList));
@@ -84,11 +92,6 @@ void allocateMemory(Event *event){
         listh->usize=0;
 
 	#if (NETWORK!=0)//not the well-mixed/complete graph case
-	/*network array: e.g. neighbor[k][idh]=idh_viz (label of the k-th neighbor of host @idh is @idh_viz)*/
-	neighbor=(int **)calloc(N,sizeof(int *));
-	for(i=0; i<N; ++i){
-                neighbor[i]=(int *)calloc(VIZ,sizeof(int));
-        }
 	alive_viz = malloc(sizeof(DynList));
         if (!alive_viz) { perror("malloc"); exit(1);}
         alive_viz->vec=(int *)calloc(VIZ+1,sizeof(int));//max. number of neighbor + focus host
@@ -144,7 +147,7 @@ void initialStateFixedFrac(void){
 *   are uniformly distributed                        *
 *****************************************************/
 void initialStateUniD(void){
-       int i,j,nh=0,ne=0;
+       int i,j,k,idviz,nh=0,ne=0;
         double norm,p_oc;
 
 	for(i=0; i<N; ++i){
@@ -154,7 +157,13 @@ void initialStateUniD(void){
 
 	p_oc=(double)H0/N;
 
-        for(i=0; i<N; ++i){
+	#if (NETWORK!=0)//not well-mixed
+	for(i=0; i<N; ++i){
+		rho_e[i]=0.;
+	}
+	#endif
+        
+	for(i=0; i<N; ++i){
 		if(FRANDOM<p_oc){
                         host[i]=1;
 			listh->vec[nh]=i;
@@ -176,6 +185,12 @@ void initialStateUniD(void){
 			++ne;
 			memset(bac[i],0.,sizeof(double)*TYPES);
 			spar->micr[i]=0.;
+			#if (NETWORK!=0)//not well-mixed
+			for(k=0; k<VIZ; ++k){
+				idviz=neighbor[i][k];
+				rho_e[idviz]+=1./(1.+VIZ);
+			}
+			#endif
 		}
         }
 
@@ -190,7 +205,7 @@ void initialStateUniD(void){
 * 	distribution with x=(investment[j]-mean)/stdinv   *
 ***********************************************************/
 void initialStateNormD(void){
-       int i,j,nh=0,ne=0;
+       int i,j,k,idviz,nh=0,ne=0;
         double x,*bacinit;
         double norm,p_oc;
 
@@ -212,6 +227,11 @@ void initialStateNormD(void){
 		bacinit[j]*=Bac0/norm;
 	}
 
+	#if (NETWORK!=0)//not well-mixed
+	for(i=0; i<N; ++i){
+		rho_e[i]=0.;
+	}
+	#endif
 	p_oc=(double)H0/N;
 
         for(i=0; i<N; ++i){
@@ -231,6 +251,12 @@ void initialStateNormD(void){
 			++ne;
 			memset(bac[i],0.,sizeof(double)*TYPES);
 			spar->micr[i]=0.;
+			#if (NETWORK!=0)//not well-mixed
+			for(k=0; k<VIZ; ++k){
+				idviz=neighbor[i][k];
+				rho_e[idviz]+=1./(1.+VIZ);
+			}
+			#endif
 		}
         }
 
