@@ -25,10 +25,10 @@ double calcAcumInvest(int index){
 
         return cinv;
 }
-/****************************************************
-* Calculates the host reproduction and death rates  *
-*****************************************************/
-void calcHostRates(Event *event){
+/********************************************************
+*       Set host birth-death rates                      *
+*********************************************************/
+void setIndividualHostRates(Event *event){
         int i,idh,nh;
 	int gh=spar->gh;
 	int kh=spar->kh;
@@ -39,15 +39,11 @@ void calcHostRates(Event *event){
 
 	nh=listh->usize;//number of hosts
 
-
-
 	w=(double *)calloc(nh,sizeof(double));//vector for the accumulated investments of each live host
 
         event->sizeE=(2*nh);//# of possible host events (birth or death for each host)
 
 	event->ratesE=(double *)calloc(event->sizeE,sizeof(double));
-        memset(event->ratesE,0.,sizeof(double)*event->sizeE);
-	event->cprobE=(double *)calloc(event->sizeE,sizeof(double));
 
         //birth events
 	for(i=0; i<nh; ++i){
@@ -61,11 +57,6 @@ void calcHostRates(Event *event){
 		event->ratesE[i]=beta*(1.-sd*w[i-nh])*nh/((double)kh*gh);
 	}
 
-	#if (NETWORK==0)//well-mixed
-	cumulProb(event->sizeE,event->ratesE,event->cprobE);
-	#else
-	setAverGrRate(event);
-	#endif
 
 	free(w);
         return;
@@ -79,13 +70,18 @@ void calcHostRates(Event *event){
 *   	-Death: (1-rho_e[i])					*
 *   	(rho_e[i]=fraction of empty sites in @i's group)	*
 *****************************************************************/
-void setAverGrRate(Event *event){
+void setGrRates(Event *event,Event *mevent){
 	int i,k,idh,idviz,idlistv,nh,na;
 	double *effective_rate = NULL;
 
 	nh=listh->usize;
 
 	effective_rate=(double *)calloc(2*nh,sizeof(double));
+
+	if(spar->mh>0.){
+		mevent->sizeE=nh;
+		mevent->ratesE=(double *)calloc(mevent->sizeE,sizeof(double));
+	}
 
 	for(i=0; i<nh; ++i){
 		idh=listh->vec[i];
@@ -104,17 +100,28 @@ void setAverGrRate(Event *event){
 
 	for(i=0; i<nh; ++i){
 		idh=listh->vec[i];
-		event->ratesE[i]=effective_rate[i];
-		effective_rate[i]*=rho_e[idh];
+		event->ratesE[i]=effective_rate[i]*rho_e[idh];
+		if(spar->mh>0.){
+			mevent->ratesE[i]=effective_rate[i]*(1.-rho_e[idh]);
+		}
 	}
 	for(i=nh; i<2*nh; ++i){
 		idh=listh->vec[i-nh];
-		effective_rate[i]=event->ratesE[i]*(1.-rho_e[i]);
+		event->ratesE[i]*=(1.-rho_e[idh]);
 	}
 		
-	cumulProb(event->sizeE,effective_rate,event->cprobE);
 
 	free(effective_rate);
+	return;
+}
+/****************************************************************
+*       set cumulative rates for host events                    *
+*****************************************************************/
+void setCumulativeRates(Event *event){
+	
+	event->cprobE=(double *)calloc(event->sizeE,sizeof(double));
+	cumulProb(event->sizeE,event->ratesE,event->cprobE);
+
 	return;
 }
 /****************************************************************
@@ -391,9 +398,8 @@ int hostNTSPerBacNTS(Event *event){
 *	there was an increase.					*
 *****************************************************************/
 void updateEmptySpaceGrFreq(int idh){
-	int k,idviz,gsize,sign;
+	int k,idviz,sign;
 	
-	gsize=1+VIZ;
 
 	if(host[idh]==1){//if site is occupied, fraction of empty sites decreases 
 		sign=-1;
@@ -403,7 +409,7 @@ void updateEmptySpaceGrFreq(int idh){
 
 	for(k=0; k<VIZ; ++k){
 		idviz=neighbor[idh][k];
-		rho_e[idviz]+=(double)sign*1./gsize;
+		rho_e[idviz]+=(double)sign*1./VIZ;
 	}
 
 	return;
@@ -448,31 +454,21 @@ int chooseMigSite(int idm){
 *	that happen in a Dt_ref (=microbial	*
 *	time step)				*
 *************************************************/
-void hostMigrationDynamics(int dnumsteps,Event *event){
+void hostMigrationDynamics(int dnumsteps,Event *mevent){
 	int i,idh,idlist,idk,idlistk,nh,nm;
 	double nr,pm;
 	double mh=spar->mh;
 	int *listm = NULL;
-	double *mrates = NULL;
-	double *mcprob = NULL;
 	
 	nh=listh->usize;
-	mrates=(double *)calloc(nh,sizeof(double));
-	mcprob=(double *)calloc(nh,sizeof(double));
 	listm=(int *)calloc(dnumsteps,sizeof(int));
 	nm=0;
 
-	for(i=0; i<nh; ++i){
-		idh=listh->vec[i];
-		mrates[i]=(1.-rho_e[idh])*mh*event->ratesE[i];//host mig. rate is proportional to repr. rate (the @nh first events are repr. events)
-	}
-	cumulProb(nh,mrates,mcprob);
-
 	for(i=0; i<dnumsteps; ++i){
 		nr=FRANDOM;
-		pm=mcprob[nh-1]*stime->dth;
+		pm=mevent->cprobE[nh-1]*mh*stime->dth;
 		if(nr<pm){
-			idlist=selectEventCP(nr,mcprob,nh);//selects a host for future migration
+			idlist=selectEventCP(nr,mevent->cprobE,nh);//selects a host for future migration
 			listm[nm]=idlist;//storing its listh's id to keep track of its state and not the physical position
 			++nm;
 		}
@@ -494,10 +490,7 @@ void hostMigrationDynamics(int dnumsteps,Event *event){
 		}
 
 	}
-	
 
-	free(mrates);
-	free(mcprob);
 	free(listm);
 	return;
 }
@@ -706,8 +699,8 @@ void evolveHostSL(int dnumsteps,Event *event){
 /****************************************
 *          general time loop            *
 *****************************************/
-void callSysDynamics(Event *event){
-        int i,numsteps,nh,nevents,dnumsteps;
+void callSysDynamics(Event *event, Event *mevent){
+        int i,numsteps,nh,dnumsteps;
 
         numsteps=0;
         nh=listh->usize;
@@ -729,27 +722,40 @@ void callSysDynamics(Event *event){
 				stime->saveT+=10.;
                         }
                 #endif
-
-		event->sizeE=2*nh;
-                calcHostRates(event);
-                dnumsteps=hostNTSPerBacNTS(event);
-		free(event->cprobE);
+		
+		setIndividualHostRates(event);
                 #if (EVO==0)//complete graph with adjustable host dt
+		setCumulativeBDrates(event);
+		dnumsteps=hostNTSPerBacNTS(event);
+		for(i=0; i<event->sizeE; ++i){
+			event->cprobE[i]*=stime->dth;
+		}
                 evolveHostCG(dnumsteps,event);
+		free(event->ratesE);
+		freeVecsEvent(event);
+
                 #elif (EVO==1)//square lattice with adjustable host dt
+		setGrRates(event,mevent);//group rates for birth, death and migration events
+		setCumulativeRates(event);
+		dnumsteps=hostNTSPerBacNTS(event);
+		freeVecsEvent(event);
 		if(spar->mh>0.){
-			hostMigrationDynamics(dnumsteps,event);
+			setCumulativeRates(mevent);//cumulative rates for migration events
+			hostMigrationDynamics(dnumsteps,mevent);
+			freeVecsEvent(mevent);
 			//update host rates and probs (since maxprox prob. doesn't change, time substep is the same)
-			free(event->ratesE);
-			calcHostRates(event);
+			setIndividualHostRates(event);
+			setGrRates(event,mevent);
+			setCumulativeRates(event);
                 	for(i=0; i<event->sizeE; ++i){
                         	event->cprobE[i]*=stime->dth;
                 	}
 		}
                 evolveHostSL(dnumsteps,event);
 			
-		free(event->ratesE);
-		free(event->cprobE);
+			
+			
+		freeVecsEvent(event);
                 #endif
 
                 nh=listh->usize;
@@ -780,3 +786,16 @@ void callSysDynamics1H(Event *event){
 
         return;
 }
+/****************************************
+*  Free allocated memory for vectors	*
+*  that are part of an Event struct	*
+*****************************************/ 
+void freeVecsEvent(Event *event){
+
+	free(event->ratesE);
+	free(event->cprobE);
+	event->ratesE=NULL;
+	event->cprobE=NULL;
+
+	return;
+}	

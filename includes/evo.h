@@ -4,17 +4,21 @@
 *     calculates the accumulated investment in host @index      *
 *****************************************************************/
 double calcAcumInvest(int index);
-/****************************************************
-* Calculates the host reproduction and death rates  *
-*****************************************************/
-void calcHostRates(Event *event);
+/********************************************************
+*	Set host birth-death rates  			*
+*********************************************************/
+void setIndividualHostRates(Event *event);
 /****************************************************************
 *   For non well-mixed cases:                                   *
 *   each host event rate, associated to host @i, is             *
 *   substituted by the average host rate in the group centered  *
 *   on @i                                                       *
 *****************************************************************/
-void setAverGrRate(Event *event);
+void setGrRates(Event *event,Event *mevent);
+/****************************************************************
+*       set cumulative rates for host events        		*
+*****************************************************************/
+void setCumulativeRates(Event *event);
 /****************************************************************
 *     Set microbial frequencies for the offspring of host @idp 	*
 *     Bacteria types and their frequencies are randomly        	*
@@ -93,7 +97,7 @@ int chooseMigSite(int idm);
 *       that happen in a Dt_ref (=microbial     *
 *       time step)                              *
 *************************************************/
-void hostMigrationDynamics(int dnumsteps,Event *event);
+void hostMigrationDynamics(int dnumsteps,Event *mevent);
 /****************************************************************
 *       Host Layer Evolution (for a time interval=Dt_ref) for   *
 *       the complete graph version                              *
@@ -107,9 +111,14 @@ void evolveHostSL(int dnumsteps,Event *event);
 /****************************************
 *          general time loop            *
 *****************************************/
-void callSysDynamics(Event *event);
+void callSysDynamics(Event *event,Event *mevent);
 /****************************************
 *          1 host time loop             *
 *****************************************/
 void callSysDynamics1H(Event *event);
+/****************************************
+*  Free allocated memory for vectors    *
+*  that are part of an Event struct     *
+*****************************************/
+void freeVecsEvent(Event *event);
 #endif

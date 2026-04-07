@@ -12,7 +12,8 @@
 void callSetSystem(void);
 void freeMemory(void);
 /******global variables*********************************************/
-Event event;
+Event event;//struct for birth-death events: rates, cumulative probabilities and number of events
+Event mevent;//struct for host migration events
 /****************Program's Routines*****************************/
 int main(void){
         
@@ -24,10 +25,10 @@ int main(void){
 	allocateMemTM();
 	stime->saveT=0.;
 	#if defined(SAVE_CONFIG)||defined(INV_DIST)	
-	callSysDynamics(&event);
+	callSysDynamics(&event,&mevent);
 	#elif defined(CORRxT)||defined(NUMHEVENTSxT)||defined(GENTIME)||(DIFBACOMPxT)
         openFiles();
-	callSysDynamics(&event);
+	callSysDynamics(&event,&mevent);
 	closeFiles();
 	#else
 	int i;
@@ -39,11 +40,12 @@ int main(void){
         	openFiles();
 		
 		#if (CI!=2)
-		callSysDynamics(&event);
+		callSysDynamics(&event,&mevent);
 		#else
 		callSysDynamics1H(&event);
 		#endif
 		
+		fprintf(gfile->file,"\n");
 		setCI();
 		closeFiles();
 	}
@@ -54,7 +56,7 @@ int main(void){
 	int i;
 	stime->saveT=0.;
 	for(i=0; i<SAMPLE; ++i){
-		averInvXrh(&event);
+		averInvXrh(&event,&mevent);
 	}
 #endif
 
@@ -66,7 +68,7 @@ int main(void){
  ******************************************/
 void callSetSystem(void){
 
-        setSystem(&event);
+        setSystem();
 
         return;
 }
@@ -106,8 +108,6 @@ void freeMemory(void){
 	free(rho_e);
 
 #endif
-	free(event.ratesE);
-	free(event.cprobE);
 	free(listh->vec);
 	free(inverselisth);
 

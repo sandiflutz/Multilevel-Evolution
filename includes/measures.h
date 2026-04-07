@@ -97,7 +97,7 @@ void genHostTime(void);
 *  Store in @SAMPLE files the average investment                *
 *  in the system as a function of the system carrying dilution  *
 *****************************************************************/
-void averInvXrh(Event *event);
+void averInvXrh(Event *event,Event *mevent);
 /***************************************************
 *  call routines that measure and store measures   *
 *  during the time loop                            *

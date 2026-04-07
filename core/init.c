@@ -12,7 +12,7 @@
 *     allocate memory for global arrays and structs        *
 *     initialize system parameters                         *
 ************************************************************/
-void allocateMemory(Event *event){
+void allocateMemory(void){
         int i;
 	int e0,ef,m0,mf;//variable related to the range of dtVec: [m0*10^e0;mf*10^ef]
 
@@ -80,8 +80,8 @@ void allocateMemory(Event *event){
 	stime->Tnow=0.;
 	stime->Tf=TF;
 	stime->tinterval=10.;
-	stime->transtime=15000.;
-	stime->timewindow=5000.;
+	stime->transtime=Ttrans;
+	stime->timewindow=Twin;
 	stime->dth=Dt_ref;
 
 	//lists structs
@@ -188,7 +188,7 @@ void initialStateUniD(void){
 			#if (NETWORK!=0)//not well-mixed
 			for(k=0; k<VIZ; ++k){
 				idviz=neighbor[i][k];
-				rho_e[idviz]+=1./(1.+VIZ);
+				rho_e[idviz]+=1./VIZ;
 			}
 			#endif
 		}
@@ -254,7 +254,7 @@ void initialStateNormD(void){
 			#if (NETWORK!=0)//not well-mixed
 			for(k=0; k<VIZ; ++k){
 				idviz=neighbor[i][k];
-				rho_e[idviz]+=1./(1.+VIZ);
+				rho_e[idviz]+=1./VIZ;
 			}
 			#endif
 		}
@@ -396,12 +396,12 @@ void setCI(void){
 /****************************************************************************
  *                     Build System                                         *
  ***************************************************************************/
-void setSystem(Event *event){
+void setSystem(void){
 	
         (void)start_randomic(0);
 
 	/*Allocating memory*/
-	allocateMemory(event);
+	allocateMemory();
 
 	/*setting hosts network*/	
 	#if(NETWORK==1)

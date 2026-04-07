@@ -4,7 +4,7 @@
 *     allocate memory for global arrays and structs        *
 *     initialize system parameters                         *
 ************************************************************/
-void allocateMemory(Event *event);
+void allocateMemory(void);
 /*****************************************************
 *   Populates Host and Microbial layer               *
 *   Bacterial layer: types of bacteria               *
@@ -52,5 +52,5 @@ void setCI(void);
 /****************************************************************************
 *                     Build System                                          *
 *****************************************************************************/
-void setSystem(Event *event);
+void setSystem(void);
 #endif

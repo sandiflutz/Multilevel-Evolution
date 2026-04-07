@@ -81,13 +81,13 @@ void allocateMemTM(void){
                 }
         }
 	#if(TV==1)
-        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->mh);
+        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->mh);
 	#else
-        sprintf(ngeral,"N%d_Ty%d_Tp%d_Tn%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
 	#endif
                 
 	#if (Tneg>0)
-	sprintf(ntneg,"_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
+	sprintf(ntneg,"_Tpos%d_Tneg%d_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",Tpos,Tneg,(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
 	#else
 	sprintf(ntneg,"");
 	#endif
@@ -103,10 +103,22 @@ void allocateMemTM(void){
 *************************************************/
 void freeMemTM(void){
 	
-	if(gfile->file!=NULL)fclose(gfile->file);
-	if(gfile->fname!=NULL)free(gfile->fname);
-	if(gfile->fdatapath!=NULL)free(gfile->fdatapath);
-	if(gfile!=NULL)free(gfile);
+	if(gfile->file!=NULL){
+		fclose(gfile->file);
+		gfile->file = NULL;
+	}
+	if(gfile->fname!=NULL){
+		free(gfile->fname);
+		gfile->fname = NULL;
+	}
+	if(gfile->fdatapath!=NULL){
+		free(gfile->fdatapath);
+		gfile->fdatapath=NULL;
+	}
+	if(gfile!=NULL){
+		free(gfile);
+		gfile=NULL;
+	}
 	#ifdef GENTIME
 	for(i=0; i<N; ++i){
 		free(timeR[i]);
@@ -263,6 +275,7 @@ void closeFiles(void){
 	
 	if(gfile->file!=NULL){
 		fclose(gfile->file);
+		gfile->file=NULL;
 	}
 
 	return;
@@ -782,12 +795,11 @@ void genHostTime(void){
 *  Store in @SAMPLE files the average investment		*
 *  in the system as a function of the system carrying dilution	*	
 *****************************************************************/
-void averInvXrh(Event *event){
+void averInvXrh(Event *event,Event *mevent){
 	int i,idh,nh,steady;
         int ok=0,namelen,dnl;
-	double rh,drh=0.05,eps=0.05,tot_micr,stats[2];
+	double rh,drh=0.05,eps=0.05,ttrans,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	double ttrans=stime->transtime;
 	int npar=5;
 	double param[npar];
 	unsigned long id;
@@ -819,9 +831,9 @@ void averInvXrh(Event *event){
         }
 
 	#if (TV==1)
-	sprintf(gfile->fname,"N%d_Ty%d_Tp%d_Tn%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,NETWORK,Gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,Gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->mh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_Tp%d_Tn%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,Tpos,Tneg,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -857,14 +869,21 @@ void averInvXrh(Event *event){
 	rh=drh;
 	spar->kh=N*rh;
 
-	while(rh<=1.){
+	while(rh<=0.75){
 		setCI();
 
+		if(rh<=0.1){
+			ttrans=30000;
+		}else if(rh<=0.3){
+			ttrans=45000;
+		}else{
+			ttrans=75000;
+		}
 		stime->saveT=ttrans;
 		stime->Tf=stime->saveT+twind;
 		steady=0;
 		do{
-			callSysDynamics(event);
+			callSysDynamics(event,mevent);
 
 			calcRMSError(avinv->vecf,0,avinv->usizef,stats);//test if system reached equilibrium
 			if(stats[1]<eps){

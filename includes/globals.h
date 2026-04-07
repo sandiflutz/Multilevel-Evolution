@@ -32,7 +32,7 @@
 #else
 	#define Mu        	1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
 	#define Theta     	1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-	#define K_H      	5000		/*carrying capacity for the host layer*/
+	#define K_H      	500		/*carrying capacity for the host layer*/
 	#define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
 	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #endif
@@ -111,14 +111,14 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			20000.         /*host maximum time (measured using continuous values for the times steps)*/
+#define TF			75000		/*host maximum time (measured using continuous values for the times steps)*/
+#define Ttrans			25000		/*transient time (to a first trial)*/
+#define	Twin			5000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 					 	* 0:png (good for creating animations later)
 						* 1:eps*/
-#define NF			10000		/*number of files for routines that create scripts for images*/
+#define NF			1000		/*number of files for routines that create scripts for images*/
 #define NInterv			1000		/*Ninterv*Dt_ref=time interval between snapshots taken*/
-#define NTf_me			10000		/*time (in #of time steps) to stop a measure*/
-#define NT0_me			0		/*time to start a measure*/
 #define SAMPLE			100             /*general sample size of measures done within the program (during evolution or number of files produced with raw data)*/
 /********************************************************************************************************************************************************************/
 /*****Fixed Parameters**********/
