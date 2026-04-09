@@ -109,6 +109,12 @@ void genHostTime(void);
 *  in the system as a function of the system carrying dilution  *
 *****************************************************************/
 void averInvXrh(Event *event,Event *mevent);
+/************************************************************************
+*  Store in @SAMPLE files the average investment                        *
+*  in the system as a function of the system number of microbial        *
+*  generations per host generations, Gh                                 *
+*************************************************************************/
+void averInvXgh(Event *event,Event *mevent);
 /***************************************************
 *  call routines that measure and store measures   *
 *  during the time loop                            *

@@ -10,12 +10,12 @@
 *                 Defining global constants and macros                              *
 *************************************************************************************/
 //parameters for the dynamics 
-#define EVO			0		/*0: complete graph 
+#define EVO			1		/*0: complete graph 
 						 *1: square lattice
 						 */ 
 #define TAB             	0		/*for choosing which set of values for some of the parameters to use: 1 or 2 for the specified fixed values below, and anything else for manually choosing*/
 
-#define Mh        		0.		/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
+#define Mh        		4.		/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
 
 #if (TAB==1)
 	#define Mu        	1e-09		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
@@ -31,9 +31,9 @@
 	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #else
 	#define Mu        	1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
-	#define Theta     	1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
+	#define Theta     	1e-06		/*migration rate (tab1:1e-06, tab2:1e-05)*/
 	#define K_H      	5000		/*carrying capacity for the host layer*/
-	#define Gh        	150		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
+	#define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
 	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #endif
 
@@ -79,7 +79,7 @@
 #elif (TAB==2)
 	#define L               100
 #else
-	#define L               100
+	#define L               224
 #endif
 /*#define K_H      		((int)Rh*N)*/	/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
 
@@ -113,7 +113,7 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			100000		/*host maximum time (measured using continuous values for the times steps)*/
+#define TF			20000		/*host maximum time (measured using continuous values for the times steps)*/
 #define Ttrans			15000		/*transient time (to a first trial)*/
 #define	Twin			5000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
@@ -149,7 +149,7 @@
 #if  defined(DENSb1xT)||defined(AVERINVxT)||defined(EmptyFreqxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(GENTIME)||defined(DIFBACOMPxT)
 	#define TMEAS
 #endif
-#if defined(AVINVxRH)
+#if defined(AVINVxRH)||defined(AVINVxGH)
 	#define STEADY_STATE_MEAS
 #endif
 /********************************************

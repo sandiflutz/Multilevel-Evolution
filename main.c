@@ -56,7 +56,12 @@ int main(void){
 	int i;
 	stime->saveT=0.;
 	for(i=0; i<SAMPLE; ++i){
+		#ifdef AVINVxRH
 		averInvXrh(&event,&mevent);
+		#endif
+		#ifdef AVINVxGH
+		averInvXrh(&event,&mevent);
+		#endif
 	}
 #endif
 

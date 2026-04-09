@@ -22,6 +22,7 @@ MEASURE_MACROS = \
 	DENSb1xT \
 	SAVE_CONFIG \
 	AVINVxRH \
+	AVINVxGH \
 # -------------------------------------------------------
 #  Compiler and flags
 # -------------------------------------------------------

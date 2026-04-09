@@ -967,6 +967,132 @@ void averInvXrh(Event *event,Event *mevent){
 	free(name);
 	return;
 }
+/************************************************************************
+*  Store in @SAMPLE files the average investment			*
+*  in the system as a function of the system number of microbial	*
+*  generations per host generations, Gh					*	
+*************************************************************************/
+void averInvXgh(Event *event,Event *mevent){
+	int i,idh,nh,steady,gh_max,dgh=5;
+        int ok=0,namelen,dnl;
+	double eps=0.05,tot_micr,stats[2];
+	double twind=stime->timewindow;	
+	int npar=5;
+	double param[npar];
+	unsigned long id;
+        char nparam[npar][10];
+	
+       
+	/******seting file*************************************/ 
+        //generic file struct
+	gfile=malloc(sizeof(GenFile));
+	if (!gfile) { perror("malloc"); exit(1);}
+        gfile->fnsize=400;
+        gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
+	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
+        sprintf(gfile->fdatapath,"data_manipulation/");
+	
+	//file name components
+        param[0]=Bacv;
+        param[1]=spar->cost;
+        param[2]=spar->mu;
+        param[3]=spar->mig;
+	param[4]=Fmin;
+
+        for(i=0; i<npar; ++i){
+                if(param[i]==0.){
+                        sprintf(nparam[i],"0");
+                }else{
+                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+                }
+        }
+
+	#if (TV==1)
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->mh);
+	#else
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+	#endif
+        dnl=200;
+	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
+	char *name=(char *)calloc(namelen,sizeof(char));
+
+        id = (unsigned long)time(NULL);
+        
+        while(ok==0){
+                sprintf(name,"%savInvXgh_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+               
+	sprintf(name,"%savInvXgh_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+	
+	/****Allocate memory**********************************************/
+
+	avinv=malloc(sizeof(DynVec));
+	if (!avinv) { perror("malloc"); exit(1);}
+	avinv->sizef=stime->timewindow/stime->tinterval+1;
+	avinv->usizef=0;
+	avinv->vecf=(double *)calloc(avinv->sizef,sizeof(double));
+
+	/****Dynamics******************/
+
+	spar->gh=Gh;
+	gh_max=Gh+200;
+
+	while(spar->gh<=gh_max){
+		setCI();
+
+		stime->saveT=stime->transtime;
+		stime->Tf=stime->saveT+twind;
+		steady=0;
+		do{
+			callSysDynamics(event,mevent);
+
+			calcRMSError(avinv->vecf,0,avinv->usizef,stats);//test if system reached equilibrium
+			if(stats[1]<eps){
+				steady=1;
+			}else{
+				stime->Tf+=twind;
+				stime->saveT=stime->Tnow;
+				avinv->usizef=0.;
+			}
+			printf("steady=%d time=%f <avinv>=%f std=%f\n",steady,stime->Tnow,stats[0],stats[1]);
+		}while(steady==0);
+
+		nh=listh->usize;
+		tot_micr=0.;
+		for(i=0; i<nh; ++i){
+			idh=listh->vec[i];
+			tot_micr+=spar->micr[idh];
+		}
+		
+		fprintf(gfile->file,"%d %f %f %d %f %f\n",spar->gh,stats[0],stats[1],nh,stime->Tf,tot_micr);
+		fflush(gfile->file);
+		printf("%d %f %f %d %f %f\n",spar->gh,stats[0],stats[1],nh,stime->Tf,tot_micr);
+		
+		avinv->usizef=0;
+
+		spar->gh+=dgh;
+	}
+		
+	/***freeing memory*****/
+	free(avinv->vecf);
+	free(avinv);
+
+	fclose(gfile->file);
+	free(gfile->fname);
+	free(gfile->fdatapath);
+	free(gfile);
+	free(name);
+	return;
+}
 /////////////////////////////////////////////////////////////////////////////////////////
 /****************************************************************************************
  *		General measuring routines that decide which one to call		*
