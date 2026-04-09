@@ -180,6 +180,21 @@ void openFiles(void){
         gfile->file=fopen(name,"w");
         if (gfile->file==NULL) { perror("malloc"); exit(1);}
 #endif
+#ifdef EmptyFreqxT
+        while(ok==0){
+                sprintf(name,"%semptyFreqXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+	sprintf(name,"%semptyFreqXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+#endif
 #ifdef MEANBFRACxT
         while(ok==0){
                 sprintf(name,"%smeanFracBXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
@@ -455,15 +470,15 @@ void meanFracXt(void){
 }
 /********************************************************
 *   stores the average investment in the system         *
-*	-Def: avInv=sum_ij(bac_ij*inv_j)/sum_ij(bacij)  *
+*	->Def: avInv=sum_ij(bac_ij*inv_j)/sum_ij(bacij)  *
 *	where i is the host index, j is the type of     *
 *   	bacteria index, bac_ij is the abundance of      *
 *   	type j in host i and inv_j is the investment    *
 *   	of type j.                                      *
-*   	-When TYPES=2:                                  *
-*   		-inv is either 0 (for neutrals)         *
+*   	->When TYPES=2:                                  *
+*   		->inv is either 0 (for neutrals)         *
 *   		or 1 (for helpers)                      *
-*   		-avInv is the mean frequency of         *
+*   		->avInv is the mean frequency of         *
 *   		helpers in the system                   *
 *********************************************************/
 void averInvestmentXt(void){
@@ -489,6 +504,41 @@ void averInvestmentXt(void){
         printf("t=%f averinv=%f avmicrdens=%f nh=%d nh/N=%f dth=%f\n",stime->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,stime->dth);
 
         return;
+}
+/********************************************************
+*	Store measures related to vancancy		*
+*	frequency as functions	of time			*
+*	-> average group vacancy freq.,<rho_e>		*
+*	-> standart deviation of rho_e			*
+*	-> (Kh-H(t))/N=Rho_e-Rho_ekh			*
+*	(where Rho_e is the system vacancy 		*
+*	freq. and Rho_ekh is the vacancy freq.		*
+*	related to the carrying capacity=(N-Kh)/N	*
+*********************************************************/
+void emptyFreqXt(void){
+	int i,idh,nh;
+	double averinv,stats[2],*eff_rhoe;
+
+	nh=listh->usize;
+	eff_rhoe=(double *)calloc(nh,sizeof(double));
+	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
+		eff_rhoe[i]=rho_e[idh];
+	}
+	
+	if(stime->Tnow==0.){
+		fprintf(gfile->file,"#1:time 2:<rho_e> 3:std(rho_e) 4:Rho_e-Rho_ekh 5:<w>\n");
+	}
+	averinv=calcAverInv();
+
+	calcRMSError(eff_rhoe,0,nh-1,stats);
+	
+	/*storing data*/
+        fprintf(gfile->file,"%f %f %f %f %f\n",stime->Tnow,stats[0],stats[1],averinv,(double)(spar->kh-nh)/N);
+        printf("t=%f <rho_e>=%f std=%f <w>=%f (Kh-nh)/N=%f\n",stime->Tnow,stats[0],stats[1],averinv,(double)(spar->kh-nh)/N);
+
+	free(eff_rhoe);
+	return;
 }
 /**************************************
 *  snapshot of host network           *
@@ -798,7 +848,7 @@ void genHostTime(void){
 void averInvXrh(Event *event,Event *mevent){
 	int i,idh,nh,steady;
         int ok=0,namelen,dnl;
-	double rh,drh=0.05,eps=0.05,ttrans,tot_micr,stats[2];
+	double rh,drh=0.05,eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
 	int npar=5;
 	double param[npar];
@@ -872,14 +922,7 @@ void averInvXrh(Event *event,Event *mevent){
 	while(rh<=0.75){
 		setCI();
 
-		if(rh<=0.1){
-			ttrans=30000;
-		}else if(rh<=0.3){
-			ttrans=45000;
-		}else{
-			ttrans=75000;
-		}
-		stime->saveT=ttrans;
+		stime->saveT=stime->transtime;
 		stime->Tf=stime->saveT+twind;
 		steady=0;
 		do{
@@ -947,6 +990,9 @@ void timeMeasures(void){
 		averInvestmentXt();
 //		stime->saveT+=stime->tinterval;
 //	}
+        #endif
+        #ifdef EmptyFreqxT
+		 emptyFreqXt();
         #endif
         #ifdef MEANBFRACxT
 	if((stime->Tnow<=stime->Tf)){

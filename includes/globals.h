@@ -10,12 +10,12 @@
 *                 Defining global constants and macros                              *
 *************************************************************************************/
 //parameters for the dynamics 
-#define EVO			1		/*0: complete graph 
+#define EVO			0		/*0: complete graph 
 						 *1: square lattice
 						 */ 
 #define TAB             	0		/*for choosing which set of values for some of the parameters to use: 1 or 2 for the specified fixed values below, and anything else for manually choosing*/
 
-#define Mh        		1.0		/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
+#define Mh        		0.		/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
 
 #if (TAB==1)
 	#define Mu        	1e-09		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
@@ -32,8 +32,8 @@
 #else
 	#define Mu        	1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
 	#define Theta     	1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-	#define K_H      	500		/*carrying capacity for the host layer*/
-	#define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
+	#define K_H      	5000		/*carrying capacity for the host layer*/
+	#define Gh        	150		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
 	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #endif
 
@@ -42,6 +42,8 @@
 #define SIGMA     		0.05		/*standart deviation of the trucated normal distribution for the inheritance of helpful microbes*/
 #define DTVSIZE   		19		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
 						 *paper uses 19 when TYPES=2 and 29 otherwise (??)*/
+
+#define EPS			1e-8
 /*****COST*******************************************************/
 #define Gamma     	1e-02		/*cost for helping when the investment is 1*/
 /***Parameters for cases where there are negative types*******************/
@@ -88,7 +90,7 @@
         #define VIZ		4		/*number of neighbors in the square-lattice: 4 or 8*/
 #endif
 /*********************bacteria************************/
-#define TYPES           	100		/*number of types of microbe*/
+#define TYPES           	101		/*number of types of microbes ()*/
 #define Tpos            	(TYPES-1)	/*number of positive types of microbes: positively affect host reproduction success*/
 #define Tneg            	0		/*number of negative types of microbes: negatively affect host reproduction success*/
 //initial conditions
@@ -111,8 +113,8 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			75000		/*host maximum time (measured using continuous values for the times steps)*/
-#define Ttrans			25000		/*transient time (to a first trial)*/
+#define TF			100000		/*host maximum time (measured using continuous values for the times steps)*/
+#define Ttrans			15000		/*transient time (to a first trial)*/
 #define	Twin			5000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 					 	* 0:png (good for creating animations later)
@@ -144,7 +146,7 @@
 #define RightDown		6 /*label of the neighbor at the right-down diagonal (for the square lattice)*/
 #define LeftDown		7 /*label of the neighbor at the left-down diagonal (for the square lattice)*/
 /******defining a main MACRO for measures made during time evolution******/
-#if  defined(DENSb1xT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(GENTIME)||defined(DIFBACOMPxT)
+#if  defined(DENSb1xT)||defined(AVERINVxT)||defined(EmptyFreqxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(GENTIME)||defined(DIFBACOMPxT)
 	#define TMEAS
 #endif
 #if defined(AVINVxRH)

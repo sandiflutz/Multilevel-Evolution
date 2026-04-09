@@ -100,15 +100,18 @@ void setGrRates(Event *event,Event *mevent){
 
 	for(i=0; i<nh; ++i){
 		idh=listh->vec[i];
-		event->ratesE[i]=effective_rate[i]*rho_e[idh];
+		//event->ratesE[i]=effective_rate[i]*rho_e[idh];
+		event->ratesE[i]=effective_rate[i]*ceil(rho_e[idh]);//if there is no empty sites on idh's neighborhood, its birth rate is 0
 		if(spar->mh>0.){
 			mevent->ratesE[i]=effective_rate[i]*(1.-rho_e[idh]);
 		}
 	}
+	/*
 	for(i=nh; i<2*nh; ++i){
 		idh=listh->vec[i-nh];
 		event->ratesE[i]*=(1.-rho_e[idh]);
 	}
+	*/
 		
 
 	free(effective_rate);
@@ -244,22 +247,17 @@ void setMicrKidsPoiss(int idp, int idk){
                 cprob[i]=cprob[i-1]+bac[idp][i]/spar->micr[idp];
         }
 
+	mean=1.;
+	ns=poissonRandKnuth(mean);
+	sample=(int)fmax(1.,(double)ns);
         ns=0;
-	mean=10e03*Bacv;
-	if(mean<=30.){
-		sample=poissonRandKnuth(mean);
-	}else{
-		double ng=gaussRandNum(mean,mean);
-		sample=round(ng);
-		sample=(int)(fmax((double)sample,0.));
-	}
         while(ns<sample){
 		nr=FRANDOM*cprob[TYPES-1];
 		p=selectEventCP(nr,cprob,TYPES);
                 bac[idk][p]+=(double)Bacv/sample;
 		++ns;
         }
-	if(sample>0)spar->micr[idk]=Bacv;
+	spar->micr[idk]=Bacv;
 
         free(cprob);
         return;
@@ -449,6 +447,28 @@ int chooseMigSite(int idm){
 
 	return idv;
 }
+/****************************************************************
+*	Kill hosts that have a microbiome extremely low		*
+*****************************************************************/
+void killHostWithoutMicr(void){
+	int i,idh,nh;
+
+	nh=listh->usize;
+	for(i=0; i<nh; ++i){
+		nh=listh->usize;
+		idh=listh->vec[i];
+		if((spar->micr[idh]<EPS)&&(host[idh]==1)){
+			host[idh]=0;
+			spar->micr[idh]=0.;
+			exchange(inverselisth,idh,listh->vec[nh-1]);
+			exchange(listh->vec,i,nh-1);
+			--listh->usize;
+
+		}
+	}
+
+	return;
+}
 /************************************************
 *	Dynamics for host migration events 	*
 *	that happen in a Dt_ref (=microbial	*
@@ -499,7 +519,7 @@ void hostMigrationDynamics(int dnumsteps,Event *mevent){
 *	the complete graph version				*
 *****************************************************************/
 void evolveHostCG(int dnumsteps,Event *event){
-	int i,idh,idlist,ide,idk,ne,nh,nb,nd,whichE;
+	int i,idh,idlist,ide,idk,nh,nb,nd,ne,whichE;
 	double nr;
 	int *listb = NULL;
 	int *listd = NULL;
@@ -529,7 +549,6 @@ void evolveHostCG(int dnumsteps,Event *event){
 			if(host[idh]==1){//if chosen host is alive and the system has more than 1 host
 				switch(whichE/nh){
 					case 0: 
-						searchEmptyNeighbors(0,idh,host,neighbor,&empty_viz);
 						ne=empty_viz.usize;
 						if(ne>0){
 							ide=randNeighborID(idh,empty_viz.vec,0,ne,empty_viz.size);//randomly chooses an index of an empty site, stored on empty_viz.vec
@@ -725,21 +744,20 @@ void callSysDynamics(Event *event, Event *mevent){
 		
 		setIndividualHostRates(event);
                 #if (EVO==0)//complete graph with adjustable host dt
-		setCumulativeBDrates(event);
+		setCumulativeRates(event);
 		dnumsteps=hostNTSPerBacNTS(event);
 		for(i=0; i<event->sizeE; ++i){
 			event->cprobE[i]*=stime->dth;
 		}
                 evolveHostCG(dnumsteps,event);
-		free(event->ratesE);
 		freeVecsEvent(event);
 
                 #elif (EVO==1)//square lattice with adjustable host dt
 		setGrRates(event,mevent);//group rates for birth, death and migration events
 		setCumulativeRates(event);
 		dnumsteps=hostNTSPerBacNTS(event);
-		freeVecsEvent(event);
 		if(spar->mh>0.){
+			freeVecsEvent(event);
 			setCumulativeRates(mevent);//cumulative rates for migration events
 			hostMigrationDynamics(dnumsteps,mevent);
 			freeVecsEvent(mevent);
@@ -747,13 +765,12 @@ void callSysDynamics(Event *event, Event *mevent){
 			setIndividualHostRates(event);
 			setGrRates(event,mevent);
 			setCumulativeRates(event);
-                	for(i=0; i<event->sizeE; ++i){
-                        	event->cprobE[i]*=stime->dth;
-                	}
+		}
+                for(i=0; i<event->sizeE; ++i){
+			event->cprobE[i]*=stime->dth;
+                	
 		}
                 evolveHostSL(dnumsteps,event);
-			
-			
 			
 		freeVecsEvent(event);
                 #endif
@@ -761,6 +778,7 @@ void callSysDynamics(Event *event, Event *mevent){
                 nh=listh->usize;
 
                 evoBac(Dt_ref,stime->Tnow);
+	//	killHostWithoutMicr();
 
                 stime->Tnow+=Dt_ref;
                 numsteps+=dnumsteps;

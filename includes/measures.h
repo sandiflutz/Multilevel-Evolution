@@ -60,6 +60,17 @@ void meanFracXt(void);
 *   bacteria in a single host                 *
 **********************************************/
 void averInvestmentXt(void);
+/********************************************************
+*       Store measures related to vancancy              *
+*       frequency as functions  of time                 *
+*       -> average group vacancy freq.,<rho_e>          *
+*       -> standart deviation of rho_e                  *
+*       -> (Kh-H(t))/N=Rho_e-Rho_ekh                    *
+*       (where Rho_e is the system vacancy              *
+*       freq. and Rho_ekh is the vacancy freq.          *
+*       related to the carrying capacity=(N-Kh)/N       *
+*********************************************************/
+void emptyFreqXt(void);
 /**************************************
 *  snapshot of host network           *
 *  The colors indicate the acumulated *

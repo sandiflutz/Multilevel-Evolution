@@ -64,16 +64,15 @@ void bacDyn(int idh,double dt,DynList *liveviz,double **btmp,double time){
 	for(j=0; j<TYPES;++j){
 		/*births*/
 		birth=(1.-mut)*(1.-costvec[idh][j])*birthr*bac[idh][j];//division of type j
+		
 		jpl=j+1;
 		jmi=j-1;
-                /*my way: when j=0(j=TYPES-1) only mutation to j+1(j-1) happens, with rate mu (instead of mu/2) - this is what the paper do for TYPES=2 but not for TYPES=100*/
-		if(j==0){
-			jmi=jpl;
-		}else if(j==TYPES-1){
-			jpl=jmi;
+		if(jpl<TYPES){
+			birth+=0.5*mut*(1.-costvec[idh][jpl])*birthr*bac[idh][jpl];//division of type j+1 -> mutation into j
 		}
-		birth+=0.5*mut*(1.-costvec[idh][jpl])*birthr*bac[idh][jpl];//division of type j+1 -> mutation into j
-		birth+=0.5*mut*(1.-costvec[idh][jmi])*birthr*bac[idh][jmi];//division of type j-1 -> mutation into j
+		if(jmi>=0){
+			birth+=0.5*mut*(1.-costvec[idh][jmi])*birthr*bac[idh][jmi];//division of type j-1 -> mutation into j
+		}
 		/*death*/
 		death=deathr*spar->micr[idh]*bac[idh][j];
 		/*migrations*/

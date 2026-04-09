@@ -92,6 +92,10 @@ void updateEmptySpaceGrFreq(int idh);
 *               -prob[i]=rho_e[i]/VIZ, otherwise        *
 *********************************************************/
 int chooseMigSite(int idm);
+/****************************************************************
+*       Kill hosts that have a microbiome extremely low         *
+*****************************************************************/
+void killHostWithoutMicr(void);
 /************************************************
 *       Dynamics for host migration events      *
 *       that happen in a Dt_ref (=microbial     *

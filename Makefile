@@ -13,6 +13,7 @@ MACRO = TMEAS
 MEASURE_MACROS = \
 	INV_DIST \
 	AVERINVxT \
+	EmptyFreqxT\
 	MEANBFRACxT \
 	NUMHEVENTSxT \
 	CORRxT \
@@ -21,16 +22,30 @@ MEASURE_MACROS = \
 	DENSb1xT \
 	SAVE_CONFIG \
 	AVINVxRH \
-
-TESTING_MACROS = \
-	DEBUG_SELECT_EV \
 # -------------------------------------------------------
 #  Compiler and flags
 # -------------------------------------------------------
 CC     = gcc
-CFLAGS = -O3 -fsanitize=address -Wall -I includes/
-LDFLAGS = -lm -fsanitize=address
+CFLAGS_RELEASE = -O3 -Wall -I includes/
+LDFLAGS_RELEASE = -lm
 
+CFLAGS_DEBUG = -O3 -fsanitize=address -Wall -I includes/
+LDFLAGS_DEBUG = -lm -fsanitize=address
+
+# -------------------------------------------------------
+#  Default MODE
+# -------------------------------------------------------
+Mode ?= release
+# -------------------------------------------------------
+#  If a MODE is specified
+# -------------------------------------------------------
+ifeq ($(MODE),debug)
+	CFLAGS = $(CFLAGS_DEBUG)
+	LDFLAGS = $(LDFLAGS_DEBUG)
+else
+	CFLAGS = $(CFLAGS_RELEASE)
+	LDFLAGS = $(LDFLAGS_RELEASE)
+endif
 # -------------------------------------------------------
 #  Source files and object files
 # -------------------------------------------------------
@@ -47,30 +62,19 @@ EXEC = exec_$(MACRO).out
 # -------------------------------------------------------
 #  Default rule
 # -------------------------------------------------------
-all: 
-	@echo "To see options and syntax:\n make help\n"	
-# -------------------------------------------------------
-#  Main program
-# -------------------------------------------------------
-main: $(OBJS)
+all: $(OBJS)
 	$(CC) $(OBJS) -o $(EXEC) $(LDFLAGS)
 	@echo "Built executable: $(EXEC)"
-# -------------------------------------------------------
-#  DEBUG: for testing routines
-# -------------------------------------------------------
-SRCS_DB = debug.c $(CORE)
-
-OBJS_DB = $(SRCS_DB:.c=.o)
-
-debug: $(OBJS_DB)
-	$(CC) $(OBJS_DB) -o $(EXEC) $(LDFLAGS)
-	@echo "Built executable: $(EXEC)"
-
 # -------------------------------------------------------
 #  Compilation step for each .c file
 # -------------------------------------------------------
 %.o: %.c
 	$(CC) $(CFLAGS) -D$(MACRO) -c $< -o $@
+# -------------------------------------------------------
+#  Debug with valgrind
+# -------------------------------------------------------
+valgrind: all
+	valgrind --leak-check=full --track-origins=yes ./$(EXEC)
 # -------------------------------------------------------
 #  Clean object files
 # -------------------------------------------------------
@@ -95,12 +99,11 @@ help:
 	@$(foreach m,$(MEASURE_MACROS),echo "  - $(m)";)
 	@echo ""
 	@echo "Example:"
-	@echo "	make main MACRO=AVERINVxT EXEC=invXt.out\n"
-	@echo "Available testing MACRO options:"
-	@$(foreach m,$(TESTING_MACROS),echo "  - $(m)";)
-	@echo ""
-	@echo "Example:"
-	@echo "	make debug MACRO=DEBUG_SELECT_EV EXEC=db_selectev.out\n"
+	@echo "	make MACRO=AVERINVxT EXEC=invXt.out\n"
+	@echo "For debugging while executing:"
+	@echo "	make MODE=debug MACRO=AVERINVxT EXEC=invXt.out\n"
+	@echo "For debugging and executing with valgring:"
+	@echo "	make valgrind MODE=DEBUG MACRO=AVERINVxT EXEC=invXt.out\n"
 	@echo "Other options:"
 	@echo "  - clean objects: make cleanobj"
 	@echo "  - clean executables: make cleanexec"
