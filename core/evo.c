@@ -719,25 +719,64 @@ void evolveHostSL(int dnumsteps,Event *event){
 *          general time loop            *
 *****************************************/
 void callSysDynamics(Event *event, Event *mevent){
-        int i,numsteps,nh,dnumsteps;
+        int i,numsteps,nh,dnumsteps,finish=0;
+	double std;
 
         numsteps=0;
         nh=listh->usize;
         dnumsteps=1;
-	
-        while((stime->Tnow<=stime->Tf)&&(nh>0)){
+
+	sysmeas->averw=0.;
+	sysmeas->averw2=0.;
+	sysmeas->nw=0;
+	std=0.;
+        while((stime->Tnow<=stime->Tf)&&(finish==0)){
                 #ifdef TMEAS
                 timeMeasures();
                         #ifdef NUMHEVENTSxT
                         meas->numb=0;
                         meas->numd=0;
                         #endif
+			if(sysmeas->nw<stime->timewindow){
+				if((stime->Tnow>=stime->saveT-0.001)&&(stime->Tnow<=stime->saveT+0.001)){
+					sysmeas->averw+=calcAverInv();
+					sysmeas->averw2+=sysmeas->averw*sysmeas->averw;
+					++sysmeas->nw;
+					stime->saveT+=1.;
+				}
+				printf("nw=%d <w>=%f std=%f time=%f saveT=%f\n",sysmeas->nw,sysmeas->averw,std,stime->Tnow,stime->saveT);
+			}else{
+				sysmeas->averw/=(double)sysmeas->nw;
+				sysmeas->averw2/=(double)sysmeas->nw;
+				std=sysmeas->averw2-sysmeas->averw*sysmeas->averw;
+				printf("<w>=%f var=%f ",sysmeas->averw,std);
+				std=sqrt(std);
+				printf("std=%f time=%f\n",std,stime->Tnow);
+				if(std<=0.01){
+					finish=1;
+				}else{
+					stime->Tf+=stime->timewindow;
+					stime->saveT=stime->Tnow+Dt_ref;
+					sysmeas->averw=0.;
+					sysmeas->averw2=0.;
+					sysmeas->nw=0;
+					stead=0;
+				}
+			}
                 #endif
                 #ifdef STEADY_STATE_MEAS
                         if((stime->Tnow<stime->saveT+stime->timewindow)&&(stime->Tnow>=stime->saveT)){
                                 avinv->vecf[avinv->usizef]=calcAverInv();
                                 ++avinv->usizef;
+				#ifdef AVINVxRH
 				printf("rh=%f time=%f avinv[%d]=%f\n",(double)spar->kh/N,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
+				#endif
+				#ifdef AVINVxGH
+				printf("gh=%d time=%f avinv[%d]=%f\n",spar->gh,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
+				#endif
+				#ifdef AVINVxCOST
+				printf("cost=%f time=%f avinv[%d]=%f\n",spar->cost,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
+				#endif
 				stime->saveT+=10.;
                         }
                 #endif
@@ -782,6 +821,7 @@ void callSysDynamics(Event *event, Event *mevent){
 
                 stime->Tnow+=Dt_ref;
                 numsteps+=dnumsteps;
+		if(nh==0)finish=1;
         }
 
         return;

@@ -16,3 +16,4 @@ SysParams *spar = NULL;
 SysTimes *stime = NULL;
 GenFile *gfile = NULL;
 EvMeasures *meas = NULL;
+SysMeasures *sysmeas = NULL;

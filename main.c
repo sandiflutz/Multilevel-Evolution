@@ -35,7 +35,7 @@ int main(void){
 	stime->Tf=TF;
 	stime->tinterval=10.;
 	for(i=0; i<SAMPLE; ++i){
-		stime->saveT=0.;
+		stime->saveT=stime->timewindow;
 		stime->Tnow=0.;
         	openFiles();
 		
@@ -60,7 +60,16 @@ int main(void){
 		averInvXrh(&event,&mevent);
 		#endif
 		#ifdef AVINVxGH
-		averInvXrh(&event,&mevent);
+		averInvXgh(&event,&mevent);
+		#endif
+		#ifdef AVINVxMB
+		averInvXmb(&event,&mevent);
+		#endif
+		#ifdef AVINVxCOST
+		averInvXcost(&event,&mevent);
+		#endif
+		#ifdef RHxMHxAVINV
+		rhXmhXw(&event,&mevent);
 		#endif
 	}
 #endif
@@ -118,6 +127,7 @@ void freeMemory(void){
 
 	/*structs*/
 	free(listh);
+	free(sysmeas);
 
 	return;
 }

@@ -1093,6 +1093,388 @@ void averInvXgh(Event *event,Event *mevent){
 	free(name);
 	return;
 }
+/************************************************************************
+*  Store in @SAMPLE files the average investment			*
+*  in the system as a function of the microbial migration rate		*	
+*************************************************************************/
+void averInvXmb(Event *event,Event *mevent){
+	int i,idh,nh,steady;
+        int ok=0,namelen,dnl;
+	double dmb,mbmax,eps=0.05,tot_micr,stats[2];
+	double twind=stime->timewindow;	
+	int npar=5;
+	double param[npar];
+	unsigned long id;
+        char nparam[npar][10];
+	
+       
+	/******seting file*************************************/ 
+        //generic file struct
+	gfile=malloc(sizeof(GenFile));
+	if (!gfile) { perror("malloc"); exit(1);}
+        gfile->fnsize=400;
+        gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
+	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
+        sprintf(gfile->fdatapath,"data_manipulation/");
+	
+	//file name components
+        param[0]=Bacv;
+        param[1]=spar->cost;
+        param[2]=spar->mu;
+	param[3]=Fmin;
+
+        for(i=0; i<npar; ++i){
+                if(param[i]==0.){
+                        sprintf(nparam[i],"0");
+                }else{
+                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+                }
+        }
+
+	#if (TV==1)
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[3],nparam[1],nparam[2],spar->mh);
+	#else
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[1],nparam[2],spar->mh);
+	#endif
+        dnl=200;
+	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
+	char *name=(char *)calloc(namelen,sizeof(char));
+
+        id = (unsigned long)time(NULL);
+        
+        while(ok==0){
+                sprintf(name,"%savInvXmb_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+        
+	sprintf(name,"%savInvXmb_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+	
+	/****Allocate memory**********************************************/
+
+	avinv=malloc(sizeof(DynVec));
+	if (!avinv) { perror("malloc"); exit(1);}
+	avinv->sizef=stime->timewindow/stime->tinterval+1;
+	avinv->usizef=0;
+	avinv->vecf=(double *)calloc(avinv->sizef,sizeof(double));
+
+	/****Dynamics******************/
+
+	spar->mig=1e-6;
+	mbmax=0.1;
+	dmb=1e-3;
+
+	while(spar->mig<=mbmax){
+		setCI();
+
+		stime->saveT=stime->transtime;
+		stime->Tf=stime->saveT+twind;
+		steady=0;
+		do{
+			callSysDynamics(event,mevent);
+
+			calcRMSError(avinv->vecf,0,avinv->usizef,stats);//test if system reached equilibrium
+			if(stats[1]<eps){
+				steady=1;
+			}else{
+				stime->Tf+=twind;
+				stime->saveT=stime->Tnow;
+				avinv->usizef=0.;
+			}
+			printf("steady=%d time=%f <avinv>=%f std=%f\n",steady,stime->Tnow,stats[0],stats[1]);
+		}while(steady==0);
+
+		nh=listh->usize;
+		tot_micr=0.;
+		for(i=0; i<nh; ++i){
+			idh=listh->vec[i];
+			tot_micr+=spar->micr[idh];
+		}
+		
+		fprintf(gfile->file,"%f %f %f %d %f %f\n",spar->mig,stats[0],stats[1],nh,stime->Tf,tot_micr);
+		fflush(gfile->file);
+		printf("mb=%f <w>=%f sdt=%f nh=%d Tf=%f micr=%f\n",spar->mig,stats[0],stats[1],nh,stime->Tf,tot_micr);
+		
+		avinv->usizef=0;
+
+		spar->mig+=dmb;
+	}
+		
+	/***freeing memory*****/
+	free(avinv->vecf);
+	free(avinv);
+
+	fclose(gfile->file);
+	free(gfile->fname);
+	free(gfile->fdatapath);
+	free(gfile);
+	free(name);
+	return;
+}
+/************************************************************************
+*  Store in @SAMPLE files the average investment			*
+*  in the system as a function of the cost factor payed by helpfull	* 
+*  bacteria								*	
+*************************************************************************/
+void averInvXcost(Event *event,Event *mevent){
+	int i,idh,nh,steady;
+        int ok=0,namelen,dnl;
+	double eps=0.05,tot_micr,stats[2],cost_max,dc;
+	double twind=stime->timewindow;	
+	int npar=5;
+	double param[npar];
+	unsigned long id;
+        char nparam[npar][10];
+	
+       
+	/******seting file*************************************/ 
+        //generic file struct
+	gfile=malloc(sizeof(GenFile));
+	if (!gfile) { perror("malloc"); exit(1);}
+        gfile->fnsize=400;
+        gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
+	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
+        sprintf(gfile->fdatapath,"data_manipulation/");
+	
+	//file name components
+        param[0]=Bacv;
+        param[1]=spar->mu;
+        param[2]=spar->mig;
+	param[3]=Fmin;
+
+        for(i=0; i<npar; ++i){
+                if(param[i]==0.){
+                        sprintf(nparam[i],"0");
+                }else{
+                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+                }
+        }
+
+	#if (TV==1)
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[3],nparam[1],nparam[2],spar->mh);
+	#else
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[1],nparam[2],spar->mh);
+	#endif
+        dnl=200;
+	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
+	char *name=(char *)calloc(namelen,sizeof(char));
+
+        id = (unsigned long)time(NULL);
+        
+        while(ok==0){
+                sprintf(name,"%savInvXcost_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+               
+	sprintf(name,"%savInvXcost_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+	
+	/****Allocate memory**********************************************/
+
+	avinv=malloc(sizeof(DynVec));
+	if (!avinv) { perror("malloc"); exit(1);}
+	avinv->sizef=stime->timewindow/stime->tinterval+1;
+	avinv->usizef=0;
+	avinv->vecf=(double *)calloc(avinv->sizef,sizeof(double));
+
+	/****Dynamics******************/
+
+	spar->cost=1e-2;
+	cost_max=1.;
+	dc=0.01;
+
+
+	while(spar->cost<=cost_max){
+		setCI();
+
+		stime->saveT=stime->transtime;
+		stime->Tf=stime->saveT+twind;
+		steady=0;
+		do{
+			callSysDynamics(event,mevent);
+
+			calcRMSError(avinv->vecf,0,avinv->usizef,stats);//test if system reached equilibrium
+			if(stats[1]<eps){
+				steady=1;
+			}else{
+				stime->Tf+=twind;
+				stime->saveT=stime->Tnow;
+				avinv->usizef=0.;
+			}
+			printf("steady=%d time=%f <avinv>=%f std=%f\n",steady,stime->Tnow,stats[0],stats[1]);
+		}while(steady==0);
+
+		nh=listh->usize;
+		tot_micr=0.;
+		for(i=0; i<nh; ++i){
+			idh=listh->vec[i];
+			tot_micr+=spar->micr[idh];
+		}
+		
+		fprintf(gfile->file,"%f %f %f %d %f %f\n",spar->cost,stats[0],stats[1],nh,stime->Tf,tot_micr);
+		fflush(gfile->file);
+		printf("%f %f %f %d %f %f\n",spar->cost,stats[0],stats[1],nh,stime->Tf,tot_micr);
+		
+		avinv->usizef=0;
+
+		spar->cost+=dc;
+	}
+		
+	/***freeing memory*****/
+	free(avinv->vecf);
+	free(avinv);
+
+	fclose(gfile->file);
+	free(gfile->fname);
+	free(gfile->fdatapath);
+	free(gfile);
+	free(name);
+	return;
+}
+/************************************************************************
+*               Store heatmap rhXmhX<w>                                 *
+*       (Kh/N X host migration rate coefficient X average investment)   *
+*************************************************************************/
+void rhXmhXw(Event *event,Event *mevent){
+	int i,nh,steady;
+        int ok=0,namelen,dnl;
+	double dmh,drh,rh,rhmax,mhmax,eps=0.05,stats[2];
+	double twind=stime->timewindow;	
+	int npar=5;
+	double param[npar];
+	unsigned long id;
+        char nparam[npar][10];
+	
+       
+	/******seting file*************************************/ 
+        //generic file struct
+	gfile=malloc(sizeof(GenFile));
+	if (!gfile) { perror("malloc"); exit(1);}
+        gfile->fnsize=400;
+        gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
+	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
+        sprintf(gfile->fdatapath,"data_manipulation/");
+	
+	//file name components
+        param[0]=Bacv;
+	param[1]=spar->cost;
+        param[2]=spar->mu;
+        param[3]=spar->mig;
+	param[4]=Fmin;
+
+        for(i=0; i<npar; ++i){
+                if(param[i]==0.){
+                        sprintf(nparam[i],"0");
+                }else{
+                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+                }
+        }
+
+	#if (TV==1)
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s",N,TYPES,NETWORK,spar->gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3]);
+	#else
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s",N,TYPES,NETWORK,spar->gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3]);
+	#endif
+        dnl=200;
+	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
+	char *name=(char *)calloc(namelen,sizeof(char));
+
+        id = (unsigned long)time(NULL);
+        
+        while(ok==0){
+                sprintf(name,"%srhXmhXaverW_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+               
+	sprintf(name,"%srhXmhXaverW_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+	
+	/****Allocate memory**********************************************/
+
+	avinv=malloc(sizeof(DynVec));
+	if (!avinv) { perror("malloc"); exit(1);}
+	avinv->sizef=stime->timewindow/stime->tinterval+1;
+	avinv->usizef=0;
+	avinv->vecf=(double *)calloc(avinv->sizef,sizeof(double));
+
+	/****Dynamics******************/
+
+	drh=0.05;
+	rh=drh;
+	spar->kh=N*rh;
+	rhmax=0.75;
+
+	mhmax=11.;
+	dmh=1.;
+
+	while(rh<=rhmax){
+		spar->mh=1.;
+		while(spar->mh<mhmax){
+			setCI();
+			stime->saveT=stime->transtime;
+			stime->Tf=stime->saveT+twind;
+			steady=0;
+		
+			do{
+				callSysDynamics(event,mevent);
+				calcRMSError(avinv->vecf,0,avinv->usizef,stats);//test if system reached equilibrium
+				if(stats[1]<eps){
+					steady=1;
+				}else{
+					stime->Tf+=twind;
+					stime->saveT=stime->Tnow;
+					avinv->usizef=0.;
+				}
+				printf("steady=%d time=%f <avinv>=%f std=%f\n",steady,stime->Tnow,stats[0],stats[1]);
+			}while(steady==0);
+			
+			nh=listh->usize;
+			fprintf(gfile->file,"%f %f %f %f %d %f\n",rh,spar->mh,stats[0],stats[1],nh,stime->Tf);
+			fflush(gfile->file);
+			printf("rh=%f mh=%f <w>=%f std=%f nh=%d TF=%f\n",rh,spar->mh,stats[0],stats[1],nh,stime->Tf);
+			avinv->usizef=0;
+
+			spar->mh+=dmh;
+		}
+			
+		fprintf(gfile->file,"\n");
+
+		rh+=drh;
+		spar->kh=N*rh;
+	}
+		
+	/***freeing memory*****/
+	free(avinv->vecf);
+	free(avinv);
+
+	fclose(gfile->file);
+	free(gfile->fname);
+	free(gfile->fdatapath);
+	free(gfile);
+	free(name);
+	return;
+}
 /////////////////////////////////////////////////////////////////////////////////////////
 /****************************************************************************************
  *		General measuring routines that decide which one to call		*
@@ -1103,8 +1485,6 @@ void averInvXgh(Event *event,Event *mevent){
 *  during the time loop                            *
 ****************************************************/
 void timeMeasures(void){
-	double err=1e-7;
-
 
         #ifdef DENSb1xT
 	if((stime->Tnow<=stime->Tf)){
@@ -1126,7 +1506,7 @@ void timeMeasures(void){
 	}
         #endif
         #ifdef SAVE_CONFIG
-	if((stime->Tnow>=stime->saveT-err)&&(stime->Tnow<=stime->saveT+err)){
+	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){
 		printf("Time of measure:%f,  ",stime->Tnow);
 		save_config();
 		double interval=stime->Tf/(double)NF;
@@ -1135,7 +1515,7 @@ void timeMeasures(void){
 	}
         #endif
         #ifdef INV_DIST
-	if((stime->Tnow>=stime->saveT-err)&&(stime->Tnow<=stime->saveT+err)){
+	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){
 		printf("Time of measure:%f,  ",stime->Tnow);
 		invDistXt();
 		double interval=stime->timewindow/(double)NF;
@@ -1144,13 +1524,13 @@ void timeMeasures(void){
 	}
         #endif
 	#ifdef NUMHEVENTSxT
-	if((stime->Tnow>=stime->saveT-err)&&(stime->Tnow<=stime->saveT+err)){
+	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){
 		numHostEventsPerDtXt();
 		stime->saveT+=stime->tinterval;
 	}
         #endif
 	#ifdef CORRxT
-	if((stime->Tnow>=stime->saveT-err)&&(stime->Tnow<=stime->saveT+err)){
+	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){
 		spatialCorrXt();
 		stime->saveT+=stime->tinterval;
 	}

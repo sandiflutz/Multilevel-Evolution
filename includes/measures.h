@@ -115,6 +115,28 @@ void averInvXrh(Event *event,Event *mevent);
 *  generations per host generations, Gh                                 *
 *************************************************************************/
 void averInvXgh(Event *event,Event *mevent);
+/************************************************************************
+*  Store in @SAMPLE files the average investment                        *
+*  in the system as a function of the microbial migration rate          *
+*************************************************************************/
+void averInvXmb(Event *event,Event *mevent);
+/************************************************************************
+*  Store in @SAMPLE files the average investment                        *
+*  in the system as a function of the cost factor payed by helpfull     *
+*  bacteria                                                             *
+*************************************************************************/
+void averInvXcost(Event *event,Event *mevent);
+/************************************************************************
+*  		Store heatmap rhXmhX<w>					* 
+*  	(Kh/N X host migration rate coefficient X average investment)	*
+*************************************************************************/
+void rhXmhXw(Event *event,Event *mevent);
+/************************************************************************
+*  Store in @SAMPLE files the average investment                        *
+*  in the system as a function of the cost factor payed by helpfull     *
+*  bacteria                                                             *
+*************************************************************************/
+void averInvXcost(Event *event,Event *mevent);
 /***************************************************
 *  call routines that measure and store measures   *
 *  during the time loop                            *

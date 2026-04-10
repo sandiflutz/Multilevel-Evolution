@@ -98,7 +98,13 @@ void allocateMemory(void){
         alive_viz->size=VIZ+1;
         alive_viz->usize=0;
         #endif
-       
+
+	//system measures
+	sysmeas = malloc(sizeof(SysMeasures));
+	sysmeas->averw=0.;
+	sysmeas->averw2=0.;
+	sysmeas->nw=0;
+
        	return;
 }
 /*****************************************************

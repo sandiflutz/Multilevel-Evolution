@@ -32,7 +32,7 @@
 #else
 	#define Mu        	1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
 	#define Theta     	1e-06		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-	#define K_H      	5000		/*carrying capacity for the host layer*/
+	#define K_H      	500		/*carrying capacity for the host layer*/
 	#define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
 	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 #endif
@@ -45,7 +45,7 @@
 
 #define EPS			1e-8
 /*****COST*******************************************************/
-#define Gamma     	1e-02		/*cost for helping when the investment is 1*/
+#define Gamma     		1e-02		/*cost for helping when the investment is 1*/
 /***Parameters for cases where there are negative types*******************/
 /*when there are negative types, the cost for positive and negative types can be influenced by the total frequency of the negative types (f⁻): 
  * for negative types: cost Gamma*investiment[type] is multiplied by CRnn0*exp(-CRnn1*d⁻/(1-f⁻)) 
@@ -79,7 +79,7 @@
 #elif (TAB==2)
 	#define L               100
 #else
-	#define L               224
+	#define L               100
 #endif
 /*#define K_H      		((int)Rh*N)*/	/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
 
@@ -113,8 +113,8 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			20000		/*host maximum time (measured using continuous values for the times steps)*/
-#define Ttrans			15000		/*transient time (to a first trial)*/
+#define TF			50000		/*host maximum time (measured using continuous values for the times steps)*/
+#define Ttrans			40000		/*transient time (to a first trial)*/
 #define	Twin			5000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 					 	* 0:png (good for creating animations later)
@@ -149,7 +149,7 @@
 #if  defined(DENSb1xT)||defined(AVERINVxT)||defined(EmptyFreqxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(GENTIME)||defined(DIFBACOMPxT)
 	#define TMEAS
 #endif
-#if defined(AVINVxRH)||defined(AVINVxGH)
+#if defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(RHxMHxAVINV)
 	#define STEADY_STATE_MEAS
 #endif
 /********************************************
@@ -195,6 +195,11 @@ typedef struct{
 	double **timeR;
 } EvMeasures;
 typedef struct{
+	int nw;
+	double averw;
+	double averw2;
+} SysMeasures;
+typedef struct{
 	int fnsize;
 	char *fname;
 	char *fdatapath;
@@ -218,4 +223,5 @@ extern SysParams *spar;
 extern SysTimes *stime;
 extern GenFile *gfile;
 extern EvMeasures *meas;
+extern SysMeasures *sysmeas;
 #endif

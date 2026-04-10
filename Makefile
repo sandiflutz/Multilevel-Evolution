@@ -23,6 +23,9 @@ MEASURE_MACROS = \
 	SAVE_CONFIG \
 	AVINVxRH \
 	AVINVxGH \
+	AVINVxMB \
+	AVINVxCOST \
+	RHxMHxAVINV \
 # -------------------------------------------------------
 #  Compiler and flags
 # -------------------------------------------------------
