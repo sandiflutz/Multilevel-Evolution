@@ -133,10 +133,10 @@ void setCompleteGraph(int **neighbor,int sites);
 *       clneighbor[i][j]=k: j is the k-th neighbor of i    *
 ************************************************************/
 void classifyNeighbors(int **neighbor,int **clneighbor,int nviz,int sites);
-/**************************************************
-*       Randomly select a neighbor from           *
-*       a neighbors list, from indexes 1d1 to id2 *
-***************************************************/
+/********************************************************
+*       Randomly select a neighbor from                 *
+*       a neighbors list, from indexes 1d1 to id2-1     *
+*********************************************************/
 int randNeighborID(int id,int *vec,int id1,int id2,int size);
 /*************************************************
 *       Set network links between sites          *

@@ -63,13 +63,16 @@ int main(void){
 		averInvXgh(&event,&mevent);
 		#endif
 		#ifdef AVINVxMB
-		averInvXmb(&event,&mevent);
+		averInvXmb(&event,&mevent,1e-6,1e-2);
 		#endif
 		#ifdef AVINVxCOST
 		averInvXcost(&event,&mevent);
 		#endif
 		#ifdef RHxMHxAVINV
 		rhXmhXw(&event,&mevent);
+		#endif
+		#ifdef COSTxMBxAVINV
+		costXmbXw(&event,&mevent);
 		#endif
 	}
 #endif
@@ -101,7 +104,9 @@ void freeMemory(void){
         for(i=0; i<N; ++i){
 		free(costvec[i]);
         }
+	#if (Tneg>0)
 	free(costvec);
+	#endif
         
 	free(dtVec);
 
@@ -117,8 +122,6 @@ void freeMemory(void){
 	}
 	free(neighbor);
 
-	free(alive_viz->vec);
-	free(alive_viz);
 	free(rho_e);
 
 #endif

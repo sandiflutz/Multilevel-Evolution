@@ -9,7 +9,6 @@ double **bac = NULL;
 double **costvec;
 double *dtVec = NULL;
 DynList *listh = NULL;
-DynList *alive_viz = NULL;
 DynVec *offcomp = NULL;
 DynVec *avinv = NULL;
 SysParams *spar = NULL;

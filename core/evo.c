@@ -523,19 +523,10 @@ void evolveHostCG(int dnumsteps,Event *event){
 	double nr;
 	int *listb = NULL;
 	int *listd = NULL;
-	DynList empty_viz;
 	
 	nh=listh->usize;
 	
-	empty_viz.size=N-nh;
-	empty_viz.usize=0;
-	empty_viz.vec = (int *)calloc(empty_viz.size,sizeof(int));
-	for(i=0; i<empty_viz.size; ++i){
-		ide=listh->vec[i+nh];
-		empty_viz.vec[i]=listh->vec[i+nh];
-		++empty_viz.usize;
-	}
-                
+	ne=N-nh;
 	listb=(int *)calloc(dnumsteps,sizeof(int));
 	listd=(int *)calloc(dnumsteps,sizeof(int));
 	nb=0;
@@ -549,15 +540,15 @@ void evolveHostCG(int dnumsteps,Event *event){
 			if(host[idh]==1){//if chosen host is alive and the system has more than 1 host
 				switch(whichE/nh){
 					case 0: 
-						ne=empty_viz.usize;
 						if(ne>0){
-							ide=randNeighborID(idh,empty_viz.vec,0,ne,empty_viz.size);//randomly chooses an index of an empty site, stored on empty_viz.vec
-							idk=empty_viz.vec[ide];//host id of the empty site is ide'th element of empty_viz.vec
+							do{
+								ide=randNeighborID(idh,listh->vec,nh,N,N);//randomly chooses an index of an empty site, stored on empty_viz.vec
+								idk=listh->vec[ide];//host id of the empty site is ide'th element of empty_viz.vec
+							}while(host[idk]!=0);
 							hostBirth(idh,idk);//site @idk receives offspring of @idh
 							listb[nb]=idk;//@idk is stored on the list of newhosts (during this time interval of Dt_ref)
 							++nb;//number of new hosts
-							exchange(empty_viz.vec,ide,ne-1);
-							--empty_viz.usize;//decreasing the number of available empty sites
+							--ne;//decreasing the number of available empty sites
 							//measures	
 							#ifdef GENTIME
 							timeb[idk]=stime->Tnow+Dt_ref;//time of birth of host @idk
@@ -607,7 +598,6 @@ void evolveHostCG(int dnumsteps,Event *event){
 	meas->numd=nd;
 	#endif
 
-	free(empty_viz.vec);
 	free(listb);
 	free(listd);
 	return;
@@ -737,7 +727,7 @@ void callSysDynamics(Event *event, Event *mevent){
                         meas->numb=0;
                         meas->numd=0;
                         #endif
-			if(sysmeas->nw<stime->timewindow){
+		/*	if(sysmeas->nw<stime->timewindow){
 				if((stime->Tnow>=stime->saveT-0.001)&&(stime->Tnow<=stime->saveT+0.001)){
 					sysmeas->averw+=calcAverInv();
 					sysmeas->averw2+=sysmeas->averw*sysmeas->averw;
@@ -760,9 +750,9 @@ void callSysDynamics(Event *event, Event *mevent){
 					sysmeas->averw=0.;
 					sysmeas->averw2=0.;
 					sysmeas->nw=0;
-					stead=0;
+					std=0;
 				}
-			}
+			}*/
                 #endif
                 #ifdef STEADY_STATE_MEAS
                         if((stime->Tnow<stime->saveT+stime->timewindow)&&(stime->Tnow>=stime->saveT)){

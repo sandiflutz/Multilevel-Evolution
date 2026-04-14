@@ -10,11 +10,17 @@ double expCostReduc(double x, double a,double b,double eps);
 *      of negative microbial types                                     *
 ************************************************************************/
 void updateCosts(int idh,double mtot,double c0,double *w,double **cvec,double **bstate);
+/********************************************************
+*       integration of the microbial equations          *
+*       using euler method when the cost of helping     *
+*       depends bacteria abundances                     *
+ ********************************************************/
+void bacDynCostVec(int idh,double dt,double **btmp,double time,double *type_abund,int nv);
 /********************************************
  * integration of the microbial equations   *
  * using euler method                       *
  ********************************************/
-void bacDyn(int idh,double dt,DynList *liveviz,double **btmp,double time);
+void bacDyn(int idh,double dt,double **btmp,double time,double *type_abund,int nv);
 /****************************************************************
  * Microbial layer evolution (for a time interval=dt)   *
  ****************************************************************/

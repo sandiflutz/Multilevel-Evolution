@@ -461,10 +461,10 @@ void classifyNeighbors(int **neighbor,int **clneighbor,int nviz,int sites){
 
         return;
 }
-/**************************************************
-*       Randomly select a neighbor from           *
-*       a neighbors list, from indexes 1d1 to id2 *
-***************************************************/
+/********************************************************
+*       Randomly select a neighbor from			*
+*       a neighbors list, from indexes 1d1 to id2-1	*
+*********************************************************/
 int randNeighborID(int vec_id,int *vec,int id1,int id2,int size){
 	int id_viz,idmax,idmin;
 

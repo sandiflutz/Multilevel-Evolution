@@ -119,13 +119,18 @@ void averInvXgh(Event *event,Event *mevent);
 *  Store in @SAMPLE files the average investment                        *
 *  in the system as a function of the microbial migration rate          *
 *************************************************************************/
-void averInvXmb(Event *event,Event *mevent);
+void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax);
 /************************************************************************
 *  Store in @SAMPLE files the average investment                        *
 *  in the system as a function of the cost factor payed by helpfull     *
 *  bacteria                                                             *
 *************************************************************************/
 void averInvXcost(Event *event,Event *mevent);
+/************************************************************************
+*               Store heatmap rhXmhX<w>                                 *
+*       (cost X bac. migr. rate X average investment)                   *
+*************************************************************************/
+void costXmbXw(Event *event,Event *mevent);
 /************************************************************************
 *  		Store heatmap rhXmhX<w>					* 
 *  	(Kh/N X host migration rate coefficient X average investment)	*

@@ -114,7 +114,7 @@
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
 #define TF			50000		/*host maximum time (measured using continuous values for the times steps)*/
-#define Ttrans			40000		/*transient time (to a first trial)*/
+#define Ttrans			15000		/*transient time (to a first trial)*/
 #define	Twin			5000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 					 	* 0:png (good for creating animations later)
@@ -149,7 +149,7 @@
 #if  defined(DENSb1xT)||defined(AVERINVxT)||defined(EmptyFreqxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(GENTIME)||defined(DIFBACOMPxT)
 	#define TMEAS
 #endif
-#if defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(RHxMHxAVINV)
+#if defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(RHxMHxAVINV)||defined(COSTxMBxAVINV)
 	#define STEADY_STATE_MEAS
 #endif
 /********************************************
@@ -216,7 +216,6 @@ extern double **bac;
 extern double **costvec;
 extern double *dtVec;
 extern DynList *listh;
-extern DynList *alive_viz;
 extern DynVec *offcomp;
 extern DynVec *avinv;
 extern SysParams *spar;

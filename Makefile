@@ -26,6 +26,7 @@ MEASURE_MACROS = \
 	AVINVxMB \
 	AVINVxCOST \
 	RHxMHxAVINV \
+	COSTxMBxAVINV \
 # -------------------------------------------------------
 #  Compiler and flags
 # -------------------------------------------------------

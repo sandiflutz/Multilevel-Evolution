@@ -64,14 +64,13 @@ void allocateMemTM(void){
 
         char *ngeral=(char *)calloc(250,sizeof(char));
         char *ntneg = (char *)calloc(50,sizeof(char));
-	int npar=5;
+	int npar=4;
         char nparam[npar][10];
         double param[npar];
         param[0]=Bacv;
         param[1]=spar->cost;
         param[2]=spar->mu;
         param[3]=spar->mig;
-        param[4]=Fmin;
         
 	for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -80,11 +79,7 @@ void allocateMemTM(void){
                         sprintf(nparam[i],"1e%d",(int)log10(param[i]));
                 }
         }
-	#if(TV==1)
-        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->mh);
-	#else
         sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
-	#endif
                 
 	#if (Tneg>0)
 	sprintf(ntneg,"_Tpos%d_Tneg%d_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",Tpos,Tneg,(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
@@ -850,7 +845,7 @@ void averInvXrh(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double rh,drh=0.05,eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=5;
+	int npar=4;
 	double param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -870,7 +865,6 @@ void averInvXrh(Event *event,Event *mevent){
         param[1]=spar->cost;
         param[2]=spar->mu;
         param[3]=spar->mig;
-	param[4]=Fmin;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -880,11 +874,7 @@ void averInvXrh(Event *event,Event *mevent){
                 }
         }
 
-	#if (TV==1)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,Gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->mh);
-	#else
 	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
-	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));
@@ -977,7 +967,7 @@ void averInvXgh(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=5;
+	int npar=4;
 	double param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -997,7 +987,6 @@ void averInvXgh(Event *event,Event *mevent){
         param[1]=spar->cost;
         param[2]=spar->mu;
         param[3]=spar->mig;
-	param[4]=Fmin;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1007,11 +996,7 @@ void averInvXgh(Event *event,Event *mevent){
                 }
         }
 
-	#if (TV==1)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3],spar->mh);
-	#else
 	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
-	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));
@@ -1097,12 +1082,12 @@ void averInvXgh(Event *event,Event *mevent){
 *  Store in @SAMPLE files the average investment			*
 *  in the system as a function of the microbial migration rate		*	
 *************************************************************************/
-void averInvXmb(Event *event,Event *mevent){
+void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax){
 	int i,idh,nh,steady;
         int ok=0,namelen,dnl;
-	double dmb,mbmax,eps=0.05,tot_micr,stats[2];
+	double dmb,eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=5;
+	int npar=3;
 	double param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -1112,7 +1097,7 @@ void averInvXmb(Event *event,Event *mevent){
         //generic file struct
 	gfile=malloc(sizeof(GenFile));
 	if (!gfile) { perror("malloc"); exit(1);}
-        gfile->fnsize=400;
+        gfile->fnsize=300;
         gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
 	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
         sprintf(gfile->fdatapath,"data_manipulation/");
@@ -1121,7 +1106,6 @@ void averInvXmb(Event *event,Event *mevent){
         param[0]=Bacv;
         param[1]=spar->cost;
         param[2]=spar->mu;
-	param[3]=Fmin;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1131,11 +1115,7 @@ void averInvXmb(Event *event,Event *mevent){
                 }
         }
 
-	#if (TV==1)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[3],nparam[1],nparam[2],spar->mh);
-	#else
 	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[1],nparam[2],spar->mh);
-	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));
@@ -1167,9 +1147,7 @@ void averInvXmb(Event *event,Event *mevent){
 
 	/****Dynamics******************/
 
-	spar->mig=1e-6;
-	mbmax=0.1;
-	dmb=1e-3;
+	spar->mig=mbmin;
 
 	while(spar->mig<=mbmax){
 		setCI();
@@ -1204,9 +1182,20 @@ void averInvXmb(Event *event,Event *mevent){
 		
 		avinv->usizef=0;
 
+		if(spar->mig<1e-5){
+			dmb=1e-6;
+		}else if(spar->mig<1e-4){
+			dmb=1e-5;
+		}else if(spar->mig<1e-3){
+			dmb=1e-4;
+		}else if(spar->mig<1e-2){
+			dmb=1e-3;
+		}else{
+			dmb=1e-2;
+		}
 		spar->mig+=dmb;
 	}
-		
+
 	/***freeing memory*****/
 	free(avinv->vecf);
 	free(avinv);
@@ -1228,7 +1217,7 @@ void averInvXcost(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double eps=0.05,tot_micr,stats[2],cost_max,dc;
 	double twind=stime->timewindow;	
-	int npar=5;
+	int npar=4;
 	double param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -1238,7 +1227,7 @@ void averInvXcost(Event *event,Event *mevent){
         //generic file struct
 	gfile=malloc(sizeof(GenFile));
 	if (!gfile) { perror("malloc"); exit(1);}
-        gfile->fnsize=400;
+        gfile->fnsize=300;
         gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
 	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
         sprintf(gfile->fdatapath,"data_manipulation/");
@@ -1257,11 +1246,7 @@ void averInvXcost(Event *event,Event *mevent){
                 }
         }
 
-	#if (TV==1)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[3],nparam[1],nparam[2],spar->mh);
-	#else
 	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[1],nparam[2],spar->mh);
-	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));
@@ -1294,7 +1279,7 @@ void averInvXcost(Event *event,Event *mevent){
 	/****Dynamics******************/
 
 	spar->cost=1e-2;
-	cost_max=1.;
+	cost_max=0.21;
 	dc=0.01;
 
 
@@ -1347,34 +1332,31 @@ void averInvXcost(Event *event,Event *mevent){
 }
 /************************************************************************
 *               Store heatmap rhXmhX<w>                                 *
-*       (Kh/N X host migration rate coefficient X average investment)   *
+*       (cost X bac. migr. rate X average investment)   		*
 *************************************************************************/
-void rhXmhXw(Event *event,Event *mevent){
+void costXmbXw(Event *event,Event *mevent){
 	int i,nh,steady;
         int ok=0,namelen,dnl;
-	double dmh,drh,rh,rhmax,mhmax,eps=0.05,stats[2];
+	double dmb,dc,cmax,cmin,mbmax,mbmin,eps=0.05,stats[2];
 	double twind=stime->timewindow;	
-	int npar=5;
+	int npar=3;
 	double param[npar];
 	unsigned long id;
         char nparam[npar][10];
 	
-       
 	/******seting file*************************************/ 
         //generic file struct
 	gfile=malloc(sizeof(GenFile));
 	if (!gfile) { perror("malloc"); exit(1);}
-        gfile->fnsize=400;
+        gfile->fnsize=300;
         gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
 	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
         sprintf(gfile->fdatapath,"data_manipulation/");
 	
 	//file name components
         param[0]=Bacv;
-	param[1]=spar->cost;
-        param[2]=spar->mu;
-        param[3]=spar->mig;
-	param[4]=Fmin;
+        param[1]=spar->mu;
+        param[2]=spar->mig;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1384,11 +1366,134 @@ void rhXmhXw(Event *event,Event *mevent){
                 }
         }
 
-	#if (TV==1)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_TV%d_Bv%s_Fmin%s_cost%s_mu%s_mb%s",N,TYPES,NETWORK,spar->gh,CI,TV,nparam[0],nparam[4],nparam[1],nparam[2],nparam[3]);
-	#else
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[1],nparam[2],spar->mh);
+        dnl=200;
+	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
+	char *name=(char *)calloc(namelen,sizeof(char));
+
+        id = (unsigned long)time(NULL);
+        
+        while(ok==0){
+		sprintf(name,"%scostXmbXaverW_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+               
+	sprintf(name,"%scostXmbXaverW_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+	
+	/****Allocate memory**********************************************/
+
+	avinv=malloc(sizeof(DynVec));
+	if (!avinv) { perror("malloc"); exit(1);}
+	avinv->sizef=stime->timewindow/stime->tinterval+1;
+	avinv->usizef=0;
+	avinv->vecf=(double *)calloc(avinv->sizef,sizeof(double));
+
+	cmax=0.2;
+	cmin=1e-2;
+	spar->cost=cmin;
+	dc=cmin;
+	mbmin=1e-6;
+	mbmax=1e-2;
+
+	while(spar->cost<=cmax){
+	
+		spar->mig=mbmin;
+		while(spar->mig<=mbmax){
+			setCI();
+			stime->saveT=stime->transtime;
+			stime->Tf=stime->saveT+twind;
+			steady=0;
+			do{
+				callSysDynamics(event,mevent);
+				calcRMSError(avinv->vecf,0,avinv->usizef,stats);//test if system reached equilibrium
+				if(stats[1]<eps){
+					steady=1;
+				}else{
+					stime->Tf+=twind;
+					stime->saveT=stime->Tnow;
+					avinv->usizef=0.;
+				}
+			
+				printf("steady=%d time=%f cost=%f mb=%f <avinv>=%f std=%f\n",steady,stime->Tnow,spar->cost,spar->mig,stats[0],stats[1]);
+			}while(steady==0);
+
+			nh=listh->usize;
+		
+			fprintf(gfile->file,"%f %f %f %f %d %f\n",spar->cost,spar->mig,stats[0],stats[1],nh,stime->Tf);
+			fflush(gfile->file);
+			printf("%f %f %f %f %d %f\n",spar->cost,spar->mig,stats[0],stats[1],nh,stime->Tf);
+		
+			avinv->usizef=0;
+
+			if(spar->mig<1e-5){
+				dmb=1e-6;
+			}else if(spar->mig<1e-4){
+				dmb=1e-5;
+			}else if(spar->mig<1e-3){
+				dmb=1e-4;
+			}else if(spar->mig<1e-2){
+				dmb=1e-3;
+			}else{
+				dmb=1e-2;
+			}
+			spar->mig+=dmb;
+		}
+		fprintf(gfile->file,"\n");
+		printf("\n");
+
+		spar->cost+=dc;
+	}
+	
+	
+	return;
+}
+/************************************************************************
+*               Store heatmap rhXmhX<w>                                 *
+*       (Kh/N X host migration rate coefficient X average investment)   *
+*************************************************************************/
+void rhXmhXw(Event *event,Event *mevent){
+	int i,nh,steady;
+        int ok=0,namelen,dnl;
+	double dmh,drh,rh,rhmax,mhmax,eps=0.05,stats[2];
+	double twind=stime->timewindow;	
+	int npar=4;
+	double param[npar];
+	unsigned long id;
+        char nparam[npar][10];
+	
+       
+	/******seting file*************************************/ 
+        //generic file struct
+	gfile=malloc(sizeof(GenFile));
+	if (!gfile) { perror("malloc"); exit(1);}
+        gfile->fnsize=300;
+        gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
+	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
+        sprintf(gfile->fdatapath,"data_manipulation/");
+	
+	//file name components
+        param[0]=Bacv;
+	param[1]=spar->cost;
+        param[2]=spar->mu;
+        param[3]=spar->mig;
+
+        for(i=0; i<npar; ++i){
+                if(param[i]==0.){
+                        sprintf(nparam[i],"0");
+                }else{
+                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+                }
+        }
+
 	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s",N,TYPES,NETWORK,spar->gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3]);
-	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));

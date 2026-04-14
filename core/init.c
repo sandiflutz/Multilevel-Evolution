@@ -36,10 +36,12 @@ void allocateMemory(void){
         	bac[i]=(double *)calloc(TYPES,sizeof(double));
 	}
 	/*cost vector: proportional to the cost constant gamma*/
+	#if (Tneg>0)
         costvec=(double **)calloc(N,sizeof(double *));
 	for(i=0; i<N; ++i){
         	costvec[i]=(double *)calloc(TYPES,sizeof(double));
 	}
+	#endif
 	
 	/**/	
 	inverselisth=(int *)calloc(N,sizeof(int));
@@ -90,14 +92,6 @@ void allocateMemory(void){
         listh->vec = (int *)calloc(N,sizeof(int));
         listh->size=N;
         listh->usize=0;
-
-	#if (NETWORK!=0)//not the well-mixed/complete graph case
-	alive_viz = malloc(sizeof(DynList));
-        if (!alive_viz) { perror("malloc"); exit(1);}
-        alive_viz->vec=(int *)calloc(VIZ+1,sizeof(int));//max. number of neighbor + focus host
-        alive_viz->size=VIZ+1;
-        alive_viz->usize=0;
-        #endif
 
 	//system measures
 	sysmeas = malloc(sizeof(SysMeasures));
@@ -350,29 +344,18 @@ void setInvestments(void){
 }
 /************************************************************************
 * Set Cost Vector: 							*
-* 	*Tneg=0: costvec[id_host][id_type]=cost*inv[id_type]		*	 
-* 	*Tneg>0: costvec[id_host][id_type]=cost*inv[id_type]*func	*
+* 	costvec[id_host][id_type]=cost*inv[id_type]*func    (Tneg>0)	*
 *************************************************************************/
 void setCostVec(void){
 	int i,j;
 
 	/*stting cost vector*/
 
-	#if (Tneg==0)
 	for(i=0; i<N; ++i){
 		for(j=0; j<TYPES; ++j){
 			costvec[i][j]=spar->cost*spar->inv[j];
 		}
 	}
-	#else
-	for(i=0; i<N; ++i){
-		if(host[i]==1){
-			updateCosts(idh,spar->micr[idh],spar->cost,spar->inv,costvec,bac);//from bac.c
-		}else{
-			memset(costVec[i],0.,sizeof(double)*TYPES);
-		}
-	}
-	#endif
 
 	return;
 }
@@ -394,8 +377,9 @@ void setCI(void){
 	#else
 		initialStateFixedFrac();
 	#endif
+	#if (Tneg>0)
 	setCostVec();
-
+	#endif
 	
 	return;
 }
