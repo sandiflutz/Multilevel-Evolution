@@ -55,18 +55,18 @@ void allocateMemTM(void){
 	/**generic file struct to use for storing data during the system evolution**/
 	gfile = malloc(sizeof(GenFile));
         if (!gfile) { perror("malloc"); exit(1);}
-        gfile->fnsize=400;
+        gfile->fnsize=300;
         gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
 	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
         sprintf(gfile->fdatapath,"data_manipulation/");
 
 	/**file name components**/
 
-        char *ngeral=(char *)calloc(250,sizeof(char));
+        char *ngeral=(char *)calloc(200,sizeof(char));
         char *ntneg = (char *)calloc(50,sizeof(char));
-	int npar=4;
+	int npar=4,mul;
         char nparam[npar][10];
-        double param[npar];
+        double expo,param[npar];
         param[0]=Bacv;
         param[1]=spar->cost;
         param[2]=spar->mu;
@@ -76,10 +76,16 @@ void allocateMemTM(void){
                 if(param[i]==0.){
                         sprintf(nparam[i],"0");
                 }else{
-                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+			expo=floor(log10(param[i]));
+        		mul=ceil(param[i]/pow(10.,expo));
+                        sprintf(nparam[i],"%de%d",mul,(int)expo);
                 }
         }
-        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,spar->kh,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+	#if (NETWORK==0)
+        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,spar->kh,NETWORK,Gh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+	#else
+        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f_GR%d",N,TYPES,spar->kh,NETWORK,Gh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh,GR_CORR);
+	#endif
                 
 	#if (Tneg>0)
 	sprintf(ntneg,"_Tpos%d_Tneg%d_CRnnA%d_CRnnB%0.1f_CRnpA%d_CRnpB%0.1f",Tpos,Tneg,(int)CRnn0,CRnn1,(int)CRnp0,CRnp1);
@@ -232,6 +238,21 @@ void openFiles(void){
                 }
         }
 	sprintf(name,"%scorrXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+#endif
+#ifdef RVNxTxCORRBAC
+        while(ok==0){
+                sprintf(name,"%srvnXtXw_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+	sprintf(name,"%srvnXtXw_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
         gfile->file=fopen(name,"w");
         if (gfile->file==NULL) { perror("malloc"); exit(1);}
 #endif
@@ -481,7 +502,7 @@ void averInvestmentXt(void){
 	double averinv,tot_micr;
 	
 	if(stime->Tnow==0.){
-		fprintf(gfile->file,"#1:time 2:average cumulative investment 3:average microbial density 4:#of hosts 5:dens_host 6:#of time steps 7:dth\n");
+		fprintf(gfile->file,"#1:time 2:average cumulative investment 3:micr. abundance on the system 4:#of hosts 5:dens_host 6:#of time steps 7:dth\n");
 	}
 
 	/****setting investiment density per host vector and calculating average investment in the system*****/
@@ -495,8 +516,8 @@ void averInvestmentXt(void){
 	}
 
 	/*storing data*/
-        fprintf(gfile->file,"%f %f %f %d %f %f\n",stime->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,stime->dth);
-        printf("t=%f averinv=%f avmicrdens=%f nh=%d nh/N=%f dth=%f\n",stime->Tnow,averinv,(double)tot_micr/nh,nh,(double)nh/N,stime->dth);
+        fprintf(gfile->file,"%f %f %f %d %f %f\n",stime->Tnow,averinv,tot_micr,nh,(double)nh/N,stime->dth);
+        printf("t=%f averinv=%f ntot=%f nh=%d nh/N=%f dth=%f\n",stime->Tnow,averinv,tot_micr,nh,(double)nh/N,stime->dth);
 
         return;
 }
@@ -749,31 +770,136 @@ void numHostEventsPerDtXt(void){
 
 	return;
 }
-/***************************************************
-*  calculate spatial corretation: both horizontal  *
-*  and vertical for a specific distance,           *
-*  considering                                     *
-****************************************************/
+/****************************************************************
+*	store the von neuman distance, fraction of pair of 	*
+*	hosts of the time distant at each von neumann distance, *
+*	 average investment and time				*
+*****************************************************************/
+void rvnXtXw(void){
+	int i,j,idhi,idhj,nh,idxi,idyi,idxj,idyj,rvn,rx,ry,maxrvn,npar;
+	double tot_micr,averinv,mean_r;
+	int *nrvn;
+	
+	if(stime->Tnow==0.){
+		if(gfile->file==NULL){
+			printf("You are trying to write in a file that doesn't exist.\n");
+			exit(1);
+		}else{
+			fprintf(gfile->file,"#1:time 2:rvn 3:nrvn/npar 4:<w> 5:<rvn> 6:ntot 7:nh=\n");
+			printf("#1:time 2:rvn 3:nrvn/npar 4:<w> 5:<rvn> 6:ntot 7:nh=\n");
+		}
+	}
+
+	nh=listh->usize;
+	
+	npar=nh*(nh-1)/2;
+	maxrvn=496;//maximum von neuman distance I'm considering (rx=30,ry=30)
+	if(30>L/2){
+		maxrvn=(L/2)*(1+(1+L/2)/2);
+	}
+
+	nrvn=(int *)calloc(maxrvn,sizeof(int));
+	memset(nrvn,0,sizeof(int)*maxrvn);
+
+	averinv=calcAverInv();
+	tot_micr=0.;
+	for(i=0; i<nh; ++i){
+		idhi=listh->vec[i];
+		tot_micr+=spar->micr[idhi];
+	}
+
+	mean_r=0.;
+	for(i=0; i<nh-1; ++i){
+		idhi=listh->vec[i];//host i index position
+
+		idyi=(int)(idhi/L);//vertical position index
+		idxi=idhi-idyi*L;//horizontal position index
+		for(j=i+1; j<nh; ++j){
+			idhj=listh->vec[j];
+		
+			idyj=(int)(idhj/L);
+			idxj=idhj-idyj*L;
+
+			rx=(int)fabs((double)(idxj-idxi));
+			if(rx>L/2){
+				rx=-rx+L;//least distance, because of periodic bondary conditions
+			}
+			ry=(int)fabs((double)(idyj-idyi));
+			if(ry>L/2){
+				ry=-ry+L;
+			}
+
+			//distance considering the von-newman neighborhood (rvn=1 for first neighbors, 2 for second, etc.) 
+			if(rx>ry){
+				rvn=ry+rx*(rx+1)/2;
+			}else{
+				rvn=rx+ry*(ry+1)/2;
+			}
+			mean_r+=(double)rvn;
+			if(rvn<maxrvn){
+				++nrvn[rvn];
+			}
+		}
+	}
+	mean_r/=(double)npar;
+	for(i=0; i<maxrvn; ++i){
+		fprintf(gfile->file,"%f %d %f %f %f %f %d\n",stime->Tnow,i,(double)nrvn[i]/npar,averinv,mean_r,tot_micr,listh->usize);
+		printf("%f %d %f %f %f %f %d\n",stime->Tnow,i,(double)nrvn[i]/npar,averinv,mean_r,tot_micr,listh->usize);
+	}
+	fprintf(gfile->file,"\n");
+	printf("\n");
+	free(nrvn);
+	return;
+}
+/****************************************************************
+* 	store spatial correlation for lattice ocupation 	*
+* 	as a function of time and distance 			*
+*****************************************************************/
 void spatialCorrXt(void){
-	int dist;
-	double corr_tot,corr[2];
+	int i,j,idh,d,dmax,idx,idy,nh;
+	double corrh,averinv,tot_micr;
 
 	if(stime->Tnow==0.){
 		if(gfile->file==NULL){
 			printf("You are trying to write in a file that doesn't exist.\n");
 			exit(1);
 		}else{
-			fprintf(gfile->file,"#1:time 2:corrx 3:corry 4:corr 5:#of hosts\n");
-			printf("#1:time 2:corrx 3:corry 4:corr 5:#of hosts\n");
+			fprintf(gfile->file,"#1:time 2:Distance 3:corrh 4:<w> 5:ntot 6:nh/N 7:nh\n");
+			printf("#1:time 2:Distance 3:corrh 4:<w> 5:ntot 6:nh/N 7:nh\n");
 		}
 	}
 
-	dist=1;
-	corr_tot=spatialCorr(host,N,dist,RIGHT,DOWN,neighbor,corr);/*sending: 1-state vector,2-square lattice size, 3-distance for calculating spatial correlation
-						 *4-index of horizontal neighbors (right or left), 5-index of vertical neighbors (top or bottom)
-						 *5-vector for storing vertical and horizontal correlations*/ 
-	fprintf(gfile->file,"%f %f %f %f %d\n",stime->Tnow,corr[0],corr[1],corr_tot,listh->usize);
-	printf("t=%f corrx=%f corry=%f corr=%f nh=%d\n",stime->Tnow,corr[0],corr[1],corr_tot,listh->usize);
+	nh=listh->usize;
+
+	averinv=calcAverInv();
+	tot_micr=0.;
+	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
+		tot_micr+=spar->micr[idh];
+	}
+
+	dmax=L/2;
+	for(d=1; d<=dmax; ++d){
+		corrh=0.;
+		for(i=0; i<nh; ++i){
+			idh=listh->vec[i];
+			idx=idh;
+			idy=idh;
+			for(j=0; j<d; ++j){
+				idx=neighbor[idx][RIGHT];
+				idy=neighbor[idy][DOWN];
+			}
+			//host[i]*host[j]=1, if host[i]=host[j]=1, or 0 otherwise
+			corrh+=(double)(host[idh]*host[idx]+host[idh]*host[idy]);
+
+		}
+		corrh/=(2.*nh);
+
+		fprintf(gfile->file,"%f %d %f %f %f %f %d\n",stime->Tnow,d,corrh,averinv,tot_micr,(double)listh->usize/N,listh->usize);
+		printf("t=%f d=%d corrh=%f <w>=%f ntot=%f rho_o=%f nh=%d\n",stime->Tnow,d,corrh,averinv,tot_micr,(double)listh->usize/N,listh->usize);
+	}
+	fprintf(gfile->file,"\n");
+	printf("\n");
 
 	return;
 }
@@ -845,8 +971,8 @@ void averInvXrh(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double rh,drh=0.05,eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=4;
-	double param[npar];
+	int npar=4,mul;
+	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
 	
@@ -870,11 +996,17 @@ void averInvXrh(Event *event,Event *mevent){
                 if(param[i]==0.){
                         sprintf(nparam[i],"0");
                 }else{
-                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+			expo=floor(log10(param[i]));
+        		mul=ceil(param[i]/pow(10.,expo));
+                        sprintf(nparam[i],"%de%d",mul,(int)expo);
                 }
         }
 
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,Gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+	#if(NETWORK==0)
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,Gh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+	#else
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f_GR%d",N,TYPES,NETWORK,Gh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh,GR_CORR);
+	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));
@@ -951,9 +1083,13 @@ void averInvXrh(Event *event,Event *mevent){
 	free(avinv);
 
 	fclose(gfile->file);
+	gfile->file=NULL;
 	free(gfile->fname);
+	gfile->fname=NULL;
 	free(gfile->fdatapath);
+	gfile->fdatapath=NULL;
 	free(gfile);
+	gfile=NULL;
 	free(name);
 	return;
 }
@@ -967,8 +1103,8 @@ void averInvXgh(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=4;
-	double param[npar];
+	int npar=4,mul;
+	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
 	
@@ -992,11 +1128,17 @@ void averInvXgh(Event *event,Event *mevent){
                 if(param[i]==0.){
                         sprintf(nparam[i],"0");
                 }else{
-                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+			expo=floor(log10(param[i]));
+        		mul=ceil(param[i]/pow(10.,expo));
+                        sprintf(nparam[i],"%de%d",mul,(int)expo);
                 }
         }
 
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+	#if(NETWORK==0)
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+	#else
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f_GR%d",N,TYPES,NETWORK,spar->kh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh,GR_CORR);
+	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));
@@ -1087,8 +1229,8 @@ void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax){
         int ok=0,namelen,dnl;
 	double dmb,eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=3;
-	double param[npar];
+	int npar=3,mul;
+	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
 	
@@ -1111,11 +1253,17 @@ void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax){
                 if(param[i]==0.){
                         sprintf(nparam[i],"0");
                 }else{
-                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+			expo=floor(log10(param[i]));
+        		mul=ceil(param[i]/pow(10.,expo));
+                        sprintf(nparam[i],"%de%d",mul,(int)expo);
                 }
         }
 
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[1],nparam[2],spar->mh);
+	#if(NETWORK==0)
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
+	#else
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mh%0.1f_GR%d",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh,GR_CORR);
+	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));
@@ -1217,8 +1365,8 @@ void averInvXcost(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double eps=0.05,tot_micr,stats[2],cost_max,dc;
 	double twind=stime->timewindow;	
-	int npar=4;
-	double param[npar];
+	int npar=3,mul;
+	double param[npar],expo;
 	unsigned long id;
         char nparam[npar][10];
 	
@@ -1236,17 +1384,22 @@ void averInvXcost(Event *event,Event *mevent){
         param[0]=Bacv;
         param[1]=spar->mu;
         param[2]=spar->mig;
-	param[3]=Fmin;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
                         sprintf(nparam[i],"0");
                 }else{
-                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+			expo=floor(log10(param[i]));
+        		mul=ceil(param[i]/pow(10.,expo));
+                        sprintf(nparam[i],"%de%d",mul,(int)expo);
                 }
         }
 
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[1],nparam[2],spar->mh);
+	#if (NETWORK==0)
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
+	#else
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f_GR%d",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh,GR_CORR);
+	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));
@@ -1339,8 +1492,8 @@ void costXmbXw(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double dmb,dc,cmax,cmin,mbmax,mbmin,eps=0.05,stats[2];
 	double twind=stime->timewindow;	
-	int npar=3;
-	double param[npar];
+	int npar=3,mul;
+	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
 	
@@ -1362,11 +1515,17 @@ void costXmbXw(Event *event,Event *mevent){
                 if(param[i]==0.){
                         sprintf(nparam[i],"0");
                 }else{
-                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+			expo=floor(log10(param[i]));
+        		mul=ceil(param[i]/pow(10.,expo));
+                        sprintf(nparam[i],"%de%d",mul,(int)expo);
                 }
         }
 
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_TV%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,TV,nparam[0],nparam[1],nparam[2],spar->mh);
+	#if (NETWORK==0)
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
+	#else
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f_GR%d",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh,GR_CORR);
+	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));
@@ -1464,8 +1623,8 @@ void rhXmhXw(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double dmh,drh,rh,rhmax,mhmax,eps=0.05,stats[2];
 	double twind=stime->timewindow;	
-	int npar=4;
-	double param[npar];
+	int npar=4,mul;
+	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
 	
@@ -1489,11 +1648,17 @@ void rhXmhXw(Event *event,Event *mevent){
                 if(param[i]==0.){
                         sprintf(nparam[i],"0");
                 }else{
-                        sprintf(nparam[i],"1e%d",(int)log10(param[i]));
+			expo=floor(log10(param[i]));
+        		mul=ceil(param[i]/pow(10.,expo));
+                        sprintf(nparam[i],"%de%d",mul,(int)expo);
                 }
         }
 
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_TV%d_Bv%s_cost%s_mu%s_mb%s",N,TYPES,NETWORK,spar->gh,CI,TV,nparam[0],nparam[1],nparam[2],nparam[3]);
+	#if (NETWORK==0)
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s",N,TYPES,NETWORK,spar->gh,CI,nparam[0],nparam[1],nparam[2],nparam[3]);
+	#else
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_GR%d",N,TYPES,NETWORK,spar->gh,CI,nparam[0],nparam[1],nparam[2],nparam[3],GR_CORR);
+	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));
@@ -1637,6 +1802,12 @@ void timeMeasures(void){
 	#ifdef CORRxT
 	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){
 		spatialCorrXt();
+		stime->saveT+=stime->tinterval;
+	}
+        #endif
+	#ifdef RVNxTxCORRBAC
+	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){
+		rvnXtXw();
 		stime->saveT+=stime->tinterval;
 	}
         #endif

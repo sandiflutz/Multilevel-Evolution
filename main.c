@@ -26,7 +26,7 @@ int main(void){
 	stime->saveT=0.;
 	#if defined(SAVE_CONFIG)||defined(INV_DIST)	
 	callSysDynamics(&event,&mevent);
-	#elif defined(CORRxT)||defined(NUMHEVENTSxT)||defined(GENTIME)||(DIFBACOMPxT)
+	#elif defined(CORRxT)||defined(RVNxTxCORRBAC)||defined(NUMHEVENTSxT)||defined(GENTIME)||(DIFBACOMPxT)
         openFiles();
 	callSysDynamics(&event,&mevent);
 	closeFiles();
@@ -63,7 +63,7 @@ int main(void){
 		averInvXgh(&event,&mevent);
 		#endif
 		#ifdef AVINVxMB
-		averInvXmb(&event,&mevent,1e-6,1e-2);
+		averInvXmb(&event,&mevent,1e-6,0.005);
 		#endif
 		#ifdef AVINVxCOST
 		averInvXcost(&event,&mevent);

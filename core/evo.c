@@ -19,9 +19,11 @@ double calcAcumInvest(int index){
 
         cinv=0.;
 
-       	for(j=0; j<TYPES; ++j){
-		cinv+=bac[index][j]*spar->inv[j]/kbac;
-        }
+	if(host[index]==1){
+		for(j=0; j<TYPES; ++j){
+			cinv+=bac[index][j]*spar->inv[j]/kbac;
+		}
+	}
 
         return cinv;
 }
@@ -76,6 +78,19 @@ void setGrRates(Event *event,Event *mevent){
 
 	nh=listh->usize;
 
+	#if (GR_CORR==0)
+	if(spar->mh>0.){
+		mevent->sizeE=nh;
+		mevent->ratesE=(double *)calloc(mevent->sizeE,sizeof(double));
+	}
+	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
+		if(spar->mh>0.){
+			mevent->ratesE[i]=event->ratesE[i]*(1.-rho_e[idh]);
+		}
+		event->ratesE[i]*=ceil(rho_e[idh]);//if there is no empty sites on idh's neighborhood, its birth rate is 0
+	}
+	#else
 	effective_rate=(double *)calloc(2*nh,sizeof(double));
 
 	if(spar->mh>0.){
@@ -100,21 +115,14 @@ void setGrRates(Event *event,Event *mevent){
 
 	for(i=0; i<nh; ++i){
 		idh=listh->vec[i];
-		//event->ratesE[i]=effective_rate[i]*rho_e[idh];
 		event->ratesE[i]=effective_rate[i]*ceil(rho_e[idh]);//if there is no empty sites on idh's neighborhood, its birth rate is 0
 		if(spar->mh>0.){
 			mevent->ratesE[i]=effective_rate[i]*(1.-rho_e[idh]);
 		}
 	}
-	/*
-	for(i=nh; i<2*nh; ++i){
-		idh=listh->vec[i-nh];
-		event->ratesE[i]*=(1.-rho_e[idh]);
-	}
-	*/
-		
 
 	free(effective_rate);
+	#endif
 	return;
 }
 /****************************************************************
@@ -172,65 +180,6 @@ void setMicrKidsNorm(int idp, int idk){
 	free(gaussample);
         return;
 }
-/****************************************************************
-*     Set microbial frequencies for the offspring of host @idp 	*
-*     Bacteria types and their frequencies are randomly        	*
-*     selected using a normal distribution around the bacteria	*
-*     frequencies on the parent. 				*
-*     -In this version, the amount of 				*
-*     bacteria passed to the children may disappear from	*
-*     the parent. 						*
-*     -The amount of bacteria passed is a fixed frequency Fp 	*
-*     of the amount of bacteria in the parent.			*
-*     -Types of bacteria, in the parent, that have a frequency	*
-*     of fp<eps are not included the kids microbiome		*
-*****************************************************************/
-void setMicrKidsNormPass(int idp, int idk){
-	int id,j;
-	double fpj,fkj,nk,norm;
-	double np=spar->micr[idp];
-	double std=spar->sigma;
-	double *gaussample;
-
-	gaussample = (double *)calloc(SAMPLE,sizeof(double));
-	
-	#if (WLMicr==0)
-	nk=Bacv;
-	#else//in this case part of the parent's microbes are give away to their children
-	double fv=Fvert;
-	nk=np*fv;
-	#endif
-	norm=0.;
-	for(j=0; j<TYPES; ++j){
-		fpj=bac[idp][j]/np;
-		if(fpj>Fmin){
-			normalRandSample(fpj,std,0.,1.,SAMPLE,gaussample);
-			id=(int)(FRANDOM*SAMPLE);
-			fkj=gaussample[id];
-			norm+=fkj;
-			bac[idk][j]=fkj;
-		}
-	}
-	
-
-	#if (WLMicr==0)
-	for(j=0; j<TYPES; ++j){
-		bac[idk][j]*=nk/norm;
-	}
-	#else//part of the parent's microbes are give away to their children
-	spar->micr[idp]=0.;
-	for(j=0; j<TYPES; ++j){
-		bac[idk][j]*=nk/norm;
-		bac[idp][j]-=bac[idk][j];
-		spar->micr[idp]+=bac[idp][j];
-	}
-	#endif
-
-	spar->micr[idk]=nk;
-
-	free(gaussample);
-	return;
-}
 /***************************************************************
 *     Set microbial frequencies for the offspring of hosr @idp *
 *     Bacteria types and their frequencies are randomly        *
@@ -270,8 +219,6 @@ void hostBirth(int idp, int idk){
         host[idk]=1;
 	#if (TV==0)//vertical transmission using a normal dist.
 	setMicrKidsNorm(idp,idk);//set new host microbiome
-	#elif (TV==1)//vertical transmission using a normal dist. with parent host loosing a fraction of their microbiome
-	setMicrKidsNormPass(idp,idk);
 	#else
 	setMicrKidsPoiss(idp,idk);
 	#endif
@@ -727,32 +674,6 @@ void callSysDynamics(Event *event, Event *mevent){
                         meas->numb=0;
                         meas->numd=0;
                         #endif
-		/*	if(sysmeas->nw<stime->timewindow){
-				if((stime->Tnow>=stime->saveT-0.001)&&(stime->Tnow<=stime->saveT+0.001)){
-					sysmeas->averw+=calcAverInv();
-					sysmeas->averw2+=sysmeas->averw*sysmeas->averw;
-					++sysmeas->nw;
-					stime->saveT+=1.;
-				}
-				printf("nw=%d <w>=%f std=%f time=%f saveT=%f\n",sysmeas->nw,sysmeas->averw,std,stime->Tnow,stime->saveT);
-			}else{
-				sysmeas->averw/=(double)sysmeas->nw;
-				sysmeas->averw2/=(double)sysmeas->nw;
-				std=sysmeas->averw2-sysmeas->averw*sysmeas->averw;
-				printf("<w>=%f var=%f ",sysmeas->averw,std);
-				std=sqrt(std);
-				printf("std=%f time=%f\n",std,stime->Tnow);
-				if(std<=0.01){
-					finish=1;
-				}else{
-					stime->Tf+=stime->timewindow;
-					stime->saveT=stime->Tnow+Dt_ref;
-					sysmeas->averw=0.;
-					sysmeas->averw2=0.;
-					sysmeas->nw=0;
-					std=0;
-				}
-			}*/
                 #endif
                 #ifdef STEADY_STATE_MEAS
                         if((stime->Tnow<stime->saveT+stime->timewindow)&&(stime->Tnow>=stime->saveT)){
@@ -772,7 +693,7 @@ void callSysDynamics(Event *event, Event *mevent){
                 #endif
 		
 		setIndividualHostRates(event);
-                #if (EVO==0)//complete graph with adjustable host dt
+                #if (NETWORK==0)//complete graph with adjustable host dt
 		setCumulativeRates(event);
 		dnumsteps=hostNTSPerBacNTS(event);
 		for(i=0; i<event->sizeE; ++i){
@@ -781,7 +702,7 @@ void callSysDynamics(Event *event, Event *mevent){
                 evolveHostCG(dnumsteps,event);
 		freeVecsEvent(event);
 
-                #elif (EVO==1)//square lattice with adjustable host dt
+                #elif (NETWORK==1)//square lattice with adjustable host dt
 		setGrRates(event,mevent);//group rates for birth, death and migration events
 		setCumulativeRates(event);
 		dnumsteps=hostNTSPerBacNTS(event);
@@ -807,7 +728,6 @@ void callSysDynamics(Event *event, Event *mevent){
                 nh=listh->usize;
 
                 evoBac(Dt_ref,stime->Tnow);
-	//	killHostWithoutMicr();
 
                 stime->Tnow+=Dt_ref;
                 numsteps+=dnumsteps;

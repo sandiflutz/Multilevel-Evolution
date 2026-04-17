@@ -190,10 +190,10 @@ void buildHistogram(double binsize,int nbins,int visize,double *vec,int *hist);
 *********************************************************/
 void calcRMSError(double *vec,int idi, int idf,double *stats);
 /***************************************************
-*  calculate spatial corretation for a square      *hostReprDynamics(
+*  calculate spatial corretation for a square      *
 *  lattice type of system                          *
 ****************************************************/
-double spatialCorr(int *state,int sites, int dist,int right,int down,int **neighbor,double *corr);
+double spatialCorr(int *state,int sites, int dist,int right,int down,int **neighbor);
 /***************************************************
 *  calculate spatial corretation for a square      *
 *  lattice type of system in 1 direction only      *

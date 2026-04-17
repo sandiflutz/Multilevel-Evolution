@@ -9,43 +9,47 @@
 /************************************************************************************
 *                 Defining global constants and macros                              *
 *************************************************************************************/
-//parameters for the dynamics 
-#define EVO			1		/*0: complete graph 
-						 *1: square lattice
-						 */ 
-#define TAB             	0		/*for choosing which set of values for some of the parameters to use: 1 or 2 for the specified fixed values below, and anything else for manually choosing*/
+#define NETWORK			1			/*0: complete graph 
+							 *1: square lattice
+							 */ 
+#define Mh        		4.			/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
 
-#define Mh        		4.		/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
+#define GR_CORR			0			/*0: effective rates are individual
+							 *1: the effective host rates (for the square lattice) of a host are averaged over its focus group*/
 
-#if (TAB==1)
-	#define Mu        	1e-09		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
-	#define Theta     	1e-06		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-	#define K_H      	5000		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
-	#define Gh        	10		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
-	#define Bacv      	1e-04		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
-#elif (TAB==2)
-	#define Mu        	1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
-	#define Theta     	1e-05		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-	#define K_H      	500		/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
-	#define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
-	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
+
+#define L               	100			/*linear system size*/
+#define N               	(L*L)			/*size number of sites*/
+#define K_H      		500			/*carrying capacity for the host layer*/
+#define Gh        		100			/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
+#if (NETWORK==0)
+        #define VIZ		N			/*number of neighbors in the well-mixed*/
 #else
-	#define Mu        	1e-02		/*mutation rate (tab1:1e-09, tab2:1e-02)*/
-	#define Theta     	1e-06		/*migration rate (tab1:1e-06, tab2:1e-05)*/
-	#define K_H      	500		/*carrying capacity for the host layer*/
-	#define Gh        	100		/*# of microbial generations per host generation (usually 100, but fig2 uses 10, for types=2)*/
-	#define Bacv      	1e-03		/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
+        #define VIZ		4			/*number of neighbors in the square-lattice: 4 or 8*/
 #endif
 
-#define Fvert			Bacv		/*if TV=1, and host parents loose part of their bacteria to their children, Fvert is the fraction os bacteria give away*/
-#define Fmin			1e-03		/*if TV=1, a type of bacteria can only be vertically transmitted if its frequency in the donner is >Fmin*/
-#define SIGMA     		0.05		/*standart deviation of the trucated normal distribution for the inheritance of helpful microbes*/
-#define DTVSIZE   		19		/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
-						 *paper uses 19 when TYPES=2 and 29 otherwise (??)*/
+/**microbial layer***/
 
-#define EPS			1e-8
+#define TYPES           	101			/*number of types of microbes ()*/
+#define Tpos            	(TYPES-1)		/*number of positive types of microbes: positively affect host reproduction success*/
+#define Tneg            	0			/*number of negative types of microbes: negatively affect host reproduction success*/
+
+#define Mu0			1e-2			/*mutation rate for TYPES=101 (if TYPES!=101, mutation rate is calculated based on this value)*/
+
+#if (TYPES!=101)
+	#define Mu        	(Mu0*(TYPES-1.0)/100.0)	/*mutation rate (default for TYPES=101 is Mu=Mu0=1e-02)*/
+#else
+	#define Mu		Mu0
+#endif
+#define Theta     		1e-06			/*migration rate (tab1:1e-06, tab2:1e-05)*/
+#define Bacv      		1e-03			/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
+
+#define SIGMA     		0.05			/*standart deviation of the trucated normal distribution for the inheritance of helpful microbes*/
+#define DTVSIZE   		19			/*number of possible time steps (<Dt_ref=microbial time step=0.05) that can be chosen for
+						 	*paper uses 19 when TYPES=2 and 29 otherwise (??)*/
+
 /*****COST*******************************************************/
-#define Gamma     		1e-02		/*cost for helping when the investment is 1*/
+#define Gamma     		0.01		/*cost for helping when the investment is 1*/
 /***Parameters for cases where there are negative types*******************/
 /*when there are negative types, the cost for positive and negative types can be influenced by the total frequency of the negative types (f⁻): 
  * for negative types: cost Gamma*investiment[type] is multiplied by CRnn0*exp(-CRnn1*d⁻/(1-f⁻)) 
@@ -64,56 +68,25 @@
 #define CRnp1           1.5		/*for 0., the cost for positive types doesn't depend on f⁻ (it's= Gamma*investment[type]*CRnp0) */ 
 
 
-/***************System**Structure*********************************************************************************************************************************************************************/
-/***host**layer******/
-//NETWORK
-#if (EVO==0) //evo=0: complete graph and adjustable host dt, evo=1: square lattice 
-	#define NETWORK        	0		/*0: complete graph
-						 *1: square-lattice*/
-#else
-	#define NETWORK        	1		
-#endif
-//parameter table
-#if (TAB==1)
-	#define L               224		/*linear size of the system (for the square lattice case)*/
-#elif (TAB==2)
-	#define L               100
-#else
-	#define L               100
-#endif
-/*#define K_H      		((int)Rh*N)*/	/*carrying capacity for the host layer (500 for most cases, but 5000 for fig2, types=2: if K_H=5000, use L~224 to have (L^2/K_H >=10)*/
-
-#define N               	(L*L)		/*size number of sites*/
-#if (NETWORK==0)
-        #define VIZ		N		/*number of neighbors in the well-mixed*/
-#else
-        #define VIZ		4		/*number of neighbors in the square-lattice: 4 or 8*/
-#endif
-/*********************bacteria************************/
-#define TYPES           	101		/*number of types of microbes ()*/
-#define Tpos            	(TYPES-1)	/*number of positive types of microbes: positively affect host reproduction success*/
-#define Tneg            	0		/*number of negative types of microbes: negatively affect host reproduction success*/
-//initial conditions
+/***initial conditions********************************************************/
+#define Bac0      		1.		/*initial bacteria density in each host (t=0)*/
+#define H0        		K_H		/*initial number of hosts*/
 #if ((TYPES==2)&&(Tpos==TYPES-1))
-	#define CI		3
+	#define CI		0
 #else
 	#define CI		1		/*0: system starts with types being randomly distributed with a uniform distribution
 						 *1 (default): system starts with types being randomly distributed using a normal distribution for the frequencies of each type
-						 *2: system starts with only the 1 host
-						 *3: all types of bacteria start with a fixed fraction of 1/TYPES */
+						 *2: system starts with only the 1 host*/
 #endif
 /***Routine Choices*********************************************************************************************************************************************************************************/
-#define TV			2	/*rule for vertical transmission: (for TYPES==2 choose 0 or 2)
+#define TV			1	/*rule for vertical transmission:
 					 *0=normal dist. (around parent bac. type freq.) 
-					 *1=normal dist. (around parent bac. type freq.) with the host parent loosing a fraction of their bacteria to their offspring
-					 *2=poisson distribuition for the number of times a type of bacteria from the parent host is chosen for the sample passed to the offspring*/
-#define WLMicr			0		/*0:parents dont loose bacteria to their childem
-						 *1:parents loose bacteria to their childem*/
+					 *1=poisson distribuition for the number of times a type of bacteria from the parent host is chosen for the sample passed to the offspring*/
 #define OFFCOMP			1	/*When DIFBACOMPxT is active: choose what to measure (related to offspring microbial composition) 
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			50000		/*host maximum time (measured using continuous values for the times steps)*/
+#define TF			25000		/*host maximum time (measured using continuous values for the times steps)*/
 #define Ttrans			15000		/*transient time (to a first trial)*/
 #define	Twin			5000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
@@ -122,6 +95,7 @@
 #define NF			1000		/*number of files for routines that create scripts for images*/
 #define NInterv			1000		/*Ninterv*Dt_ref=time interval between snapshots taken*/
 #define SAMPLE			100             /*general sample size of measures done within the program (during evolution or number of files produced with raw data)*/
+#define EPS			1e-8
 /********************************************************************************************************************************************************************/
 /*****Fixed Parameters**********/
 #define Beta      		1.		/*birth rate for neutral bacteria*/
@@ -130,8 +104,6 @@
 #define Sb        		1.		/*strength of the dependence of hosts births on their microbial content*/
 #define Sd        		0.		/*strength of the dependence of hosts deaths on their microbial content*/
 #define Dt_ref    		0.05		/*time step for bacteria evolution*/
-#define Bac0      		1.		/*initial bacteria density in each host (t=0)*/
-#define H0        		K_H		/*initial number of hosts*/
 #define BSAMPLES  		10		/*number of bacteria samples passed from a parent host to its offspring*/
 #define MEANinv0  		0.		/**/
 #define STDinv0   		0.01		/**/
@@ -146,7 +118,7 @@
 #define RightDown		6 /*label of the neighbor at the right-down diagonal (for the square lattice)*/
 #define LeftDown		7 /*label of the neighbor at the left-down diagonal (for the square lattice)*/
 /******defining a main MACRO for measures made during time evolution******/
-#if  defined(DENSb1xT)||defined(AVERINVxT)||defined(EmptyFreqxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(GENTIME)||defined(DIFBACOMPxT)
+#if  defined(DENSb1xT)||defined(AVERINVxT)||defined(EmptyFreqxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(RVNxTxCORRBAC)||defined(GENTIME)||defined(DIFBACOMPxT)
 	#define TMEAS
 #endif
 #if defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(RHxMHxAVINV)||defined(COSTxMBxAVINV)

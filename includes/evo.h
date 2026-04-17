@@ -26,20 +26,6 @@ void setCumulativeRates(Event *event);
 *     frequencies on the parent.                                *
 ****************************************************************/
 void setMicrKidsNorm(int idp, int idk);
-/****************************************************************
-*     Set microbial frequencies for the offspring of host @idp  *
-*     Bacteria types and their frequencies are randomly         *
-*     selected using a normal distribution around the bacteria	*
-*     frequencies on the parent.                                *
-*     -In this version, the amount of                           *
-*     bacteria passed to the children are disappear from        *
-*     the parent.                                               *
-*     -The amount of bacteria passed is a fixed frequency Fp    *
-*     of the amount of bacteria in the parent.                  *
-*     -Types of bacteria, in the parent, that have a frequency  *
-*     of fp<sigma are not included the kids microbiome          *
-*****************************************************************/
-void setMicrKidsNormPass(int idp, int idk);
 /***************************************************************
 *     Set microbial frequencies for the offspring of hosr @idp *
 *     Bacteria types and their frequencies are randomly        *

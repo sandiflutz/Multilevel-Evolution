@@ -87,11 +87,16 @@ void invDistXt(void);
 *  microbial time steps                            *
 ****************************************************/
 void numHostEventsPerDtXt(void);
-/***************************************************
-*  calculate spatial corretation: both horizontal  *
-*  and vertical for a specific distance,           *
-*  considering                                     *
-****************************************************/
+/****************************************************************
+*       store the von neuman distance, fraction of pair of      *
+*       hosts of the time distant at each von neumann distance, *
+*        average investment and time                            *
+*****************************************************************/
+void rvnXtXw(void);
+/****************************************************************
+*       store spatial correlation for lattice ocupation         *
+*       as a function of time and distance                      *
+*****************************************************************/
 void spatialCorrXt(void);
 /********************************************************
 *       Measure average difference of hosts parents     *

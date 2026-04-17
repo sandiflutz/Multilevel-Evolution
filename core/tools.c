@@ -662,9 +662,9 @@ void calcRMSError(double *vec,int idi, int idf,double *stats){
 }
 /***************************************************
 *  calculate spatial corretation for a square      *
-*  lattice type of system                          *
+*  lattice type of system (states 0 or 1)          *
 ****************************************************/
-double spatialCorr(int *state,int sites, int dist,int right,int down,int **neighbor,double *corr){
+double spatialCorr(int *state,int sites, int dist,int right,int down,int **neighbor){
         int i,j,idvx,idvy;
         double corrx=0.;
         double corry=0.;
@@ -681,18 +681,14 @@ double spatialCorr(int *state,int sites, int dist,int right,int down,int **neigh
                 corry+=(double)state[i]*state[idvy];
         }
 	corr_tot=(corrx+corry)/(2.*sites);
-	corrx/=(double)sites;
-	corry/=(double)sites;
-	
-	corr[0]=corrx;
-	corr[1]=corry;
 
         return corr_tot;
 }
-/***************************************************
-*  calculate spatial corretation for a square      *
-*  lattice type of system in 1 direction only      *
-****************************************************/
+/********************************************************
+*  	calculate spatial corretation for a square      *
+*  	lattice type of system in 1 direction only     	*
+*  		(states 0 or 1)				*	
+*********************************************************/
 double spatialCorr1d(int *state,int sites, int dist,int id_direction,int **neighbor){
         int i,j,idv;
         double corr_dir=0.;

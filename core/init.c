@@ -72,7 +72,6 @@ void allocateMemory(void){
 	spar->cost=Gamma;
 	spar->mig=Theta;
 	spar->sigma=SIGMA;
-	spar->fmin=Fmin;
 	spar->micr=(double *)calloc(N,sizeof(double));
 	spar->inv=(double *)calloc(TYPES,sizeof(double));
 
@@ -100,46 +99,6 @@ void allocateMemory(void){
 	sysmeas->nw=0;
 
        	return;
-}
-/*****************************************************
-*   Populates Host and Microbial layer               *
-*   Bacterial layer: types of bacteria               *
-*   start with fixed fractions equal to 1/TYPES      *
-******************************************************/
-void initialStateFixedFrac(void){
-       int i,j,nh=0,ne=0;
-        double p_oc;
-
-	p_oc=(double)H0/N;
-
-	for(i=0; i<N; ++i){
-		listh->vec[i]=0;
-		inverselisth[i]=0;
-	}
-
-        for(i=0; i<N; ++i){
-		if(FRANDOM<p_oc){
-                        host[i]=1;
-			listh->vec[nh]=i;
-			inverselisth[i]=nh;
-			++nh;
-			spar->micr[i]=Bac0;
-                        for(j=0; j<TYPES; ++j){
-                                bac[i][j]=Bac0/TYPES;
-                        }
-		}else{
-			host[i]=0;
-			listh->vec[N-1-ne]=i;//empty sites are stored at the end of the list of hosts;
-			inverselisth[i]=N-1-ne;
-			++ne;
-			memset(bac[i],0.,sizeof(double)*TYPES);
-			spar->micr[i]=0.;
-		}
-        }
-
-	listh->usize=nh;
-
-        return;
 }
 /*****************************************************
 *   Populates Host and Microbial layer               *
@@ -372,10 +331,8 @@ void setCI(void){
 		initialStateUniD();
 	#elif(CI==1)//frequencies come from normal distribution
 		initialStateNormD();
-	#elif(CI==2)//single host
+	#else//single host
 		initialStateSingleH();
-	#else
-		initialStateFixedFrac();
 	#endif
 	#if (Tneg>0)
 	setCostVec();
