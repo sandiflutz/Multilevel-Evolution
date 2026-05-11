@@ -51,7 +51,7 @@ void updateCosts(int idh,double mtot,double c0,double *w,double **cvec,double **
 * 	using euler method when the cost of helping	*
 * 	depends bacteria abundances			*
  ********************************************************/
-void bacDynCostVec(int idh,double dt,double **btmp,double time,double *type_abund,int nv){
+void bacDynCostVec(int idh,double dt,double *btmp,double time,double *type_abund,int nv){
 	int j,jpl,jmi;
 	double birth,death,migr_in,migr_out,func;
 	double mut=spar->mu;//mutation rate
@@ -61,28 +61,28 @@ void bacDynCostVec(int idh,double dt,double **btmp,double time,double *type_abun
 	
 	for(j=0; j<TYPES;++j){
 		/*births*/
-		birth=(1.-mut)*(1.-costvec[idh][j])*birthr*bac[idh][j];//division of type j
+		birth=(1.-mut)*(1.-costvec[idh][j])*birthr*bac[idh*TYPES+j];//division of type j
 		
 		jpl=j+1;
 		jmi=j-1;
 		if(jpl<TYPES){
-			birth+=0.5*mut*(1.-costvec[idh][jpl])*birthr*bac[idh][jpl];//division of type j+1 -> mutation into j
+			birth+=0.5*mut*(1.-costvec[idh][jpl])*birthr*bac[idh*TYPES+jpl];//division of type j+1 -> mutation into j
 		}
 		if(jmi>=0){
-			birth+=0.5*mut*(1.-costvec[idh][jmi])*birthr*bac[idh][jmi];//division of type j-1 -> mutation into j
+			birth+=0.5*mut*(1.-costvec[idh][jmi])*birthr*bac[idh*TYPES+jmi];//division of type j-1 -> mutation into j
 		}
 		/*death*/
-		death=deathr*spar->micr[idh]*bac[idh][j];
+		death=deathr*spar->micr[idh]*bac[idh*TYPES+j];
 		/*migrations*/
-		migr_out=mig*bac[idh][j];//emmigration
+		migr_out=mig*bac[idh*TYPES+j];//emmigration
 
 		//immigration
 		migr_in=0.;
 		if(nv>1){//nv is the number of alive hosts in the neighborhood of idh, including idh
-			migr_in=mig*(type_abund[j]-bac[idh][j])/((double)nv-1.);//type_abund[j]=abundance of type j in the neighborhood=sum_viz bac[viz][j] (where viz includes idh);
+			migr_in=mig*(type_abund[j]-bac[idh*TYPES+j])/((double)nv-1.);//type_abund[j]=abundance of type j in the neighborhood=sum_viz bac[viz][j] (where viz includes idh);
 		}
 		func=birth-death-migr_out+migr_in;
-		btmp[idh][j]=bac[idh][j]+func*dt;
+		btmp[idh*TYPES+j]=bac[idh*TYPES+j]+func*dt;
 	}
 	
 	return;
@@ -91,7 +91,7 @@ void bacDynCostVec(int idh,double dt,double **btmp,double time,double *type_abun
 * 	integration of the microbial equations		*
 * 	using euler method				*
  ********************************************************/
-void bacDyn(int idh,double dt,double **btmp,double time,double *type_abund,int nv){
+void bacDyn(int idh,double dt,double *btmp,double time,double *type_abund,int nv){
 	int j,jpl,jmi;
 	double birth,death,migr_in,migr_out,func;
 	double mut=spar->mu;//mutation rate
@@ -103,28 +103,28 @@ void bacDyn(int idh,double dt,double **btmp,double time,double *type_abund,int n
 
 	for(j=0; j<TYPES;++j){
 		/*births*/
-		birth=(1.-mut)*(1.-cost*spar->inv[j])*birthr*bac[idh][j];//division of type j
+		birth=(1.-mut)*(1.-cost*spar->inv[j])*birthr*bac[idh*TYPES+j];//division of type j
 		
 		jpl=j+1;
 		jmi=j-1;
 		if(jpl<TYPES){
-			birth+=0.5*mut*(1.-cost*spar->inv[jpl])*birthr*bac[idh][jpl];//division of type j+1 -> mutation into j
+			birth+=0.5*mut*(1.-cost*spar->inv[jpl])*birthr*bac[idh*TYPES+jpl];//division of type j+1 -> mutation into j
 		}
 		if(jmi>=0){
-			birth+=0.5*mut*(1.-cost*spar->inv[jmi])*birthr*bac[idh][jmi];//division of type j-1 -> mutation into j
+			birth+=0.5*mut*(1.-cost*spar->inv[jmi])*birthr*bac[idh*TYPES+jmi];//division of type j-1 -> mutation into j
 		}
 		/*death*/
-		death=deathr*spar->micr[idh]*bac[idh][j];
+		death=deathr*spar->micr[idh]*bac[idh*TYPES+j];
 		/*migrations*/
-		migr_out=mig*bac[idh][j];//emmigration
+		migr_out=mig*bac[idh*TYPES+j];//emmigration
 
 		//immigration
 		migr_in=0.;
 		if(nv>1){//nv is the number of alive hosts in the neighborhood of idh, including idh
-			migr_in=mig*(type_abund[j]-bac[idh][j])/((double)nv-1.);//type_abund[j]=abundance of type j in the neighborhood=sum_viz bac[viz][j] (where viz includes idh);
+			migr_in=mig*(type_abund[j]-bac[idh*TYPES+j])/((double)nv-1.);//type_abund[j]=abundance of type j in the neighborhood=sum_viz bac[viz][j] (where viz includes idh);
 		}
 		func=birth-death-migr_out+migr_in;
-		btmp[idh][j]=bac[idh][j]+func*dt;
+		btmp[idh*TYPES+j]=bac[idh*TYPES+j]+func*dt;
         }
 
 	return;
@@ -134,7 +134,7 @@ void bacDyn(int idh,double dt,double **btmp,double time,double *type_abund,int n
  ****************************************************************/
 void evoBac(double dt,double time){
 	int i,j,idh,nh;
-	double **bac_tmp,*type_abund;
+	double *bac_tmp,*type_abund;
 
 	nh=listh->usize;
 	type_abund=(double *)calloc(TYPES,sizeof(double));
@@ -144,24 +144,15 @@ void evoBac(double dt,double time){
 	for(j=0; j<TYPES; ++j){
 		for(i=0; i<nh; ++i){
 			idh=listh->vec[i];
-			type_abund[j]+=bac[idh][j];
+			type_abund[j]+=bac[idh*TYPES+j];
 		}
 	}
 	#else
 	int nv,k,idviz;
-	DynList *alive_viz;
-	alive_viz=malloc(sizeof(DynList));
-	if(!alive_viz) {perror("malloc"); exit(1);}
-	alive_viz->size=VIZ+1;
-	alive_viz->vec=(int *)calloc(alive_viz->size,sizeof(int));
 	#endif
 
 	
-	bac_tmp=(double **)calloc(N,sizeof(double *));
-	for(i=0; i<N; ++i){
-		bac_tmp[i]=(double *)calloc(TYPES, sizeof(double));
-	}
-        
+	bac_tmp=(double *)calloc(N*TYPES,sizeof(double));
 	
 	#if (Tneg>0)//with negative type the cost depends on negative types abundances
         for(i=0; i<nh; ++i){
@@ -174,14 +165,20 @@ void evoBac(double dt,double time){
 		#if (NETWORK==0)//complete graph
 		bacDynCostVec(idh,dt,bac_tmp,time,type_abund,nh);
                 #else//square lattice
-		searchLiveNeighbors(1,idh,host,neighbor,alive_viz);
-		nv=alive_viz->usize;
+		nv=(1.-rho_e[idh])*(double)VIZ+1;
+		
 		for(j=0; j<TYPES; ++j){
-			idviz=alive_viz->vec[nv-1];
-			type_abund[j]=bac[idviz][j];
-			for(k=0; k<nv-1; ++k){//the last element of the alive neighbors list @alive_viz.vec[nv-1] is the focus host id
-				idviz=alive->vec[k];
-				type_abund[j]+=bac[idviz][j];
+			type_abund[j]=bac[idh*TYPES+j];
+		}
+
+		if(nv>1){
+			for(k=0; k<VIZ; ++k){
+				idviz=neighbor[idh][k];
+				if(host[idviz]==1){
+					for(j=0; j<TYPES; ++j){
+						type_abund[j]+=bac[idviz*TYPES+j];
+					}
+				}
 			}
 		}
 		bacDynCostVec(idh,dt,bac_tmp,time,type_abund,nv);
@@ -194,14 +191,20 @@ void evoBac(double dt,double time){
 		#if (NETWORK==0)//complete graph
 		bacDyn(idh,dt,bac_tmp,time,type_abund,nh);
                 #else//square lattice
-		searchLiveNeighbors(1,idh,host,neighbor,alive_viz);
-		nv=alive_viz->usize;
+		nv=(1.-rho_e[idh])*(double)VIZ+1;
+		
 		for(j=0; j<TYPES; ++j){
-			idviz=alive_viz->vec[nv-1];
-			type_abund[j]=bac[idviz][j];
-			for(k=0; k<nv-1; ++k){//the last element of the alive neighbors list @alive_viz->vec[nv-1] is the focus host id
-				idviz=alive_viz->vec[k];
-				type_abund[j]+=bac[idviz][j];
+			type_abund[j]=bac[idh*TYPES+j];
+		}
+
+		if(nv>1){
+			for(k=0; k<VIZ; ++k){
+				idviz=neighbor[idh][k];
+				if(host[idviz]==1){
+					for(j=0; j<TYPES; ++j){
+						type_abund[j]+=bac[idviz*TYPES+j];
+					}
+				}
 			}
 		}
 		bacDyn(idh,dt,bac_tmp,time,type_abund,nv);
@@ -216,19 +219,12 @@ void evoBac(double dt,double time){
 		idh=listh->vec[i];
 		spar->micr[idh]=0.;
 		for(j=0;j<TYPES; ++j){
-			bac[idh][j]=bac_tmp[idh][j];
-			spar->micr[idh]+=bac[idh][j];
+			bac[idh*TYPES+j]=bac_tmp[idh*TYPES+j];
+			spar->micr[idh]+=bac[idh*TYPES+j];
 		}
 	}
 
-	for(i=0; i<N; ++i){
-		free(bac_tmp[i]);
-	}
 	free(bac_tmp);
 	free(type_abund);
-	#if (NETWORK!=0)//not the complete graph
-	free(alive_viz->vec);
-	free(alive_viz);
-	#endif
 	return;
 }

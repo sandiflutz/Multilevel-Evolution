@@ -21,7 +21,7 @@ double calcAcumInvest(int index){
 
 	if(host[index]==1){
 		for(j=0; j<TYPES; ++j){
-			cinv+=bac[index][j]*spar->inv[j]/kbac;
+			cinv+=bac[index*TYPES+j]*spar->inv[j]/kbac;
 		}
 	}
 
@@ -73,8 +73,7 @@ void setIndividualHostRates(Event *event){
 *   	(rho_e[i]=fraction of empty sites in @i's group)	*
 *****************************************************************/
 void setGrRates(Event *event,Event *mevent){
-	int i,k,idh,idviz,idlistv,nh,na;
-	double *effective_rate = NULL;
+	int i,idh,nh;
 
 	nh=listh->usize;
 
@@ -91,7 +90,8 @@ void setGrRates(Event *event,Event *mevent){
 		event->ratesE[i]*=ceil(rho_e[idh]);//if there is no empty sites on idh's neighborhood, its birth rate is 0
 	}
 	#else
-	effective_rate=(double *)calloc(2*nh,sizeof(double));
+	int k,idviz,idlistv,na;
+	double *effective_rate=(double *)calloc(2*nh,sizeof(double));
 
 	if(spar->mh>0.){
 		mevent->sizeE=nh;
@@ -150,10 +150,10 @@ void setMicrKidsNorm(int idp, int idk){
 	gaussample = (double *)calloc(SAMPLE,sizeof(double));
 
 	cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
-	cprob[0]=bac[idp][0]/spar->micr[idp];
+	cprob[0]=bac[idp*TYPES]/spar->micr[idp];
 		
 	for(i=1; i<TYPES; ++i){
-		cprob[i]=cprob[i-1]+bac[idp][i]/spar->micr[idp];
+		cprob[i]=cprob[i-1]+bac[idp*TYPES+i]/spar->micr[idp];
 	}
 		
 	norm=0.;
@@ -161,18 +161,18 @@ void setMicrKidsNorm(int idp, int idk){
 	while(ns<BSAMPLES){
 		nr=FRANDOM*cprob[TYPES-1];
 		p=selectEventCP(nr,cprob,TYPES);
-		fp=bac[idp][p]/spar->micr[idp];
+		fp=bac[idp*TYPES+p]/spar->micr[idp];
 		normalRandSample(fp,std,0.,1.,SAMPLE,gaussample);
 		id=(int)(FRANDOM*SAMPLE);
 		fk=gaussample[id];
-		bac[idk][p]+=fk;
+		bac[idk*TYPES+p]+=fk;
 		norm+=fk;
 		++ns;
 	}
 	
 	free(cprob);
 	for(i=0; i<TYPES; ++i){
-		bac[idk][i]*=Bacv/norm;//normalizing bac so the sum of microbes in host idk is bv
+		bac[idk*TYPES+i]*=Bacv/norm;//normalizing bac so the sum of microbes in host idk is bv
 	}
 
 	spar->micr[idk]=Bacv;
@@ -191,9 +191,9 @@ void setMicrKidsPoiss(int idp, int idk){
         double nr,mean,*cprob=NULL;
 
         cprob=(double *)calloc(TYPES,sizeof(double));//cumulative probability for the bacteria types
-	cprob[0]=bac[idp][0]/spar->micr[idp];
+	cprob[0]=bac[idp*TYPES]/spar->micr[idp];
         for(i=1; i<TYPES; ++i){
-                cprob[i]=cprob[i-1]+bac[idp][i]/spar->micr[idp];
+                cprob[i]=cprob[i-1]+bac[idp*TYPES+i]/spar->micr[idp];
         }
 
 	mean=1.;
@@ -203,7 +203,7 @@ void setMicrKidsPoiss(int idp, int idk){
         while(ns<sample){
 		nr=FRANDOM*cprob[TYPES-1];
 		p=selectEventCP(nr,cprob,TYPES);
-                bac[idk][p]+=(double)Bacv/sample;
+                bac[idk*TYPES+p]+=(double)Bacv/sample;
 		++ns;
         }
 	spar->micr[idk]=Bacv;
@@ -245,7 +245,7 @@ void hostDeath(int idh){
         //host[idh]=0;
         host[idh]=-1;
         for(i=0; i<TYPES; ++i){
-                bac[idh][i]=0.;
+                bac[idh*TYPES+i]=0.;
         }
 	spar->micr[idh]=0.;
 
@@ -261,9 +261,9 @@ void hostMoviment(int id1,int id2){
 
 	//microbiome
 	for(i=0; i<TYPES; ++i){
-		bac_tmp=bac[id1][i];
-		bac[id1][i]=bac[id2][i];
-		bac[id2][i]=bac_tmp;
+		bac_tmp=bac[id1*TYPES+i];
+		bac[id1*TYPES+i]=bac[id2*TYPES+i];
+		bac[id2*TYPES+i]=bac_tmp;
 	}
 	//host positions
 	htmp=host[id1];
@@ -371,6 +371,7 @@ void updateEmptySpaceGrFreq(int idh){
 int chooseMigSite(int idm){
 	int i,k,id,idv;
 	int *which_host = NULL;
+	double sum_prob=0.;
 	double *prob = NULL;    
 
 	prob=(double *)calloc(VIZ,sizeof(double));
@@ -379,13 +380,24 @@ int chooseMigSite(int idm){
 	for(i=0; i<VIZ; ++i){
 		k=neighbor[idm][i];
 		which_host[i]=k;
+
+		prob[i]=0.;
 		if(host[k]==0){
-			prob[i]=1./(double)VIZ;
-		}else{
-			prob[i]=rho_e[k]/(double)VIZ;
+			prob[i]=1.;
+		}else if(rho_e[k]>0.){
+			prob[i]=rho_e[k];
 		}
+		sum_prob+=prob[i];
 	}
-	id=selectEvent(FRANDOM,prob,VIZ);
+
+	if(sum_prob>0.){
+		for(i=0; i<VIZ; ++i){
+			prob[i]/=sum_prob;
+		}
+		id=selectEvent(FRANDOM,prob,VIZ);
+	}else{
+		id=(int)(FRANDOM*VIZ);
+	}
 	idv=which_host[id];
 
 
@@ -557,7 +569,9 @@ void evolveHostSL(int dnumsteps,Event *event){
 	int i,idh,idlist,idk,ne,ide,nh,nb,nd,whichE;
 	double nr;
 	DynList empty_viz;
+	#ifdef GENTIME
 	double currentime=stime->Tnow+Dt_ref;
+	#endif
 	
 	nh=listh->usize;
 	empty_viz.size=VIZ;
@@ -657,7 +671,6 @@ void evolveHostSL(int dnumsteps,Event *event){
 *****************************************/
 void callSysDynamics(Event *event, Event *mevent){
         int i,numsteps,nh,dnumsteps,finish=0;
-	double std;
 
         numsteps=0;
         nh=listh->usize;
@@ -666,7 +679,6 @@ void callSysDynamics(Event *event, Event *mevent){
 	sysmeas->averw=0.;
 	sysmeas->averw2=0.;
 	sysmeas->nw=0;
-	std=0.;
         while((stime->Tnow<=stime->Tf)&&(finish==0)){
                 #ifdef TMEAS
                 timeMeasures();

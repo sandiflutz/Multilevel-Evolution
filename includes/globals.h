@@ -86,13 +86,13 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			25000		/*host maximum time (measured using continuous values for the times steps)*/
+#define TF			80000		/*host maximum time (measured using continuous values for the times steps)*/
 #define Ttrans			15000		/*transient time (to a first trial)*/
-#define	Twin			5000		/*time window for measures*/
+#define	Twin			25000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 					 	* 0:png (good for creating animations later)
 						* 1:eps*/
-#define NF			1000		/*number of files for routines that create scripts for images*/
+#define NF			5000		/*number of files for routines that create scripts for images*/
 #define NInterv			1000		/*Ninterv*Dt_ref=time interval between snapshots taken*/
 #define SAMPLE			100             /*general sample size of measures done within the program (during evolution or number of files produced with raw data)*/
 #define EPS			1e-8
@@ -118,10 +118,10 @@
 #define RightDown		6 /*label of the neighbor at the right-down diagonal (for the square lattice)*/
 #define LeftDown		7 /*label of the neighbor at the left-down diagonal (for the square lattice)*/
 /******defining a main MACRO for measures made during time evolution******/
-#if  defined(DENSb1xT)||defined(AVERINVxT)||defined(EmptyFreqxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(MEANBFRACxT)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(RVNxTxCORRBAC)||defined(GENTIME)||defined(DIFBACOMPxT)
+#if  defined(AVERINVRATExT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(RVNxTxCORRBAC)||defined(GENTIME)||defined(DIFBACOMPxT)||defined(CLUSTERSxT)||defined(CLUSTERS_DISTxT)
 	#define TMEAS
 #endif
-#if defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(RHxMHxAVINV)||defined(COSTxMBxAVINV)
+#if defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(AVINVxMH)||defined(RHxMHxAVINV)||defined(COSTxMBxAVINV)
 	#define STEADY_STATE_MEAS
 #endif
 /********************************************
@@ -177,6 +177,11 @@ typedef struct{
 	char *fdatapath;
 	FILE *file;
 } GenFile;
+typedef struct{
+	int sizeCLF;
+	int whichLBF;
+	double stateCL;
+} ClusterFullID;
 /***************************************************
  *            Global Variables                     *
  ***************************************************/
@@ -184,7 +189,7 @@ extern int *host;
 extern int **neighbor;
 extern int *inverselisth;
 extern double *rho_e;
-extern double **bac;
+extern double *bac;
 extern double **costvec;
 extern double *dtVec;
 extern DynList *listh;

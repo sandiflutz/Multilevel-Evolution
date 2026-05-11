@@ -38,6 +38,13 @@ void calcInvDist(double binsize,double *hist_inv,double *freqInvH);
 *       averInv=sum_host(sum_type(bac[host][type]))/total amount of bac. in the system  *
 ****************************************************************************************/
 double calcAverInv(void);
+/****************************************************************
+*       Calculate the average investment in each cluster,       *
+*       the label of the cluster with the highest               *
+*       investment and its size. Return the system average      *
+*       investment.                                             *
+*****************************************************************/
+double findHighestInvCluster(int ncl,int *labels,double *wcl,ClusterFullID *clid);
 /********************************************************
 *  Calculate the difference in microbial 		*
 *  composition between host @idp and its children @idk.*
@@ -45,32 +52,11 @@ double calcAverInv(void);
 *  correspond to a different event			*
 ********************************************************/
 void storeBacDiffComp(int idp,int idk);
-/************************************************
-*   store the current average investment level  *
-*   in an isolate host                          *
-**************************************************/
-void densB1Xt(void);
-/********************************************************
-* Stores the mean fraction of each type of bacteria in  *
-* the system                                            *
-*********************************************************/
-void meanFracXt(void);
 /**********************************************
 *   store the frequency of beneficial         *
 *   bacteria in a single host                 *
 **********************************************/
 void averInvestmentXt(void);
-/********************************************************
-*       Store measures related to vancancy              *
-*       frequency as functions  of time                 *
-*       -> average group vacancy freq.,<rho_e>          *
-*       -> standart deviation of rho_e                  *
-*       -> (Kh-H(t))/N=Rho_e-Rho_ekh                    *
-*       (where Rho_e is the system vacancy              *
-*       freq. and Rho_ekh is the vacancy freq.          *
-*       related to the carrying capacity=(N-Kh)/N       *
-*********************************************************/
-void emptyFreqXt(void);
 /**************************************
 *  snapshot of host network           *
 *  The colors indicate the acumulated *
@@ -82,6 +68,37 @@ void save_config(void);
  * create a gnuplot script to create graphics  *
  ***********************************************/
 void invDistXt(void);
+/****************************************************************
+*       stores the most important factor of the average         *
+*       investment rate as a function of time                   *
+*       -><w>=sum(wi)/ntot (wi= investment at host i, and       *
+*         ntot=total microbial abundance in the system)         *
+*       ->d<w>/dt=tw1+t2+tw3+tw4  (in a Dt_ref time step)       *
+*       ->tw1=sum_hosts{(1-1/ntot-ni)wi/ntot                    *
+*         (ni=microbial abundance at host i)                    *
+*****************************************************************/
+void averInvRateXt(void);
+/************************************************************************
+*       Stores the following cluster related measures:                  *
+*       ->Highest cluster average investment (=best clluster)           *
+*       ->Cluster size of the best cluster                              *
+*       ->Investment of the largest cluster                             *
+*       ->Size of the largest cluster                                   *
+*       ->number of clusters                                            *
+*       ->average cluster size and related standart deviation           *
+*       ->System average investment                                     *
+*       ->Number of hosts                                               *
+*************************************************************************/
+void clustersXt(void);
+/********************************************************
+*       Stores transient investment distribution among  *
+*       clusters:                                       *
+*       -> time                                         *
+*       -> all possible average investments, <w>        *
+*       ->fraction of clusters in each                  *
+*         bin (int)(<w>/binsize)                        *
+*********************************************************/
+void clustersInvDistXt(void);
 /***************************************************
 *  stores the number of host events per            *
 *  microbial time steps                            *
@@ -131,6 +148,11 @@ void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax);
 *  bacteria                                                             *
 *************************************************************************/
 void averInvXcost(Event *event,Event *mevent);
+/************************************************************************
+*  Store in @SAMPLE files the average investment                        *
+*  in the system as a function of the host migration coefficient mh     *
+*************************************************************************/
+void averInvXmh(Event *event,Event *mevent);
 /************************************************************************
 *               Store heatmap rhXmhX<w>                                 *
 *       (cost X bac. migr. rate X average investment)                   *

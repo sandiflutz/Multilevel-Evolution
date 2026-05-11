@@ -5,7 +5,7 @@ int *host = NULL;
 int **neighbor = NULL;
 int *inverselisth = NULL;
 double *rho_e = NULL;
-double **bac = NULL;
+double *bac = NULL;
 double **costvec;
 double *dtVec = NULL;
 DynList *listh = NULL;

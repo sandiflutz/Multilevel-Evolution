@@ -31,10 +31,7 @@ void allocateMemory(void){
         #endif
         
 	/*microbial abundance matrix: bac[i:host index][j:type of bacteria index]*/
-        bac=(double **)calloc(N,sizeof(double *));
-	for(i=0; i<N; ++i){
-        	bac[i]=(double *)calloc(TYPES,sizeof(double));
-	}
+        bac=(double *)calloc(N*TYPES,sizeof(double));
 	/*cost vector: proportional to the cost constant gamma*/
 	#if (Tneg>0)
         costvec=(double **)calloc(N,sizeof(double *));
@@ -131,18 +128,20 @@ void initialStateUniD(void){
 			spar->micr[i]=Bac0;
                         norm=0.;
                         for(j=0; j<TYPES; ++j){
-                                bac[i][j]=FRANDOM;
-                                norm+=bac[i][j];
+                                bac[i*TYPES+j]=FRANDOM;
+                                norm+=bac[i*TYPES+j];
                         }
                         for(j=0; j<TYPES; ++j){
-                                bac[i][j]*=Bac0/norm;
+                                bac[i*TYPES+j]*=Bac0/norm;
                         }
 		}else{
 			host[i]=0;
 			listh->vec[N-1-ne]=i;//empty sites are stored at the end of the list of hosts;
 			inverselisth[i]=N-1-ne;
 			++ne;
-			memset(bac[i],0.,sizeof(double)*TYPES);
+			for(j=0; j<TYPES; ++j){
+				bac[i*TYPES+j]=0.;
+			}
 			spar->micr[i]=0.;
 			#if (NETWORK!=0)//not well-mixed
 			for(k=0; k<VIZ; ++k){
@@ -201,14 +200,16 @@ void initialStateNormD(void){
 			++nh;
 			spar->micr[i]=Bac0;
 			for(j=0; j<TYPES; ++j){
-				bac[i][j]=bacinit[j];
+				bac[i*TYPES+j]=bacinit[j];
 			}
 		}else{
                         host[i]=0;
 			listh->vec[N-1-ne]=i;//empty sites are stored at the end of the list of hosts
 			inverselisth[i]=N-1-ne;
 			++ne;
-			memset(bac[i],0.,sizeof(double)*TYPES);
+			for(j=0; j<TYPES; ++j){
+				bac[i*TYPES+j]=0.;
+			}
 			spar->micr[i]=0.;
 			#if (NETWORK!=0)//not well-mixed
 			for(k=0; k<VIZ; ++k){
@@ -229,12 +230,14 @@ void initialStateNormD(void){
 *   Bacteria yypes are uniformly distributed         *
 *****************************************************/
 void initialStateSingleH(void){
-       int i;
+       int i,j;
         double norm;
 
         
 	for(i=0; i<N; ++i){
-		memset(bac[i],0.,sizeof(double)*TYPES);
+		for(j=0; j<TYPES; ++j){
+			bac[i*TYPES+j]=0.;
+		}
 		spar->micr[i]=0.;
 	}
 	
@@ -242,11 +245,11 @@ void initialStateSingleH(void){
 	spar->micr[0]=Bac0;
 	norm=0.;
         for(i=0; i<TYPES; ++i){
-                bac[0][i]=FRANDOM;
-                norm+=bac[0][i];
+                bac[i]=FRANDOM;
+                norm+=bac[i];
         }
         for(i=0; i<TYPES; ++i){
-                bac[0][i]*=Bac0/norm;
+                bac[i]*=Bac0/norm;
         }
         for(i=0; i<N; ++i){
                 listh->vec[i]=i;

@@ -2,6 +2,8 @@
 #define TOOLS_H
 /*************MACROS*****************************************************/
 #define Pi 3.14159265358979323846  
+#define max(a,b) (a>b?a:b)
+#define min(a,b) (a>b?b:a)
 /********structs*********************************************/
 typedef struct{
         int *vec;//list of integers: vec[i]=id 
@@ -14,6 +16,10 @@ typedef struct{
 	int sizef;
 	int usizef;
 }DynVec;
+typedef struct{
+	int sizeCL;
+	int whichLB;
+}ClusterMinimumID;
 /********************************************************
  *                 Factorial                            *
  ********************************************************/
@@ -204,4 +210,50 @@ double spatialCorr1d(int *state,int sites, int dist,int id_direction,int **neigh
  *      for x in (-1.,1]                *
  ***************************************/
 double stepFuncBounded(double x);
+/****************************************************************
+*       set cluster labels (Hoshen-Kopelman algorithm)          *
+*****************************************************************/
+int setClLabelsHK(int *state,int **neighbor,int vleft,int vup,int *labels,int lsize);
+/****************************************************************
+*       set cluster labels (Hoshen-Kopelman algorithm)          *
+*       using a list of occupied sites and the inverse list     *
+*       -list of occupied sites, list, is a DynList struct      *
+*       (that contains a vector of integers,vec[], an integer   *
+*       called usize=the number of occupied sites, and an       *
+*       integer called size=the number of sites)                *
+*       -the first list->usize positions of the list->vec[]     *
+*       receive the positions of the occupied sites             *
+*       -the last (list->size)-(list->usize) positions receive  *
+*       the positions of the unoccupied sites                   *
+*       -the vector ilist is the inverse list: its indexes are  *
+*       the site positions, that go from 0 to list->size, and   *
+*       its elements are the indexes of those positions on the  *
+*       list of occupied sites, list->vec                       *
+*****************************************************************/
+void setClusterLabelsWithList(DynList *list,int *ilist,int **neighbor,int vleft,int vup,int *labels);
+/********************************************************
+*       Part of the Hoshen-Kopelman algorithm.          *
+*********************************************************/
+int find(int x,int *lblist);
+/********************************************************
+*	Part of the Hoshen-Kopelman algorithm.		*
+*	Update the list of the list of labels, lblist:	*
+*	the position with the largest label between 	*
+*	x and y, in @lblist, stores the smalest label.	*
+*	Return the smallest label.			*
+*********************************************************/
+int unionFind(int x,int y,int *lblist);
+/****************************************************************
+*  Fix cluster label order so labels are =0,1,...,n-1,          *
+*  with n=number of clusters. To be used, if necessary, after   *
+*  the Hoshen-Kopelman algorithm (with the least label of a     *
+*  cluster being equal to the least node id in the cluster).    *
+*  Returns the number of clusters.                              *
+*****************************************************************/
+int fixClusterLbOrder(int nid,int *labels);
+/************************************************************************
+*       Measure the average cluster size, the related standart          *
+*       deviation and the size and label of the largest cluster.        *
+*************************************************************************/
+void calcClusterSizeStats(int nid,int ncl,int *labels,int *clsize,double *stats,ClusterMinimumID *maxclid);
 #endif

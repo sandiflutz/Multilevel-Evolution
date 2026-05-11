@@ -15,12 +15,12 @@ void updateCosts(int idh,double mtot,double c0,double *w,double **cvec,double **
 *       using euler method when the cost of helping     *
 *       depends bacteria abundances                     *
  ********************************************************/
-void bacDynCostVec(int idh,double dt,double **btmp,double time,double *type_abund,int nv);
+void bacDynCostVec(int idh,double dt,double *btmp,double time,double *type_abund,int nv);
 /********************************************
  * integration of the microbial equations   *
  * using euler method                       *
  ********************************************/
-void bacDyn(int idh,double dt,double **btmp,double time,double *type_abund,int nv);
+void bacDyn(int idh,double dt,double *btmp,double time,double *type_abund,int nv);
 /****************************************************************
  * Microbial layer evolution (for a time interval=dt)   *
  ****************************************************************/

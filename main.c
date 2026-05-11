@@ -24,16 +24,47 @@ int main(void){
 #ifdef TMEAS
 	allocateMemTM();
 	stime->saveT=0.;
-	#if defined(SAVE_CONFIG)||defined(INV_DIST)	
+	stime->Tf=TF;
+	#if SAVE_CONFIG	
 	callSysDynamics(&event,&mevent);
-	#elif defined(CORRxT)||defined(RVNxTxCORRBAC)||defined(NUMHEVENTSxT)||defined(GENTIME)||(DIFBACOMPxT)
+	#endif
+	#if INV_DIST
+	callSysDynamics(&event,&mevent);
+	#endif
+	#if CORRxT
         openFiles();
 	callSysDynamics(&event,&mevent);
 	closeFiles();
-	#else
+	#endif
+	#if CLUSTERSxT
+        openFiles();
+	callSysDynamics(&event,&mevent);
+	closeFiles();
+	#endif
+	#if RVNxTxCORRBAC
+        openFiles();
+	callSysDynamics(&event,&mevent);
+	closeFiles();
+	#endif
+	#if NUMHEVENTSxT
+        openFiles();
+	callSysDynamics(&event,&mevent);
+	closeFiles();
+	#endif
+	#if GENTIME
+        openFiles();
+	callSysDynamics(&event,&mevent);
+	closeFiles();
+	#endif
+	#if DIFBACOMPxT
+        openFiles();
+	callSysDynamics(&event,&mevent);
+	closeFiles();
+	#endif
+
+	#if defined(AVERINVxT)||(AVERINVRATExT)
 	int i;
 	stime->Tf=TF;
-	stime->tinterval=10.;
 	for(i=0; i<SAMPLE; ++i){
 		stime->saveT=stime->timewindow;
 		stime->Tnow=0.;
@@ -63,10 +94,13 @@ int main(void){
 		averInvXgh(&event,&mevent);
 		#endif
 		#ifdef AVINVxMB
-		averInvXmb(&event,&mevent,1e-6,0.005);
+		averInvXmb(&event,&mevent,1e-6,0.004);
 		#endif
 		#ifdef AVINVxCOST
 		averInvXcost(&event,&mevent);
+		#endif
+		#ifdef AVINVxMH
+		averInvXmh(&event,&mevent);
 		#endif
 		#ifdef RHxMHxAVINV
 		rhXmhXw(&event,&mevent);
@@ -96,10 +130,6 @@ void freeMemory(void){
 	int i;
 
 	free(host);
-
-	for(i=0; i<N; ++i){
-		free(bac[i]);
-	}
 	free(bac);
         for(i=0; i<N; ++i){
 		free(costvec[i]);

@@ -6,7 +6,6 @@
 #include <string.h>
 #include"randgen_ufrgs.h"
 #include"tools.h"
-
 /********************************************************
  *                 Factorial                            *
  ********************************************************/
@@ -710,4 +709,210 @@ double spatialCorr1d(int *state,int sites, int dist,int id_direction,int **neigh
  ***************************************/
 double stepFuncBounded(double x){
 	return (ceil(x));
+}
+/****************************************************************
+*	set cluster labels (Hoshen-Kopelman algorithm) 		*
+*	using a list of occupied sites and the inverse list	*
+*	-list of occupied sites, list, is a DynList struct 	*
+*	(that contains a vector of integers,vec[], an integer 	*
+*	called usize=the number of occupied sites, and an 	*
+*	integer called size=the number of sites)		*
+*	-the first list->usize positions of the list->vec[] 	*
+*	receive the positions of the occupied sites		*
+*	-the last (list->size)-(list->usize) positions receive 	*
+*	the positions of the unoccupied sites			*
+*	-the vector ilist is the inverse list: its indexes are 	*
+*	the site positions, that go from 0 to list->size, and 	*
+*	its elements are the indexes of those positions on the 	*
+*	list of occupied sites, list->vec			* 
+*****************************************************************/
+void setClusterLabelsWithList(DynList *list,int *ilist,int **neighbor,int vleft,int vup,int *labels){
+	int i,nl,id,idleft,idlistleft,idup,idlistup;
+	int minlb,maxlb,leftlb,uplb,lb;
+	int *lblist;
+
+	nl=list->usize;
+
+	lblist=(int *)calloc(nl+1,sizeof(int));
+
+	for(i=0; i<nl; ++i){
+		lblist[i]=i;
+		labels[i]=i+1;
+	}
+	lblist[nl]=nl;	
+	
+	for(i=0; i<nl; ++i){
+		id=list->vec[i];
+		
+		idleft=neighbor[id][vleft];
+		idlistleft=ilist[idleft];//inverse list (gives the index of idleft on @list)
+		if(idlistleft<nl){
+			leftlb=labels[idlistleft];
+		}else{
+			leftlb=0;
+		}
+		
+		idup=neighbor[id][vup];
+		idlistup=ilist[idup];
+		if(idlistup<nl){
+			uplb=labels[idlistup];
+		}else{
+			uplb=0;
+		}
+		
+		minlb=min(leftlb,uplb);
+		maxlb=leftlb+uplb-minlb;
+		lb=labels[i];
+		if(minlb>0){//both are occupied
+			if(lb<minlb){
+				lblist[maxlb]=unionFind(lb,minlb,lblist);
+			}else{
+				lblist[lb]=unionFind(maxlb,minlb,lblist);
+				labels[i]=lblist[lb];
+			}
+		}else if(maxlb>0){
+			labels[i]=unionFind(labels[i],maxlb,lblist);
+		}
+	}
+
+
+	for(i=0; i<nl; ++i){
+		labels[i]=find(labels[i],lblist);
+		labels[i]-=1;//so the smallest label possible is 0 instead of 1
+	}
+
+	free(lblist);
+	return;
+}
+
+/********************************************************
+* 	Part of the Hoshen-Kopelman algorithm.		*
+*********************************************************/
+int find(int x,int *lblist){
+	int z,y=x;
+
+	while(y!=lblist[y]){
+		y=lblist[y];
+	}
+
+	while(x!=lblist[x]){
+		z=lblist[x];
+		lblist[x]=y;
+		x=z;
+	}
+
+	return x;
+}
+/********************************************************
+*       Part of the Hoshen-Kopelman algorithm.          *
+*       Update the list of the list of labels, lblist:  *
+*       the position with the largest label between     *
+*       x and y, in @lblist, stores the smalest label.  *
+*       Return the smallest label.                      *
+*********************************************************/
+int unionFind(int x,int y,int *lblist){
+ 	int x1,y1;
+
+	x1=lblist[x];
+	while(lblist[x1]!=x1){
+		x1=lblist[x1];
+	}
+	y1=lblist[y];
+	while(lblist[y1]!=y1){
+		y1=lblist[y1];
+	}
+
+	if(lblist[x1]>lblist[y1]){
+		lblist[x1]=lblist[y1];
+	}else{
+		lblist[y1]=lblist[x1];
+	}
+
+ 	return lblist[y1];
+ }
+/****************************************************************
+*  Fix cluster label order so labels are =0,1,...,n-1, 		*
+*  with n=number of clusters. To be used, if necessary, after  	*
+*  the Hoshen-Kopelman algorithm (with the least label of a	* 
+*  cluster being equal to the least node id in the cluster).	*
+*  Returns the number of clusters.				*
+*****************************************************************/
+int fixClusterLbOrder(int nid,int *labels){
+	int i,maxlb,nextlb,nextminlb,mlb,mlbf,numclusters;
+	int *llb;
+
+	llb=(int *)calloc(nid,sizeof(int));
+
+	numclusters=0;
+	maxlb=0;
+	for(i=0; i<nid; ++i){
+		if(labels[i]==i){
+			llb[i]=i;
+			++numclusters;
+			if(i>maxlb)maxlb=i;
+		}else{
+			llb[i]=-1;
+		}
+	}
+
+
+	nextlb=2;
+	nextminlb=1;
+	while(nextlb<=maxlb){
+		if(llb[nextlb]!=-1){//label stored in @llb[nextlb] is gonna be exchanged by the least available label less than or equal to itself
+			mlb=nextminlb;
+			mlbf=nextlb;
+			if((llb[mlb]==mlb)&&(mlb<mlbf)){//look for the minimum available label (not in use)
+				++mlb;
+			}
+			llb[nextlb]=mlb;
+			nextminlb=mlb+1;
+		}
+		++nextlb;
+		if(nextminlb>nextlb)printf("ERRO: nextminlb=%d > nextlb=%d\n",nextminlb,nextlb);
+	}
+
+	maxlb=0;
+	for(i=0; i<nid; ++i){
+		if((labels[i]<0)||(llb[labels[i]]<0)){
+			printf("ERRO: labels[%d]=%d llb[%d]=%d\n",i,labels[i],labels[i],llb[labels[i]]);
+		}
+		labels[i]=llb[labels[i]];
+		if(labels[i]>maxlb)maxlb=labels[i];
+	}
+
+	free(llb);
+	return numclusters;
+}
+/************************************************************************
+* 	Measure the average cluster size, the related standart		* 
+* 	deviation and the size and label of the largest	cluster.	*
+*************************************************************************/
+void calcClusterSizeStats(int nid,int ncl,int *labels,int *clsize,double *stats,ClusterMinimumID *maxclid){
+	int i,averclsize,averclsize2,var;
+
+	memset(clsize,0,sizeof(int)*ncl);
+	for(i=0; i<nid; ++i){
+		++clsize[labels[i]];
+	}
+
+	maxclid->sizeCL=-1;
+	maxclid->whichLB=-1;
+	averclsize=0.;
+	averclsize2=0.;
+	for(i=0; i<ncl; ++i){	
+		averclsize+=clsize[i];
+		averclsize2+=clsize[i]*clsize[i];
+		if(clsize[i]>maxclid->sizeCL){
+			maxclid->sizeCL=clsize[i];
+			maxclid->whichLB=i;
+		}
+	}
+	averclsize/=(double)ncl;
+	averclsize2/=(double)ncl;
+	var=averclsize2-averclsize*averclsize;
+	stats[0]=averclsize;
+	stats[1]=sqrt(var);
+
+	return; 
 }
