@@ -13,14 +13,12 @@ MACRO = TMEAS
 MEASURE_MACROS = \
 	INV_DIST \
 	AVERINVxT \
-	AVERINVRATExT \
-	EmptyFreqxT\
-	MEANBFRACxT \
 	NUMHEVENTSxT \
 	CORRxT \
 	CLUSTERSxT \
+	CLUSTERS_DISTxT \
+	BESTCLUSTER_TIMES \
 	RVNxTxCORRBAC \
-	GENTIME \
 	DIFBACOMPxT \
 	SAVE_CONFIG \
 	AVINVxRH \
@@ -87,7 +85,7 @@ valgrind: all
 #  Clean object files
 # -------------------------------------------------------
 cleanobj:
-	find . -type f -name '*.o' -exec rm -f {} +
+	find . -type f -name '*.o' -exec rm -fv {} +
 # -------------------------------------------------------
 #  Clean executables
 # -------------------------------------------------------
@@ -97,7 +95,7 @@ cleanexec:
 #  Clean object and executables files
 # -------------------------------------------------------
 cleanall:
-	find . -type f \( -name '*.o' -o -name '*.out' \) -exec rm -f {} +
+	find . -type f \( -name '*.o' -o -name '*.out' \) -exec rm -fv {} +
 # -------------------------------------------------------
 #  Show the Available Macros on the .c files, used to
 #  choose what to measure 

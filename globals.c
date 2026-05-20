@@ -4,6 +4,8 @@
 int *host = NULL;
 int **neighbor = NULL;
 int *inverselisth = NULL;
+int *lb = NULL;
+ClusterFullID *maxclw =NULL;
 double *rho_e = NULL;
 double *bac = NULL;
 double **costvec;
@@ -16,3 +18,4 @@ SysTimes *stime = NULL;
 GenFile *gfile = NULL;
 EvMeasures *meas = NULL;
 SysMeasures *sysmeas = NULL;
+DynList *bestwlisth = NULL;

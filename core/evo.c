@@ -467,7 +467,6 @@ void hostMigrationDynamics(int dnumsteps,Event *mevent){
 			updateEmptySpaceGrFreq(idh);
 			updateEmptySpaceGrFreq(idk);
 		}
-
 	}
 
 	free(listm);
@@ -509,23 +508,12 @@ void evolveHostCG(int dnumsteps,Event *event){
 							++nb;//number of new hosts
 							--ne;//decreasing the number of available empty sites
 							//measures	
-							#ifdef GENTIME
-							timeb[idk]=stime->Tnow+Dt_ref;//time of birth of host @idk
-							if(timeb[idh]>=0.){
-								meas->timegh+=(stime->Tnow+Dt_ref-timeb[idh]);//host @idh first reproduction time is the current time minos the time of its birth
-								timeb[idh]=-1.;//just the first reproduction of an individual counts
-								++meas->ngh;
-							}
-							#endif
 						}
 						break;
 					case 1: 
 						hostDeath(idh);
 						listd[nd]=idh;//list of sites that received offspring during the Dt_ref time interval
 						++nd;
-						#ifdef GENTIME
-						timeb[idh]=-1.;
-						#endif
 						break;
 				}
 			}
@@ -569,9 +557,6 @@ void evolveHostSL(int dnumsteps,Event *event){
 	int i,idh,idlist,idk,ne,ide,nh,nb,nd,whichE;
 	double nr;
 	DynList empty_viz;
-	#ifdef GENTIME
-	double currentime=stime->Tnow+Dt_ref;
-	#endif
 	
 	nh=listh->usize;
 	empty_viz.size=VIZ;
@@ -600,29 +585,12 @@ void evolveHostSL(int dnumsteps,Event *event){
 							++nb;
 							hostBirth(idh,idk);
 							//measures	
-							#ifdef GENTIME
-							meas->timeR[idk][nR[idk]] = currentime;//time of birth of host @idk (this event is happening in Tnow<time<Tnow+Dt_ref)
-							++nR[idk];
-							
-							meas->timeR[idh][nR[idh]] = currentime - meas->timeR[idh][nR[idh]-1];
-							if(nR[idh]==1){//first reproduction
-								timegh+=meas->timeR[idh][nR[idh]];
-								++ngh;
-							++nR[idh];
-							}
-							#endif
 						}
 						break;
 					case 1: 
 						listd[nd]=idh;
 						++nd;
 						hostDeath(idh);
-						#ifdef GENTIME
-						for(j=0; j<nR[idh]; ++j){
-							meas->timeR[idh][j]=0.;
-						}
-						nR[idh]=0;
-						#endif
 						break;
 				}
 			}
@@ -630,6 +598,9 @@ void evolveHostSL(int dnumsteps,Event *event){
 	}
 	                
 	/*updating hosts dynamic list*/
+//	#ifdef BESTCLUSTER_TIMES
+//	int j,k,ok,idviz,idlistviz;
+//	#endif
 	for(i=0; i<nb; ++i){//reproduction list
 		nh=listh->usize;
 		idh=listb[i];
@@ -637,6 +608,25 @@ void evolveHostSL(int dnumsteps,Event *event){
 		//updating group vacancy fraction (for groups around the newborn)
 		updateEmptySpaceGrFreq(idh);
 		//update lists related to positions of alive hosts
+/*		#ifdef BESTCLUSTER_TIMES
+		k=0;
+		ok=0;
+		while((k<VIZ)&&(ok==0)){
+			idviz=neighbor[idh][k];
+			idlistviz=inverselisth[idviz];
+			if(host[idviz]==1){
+				idlistviz=inverselisth[idviz];
+				if(lb[idlistviz]==maxclw->whichLBF){
+					printf("Birth1: maxclw->whichLBF=%d idh=%d k=%d bestwlisth->usize=%d nh=%d\n",maxclw->whichLBF,idh,k,bestwlisth->usize,nh);
+					bestwlisth->vec[bestwlisth->usize]=nh;
+					++bestwlisth->usize;
+					ok=1;
+					printf("Birth2: maxclw->whichLBF=%d idh=%d k=%d bestwlisth->usize=%d nh=%d\n",maxclw->whichLBF,idh,k,bestwlisth->usize,nh);
+				}
+			}
+			++k;
+		}
+		#endif*/
 		exchange(inverselisth,listh->vec[nh],idh);
 		exchange(listh->vec,nh,idlist);
 		++listh->usize;
@@ -645,6 +635,33 @@ void evolveHostSL(int dnumsteps,Event *event){
 		nh=listh->usize;
 		idh=listd[i];
 		idlist=inverselisth[idh];
+//		#ifdef BESTCLUSTER_TIMES
+		/*if dead host was in the best cluster it is taken off*/
+/*		if((bestwlisth->usize>0)&&(lb[idlist]==maxclw->whichLBF)){
+			j=0;
+			do{
+				++j;
+			}while((bestwlisth->vec[j-1]!=idlist)&&(j<bestwlisth->usize));
+
+			if(bestwlisth->vec[j-1]==idlist){
+				exchange(bestwlisth->vec,j-1,bestwlisth->usize-1);
+				--bestwlisth->usize;
+				printf("Death1: bestwlisth->vec[j]=%d idlist=%d bestwlisth->usize=%d nh=%d\n",bestwlisth->vec[j-1],idlist,bestwlisth->usize,nh);
+			}
+
+			if((bestwlisth->usize>0)&&(lb[nh-1]==maxclw->whichLBF)){
+				j=0;
+				do{
+					++j;
+				}while((bestwlisth->vec[j-1]!=nh-1)&&(j<bestwlisth->usize));
+				if(bestwlisth->vec[j-1]==nh-1){
+					bestwlisth->vec[j-1]=idlist;
+					printf("Death2: bestwlisth->vec[j]=%d idlist=%d bestwlisth->usize=%d nh=%d\n",bestwlisth->vec[j-1],idlist,bestwlisth->usize,nh);
+				}
+
+			}
+		}
+		#endif*/
 		//updating group vacancy fraction (for groups around the dead host)
 		updateEmptySpaceGrFreq(idh);
 		//update lists related to positions of alive hosts
@@ -681,11 +698,16 @@ void callSysDynamics(Event *event, Event *mevent){
 	sysmeas->nw=0;
         while((stime->Tnow<=stime->Tf)&&(finish==0)){
                 #ifdef TMEAS
-                timeMeasures();
                         #ifdef NUMHEVENTSxT
                         meas->numb=0;
                         meas->numd=0;
                         #endif
+			#ifdef BESTCLUSTER_TIMES
+			lb=(int *)calloc(listh->usize,sizeof(int));
+			memset(lb,-1,sizeof(int)*listh->usize);
+			maxclw->whichLBF=0;
+                        #endif
+                	timeMeasures();
                 #endif
                 #ifdef STEADY_STATE_MEAS
                         if((stime->Tnow<stime->saveT+stime->timewindow)&&(stime->Tnow>=stime->saveT)){
@@ -735,7 +757,11 @@ void callSysDynamics(Event *event, Event *mevent){
                 evolveHostSL(dnumsteps,event);
 			
 		freeVecsEvent(event);
-                #endif
+		#ifdef BESTCLUSTER_TIMES
+		free(lb);	
+		#endif
+                
+		#endif
 
                 nh=listh->usize;
 

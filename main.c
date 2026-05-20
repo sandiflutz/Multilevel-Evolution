@@ -25,38 +25,38 @@ int main(void){
 	allocateMemTM();
 	stime->saveT=0.;
 	stime->Tf=TF;
-	#if SAVE_CONFIG	
+	#ifdef SAVE_CONFIG	
 	callSysDynamics(&event,&mevent);
 	#endif
-	#if INV_DIST
+	#ifdef INV_DIST
 	callSysDynamics(&event,&mevent);
 	#endif
-	#if CORRxT
+	#ifdef CORRxT
         openFiles();
 	callSysDynamics(&event,&mevent);
 	closeFiles();
 	#endif
-	#if CLUSTERSxT
+	#ifdef CLUSTERSxT
         openFiles();
 	callSysDynamics(&event,&mevent);
 	closeFiles();
 	#endif
-	#if RVNxTxCORRBAC
+	#ifdef CLUSTERS_DISTxT
         openFiles();
 	callSysDynamics(&event,&mevent);
 	closeFiles();
 	#endif
-	#if NUMHEVENTSxT
+	#ifdef BESTCLUSTER_TIMES
         openFiles();
 	callSysDynamics(&event,&mevent);
 	closeFiles();
 	#endif
-	#if GENTIME
+	#ifdef NUMHEVENTSxT
         openFiles();
 	callSysDynamics(&event,&mevent);
 	closeFiles();
 	#endif
-	#if DIFBACOMPxT
+	#ifdef DIFBACOMPxT
         openFiles();
 	callSysDynamics(&event,&mevent);
 	closeFiles();
@@ -129,38 +129,87 @@ void callSetSystem(void){
 void freeMemory(void){
 	int i;
 
-	free(host);
-	free(bac);
+	if(host!=NULL){
+		free(host);
+		host=NULL;
+	}
+	if(bac!=NULL){
+		free(bac);
+		bac=NULL;
+	}
         for(i=0; i<N; ++i){
-		free(costvec[i]);
+		if(costvec[i]!=NULL){
+			free(costvec[i]);
+			costvec[i]=NULL;
+		}
         }
 	#if (Tneg>0)
-	free(costvec);
+	if(costvec!=NULL){
+		free(costvec);
+		costvec=NULL;
+	}
 	#endif
         
-	free(dtVec);
+	if(dtVec!=NULL){
+		free(dtVec);
+		dtVec=NULL;
+	}
 
 	//Structs and their arrays
-	free(spar->inv);
-	free(spar->micr);
-	free(spar);
-	free(stime);
+	if(spar->inv!=NULL){
+		free(spar->inv);
+		spar->inv=NULL;
+	}
+	if(spar->micr!=NULL){
+		free(spar->micr);
+		spar->micr=NULL;
+	}
+	if(spar!=NULL){
+		free(spar);
+		spar=NULL;
+	}
+	if(stime!=NULL){
+		free(stime);
+		stime=NULL;
+	}
 
 #if (NETWORK!=0)
 	for(i=0; i<N; ++i){
-		free(neighbor[i]);
+		if(neighbor[i]!=NULL){
+			free(neighbor[i]);
+			neighbor[i]=NULL;
+		}
 	}
-	free(neighbor);
 
-	free(rho_e);
+	if(neighbor!=NULL){
+		free(neighbor);
+		neighbor=NULL;
+	}
+
+	if(rho_e!=NULL){
+		free(rho_e);
+		rho_e=NULL;
+	}
 
 #endif
-	free(listh->vec);
-	free(inverselisth);
+	if(listh->vec!=NULL){
+		free(listh->vec);
+		listh->vec=NULL;
+	}
+	if(inverselisth!=NULL){
+		free(inverselisth);
+		inverselisth=NULL;
+	}
 
 	/*structs*/
-	free(listh);
-	free(sysmeas);
+	if(listh!=NULL){
+		free(listh);
+		listh=NULL;
+	}
+	if(sysmeas!=NULL){
+		free(sysmeas);
+		sysmeas=NULL;
+	}
 
 	return;
 }

@@ -122,10 +122,6 @@ void spatialCorrXt(void);
 *       transmission approachs)                         *
 *********************************************************/
 void difMicrCompXt(void);
-/***************************************************
-*  storing average host generation time in a file  *
-****************************************************/
-void genHostTime(void);
 /****************************************************************
 *  Store in @SAMPLE files the average investment                *
 *  in the system as a function of the system carrying dilution  *

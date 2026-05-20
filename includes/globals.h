@@ -49,7 +49,7 @@
 						 	*paper uses 19 when TYPES=2 and 29 otherwise (??)*/
 
 /*****COST*******************************************************/
-#define Gamma     		0.01		/*cost for helping when the investment is 1*/
+#define Gamma     		0.05		/*cost for helping when the investment is 1*/
 /***Parameters for cases where there are negative types*******************/
 /*when there are negative types, the cost for positive and negative types can be influenced by the total frequency of the negative types (f⁻): 
  * for negative types: cost Gamma*investiment[type] is multiplied by CRnn0*exp(-CRnn1*d⁻/(1-f⁻)) 
@@ -86,7 +86,7 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			80000		/*host maximum time (measured using continuous values for the times steps)*/
+#define TF			20000		/*host maximum time (measured using continuous values for the times steps)*/
 #define Ttrans			15000		/*transient time (to a first trial)*/
 #define	Twin			25000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
@@ -96,6 +96,7 @@
 #define NInterv			1000		/*Ninterv*Dt_ref=time interval between snapshots taken*/
 #define SAMPLE			100             /*general sample size of measures done within the program (during evolution or number of files produced with raw data)*/
 #define EPS			1e-8
+#define BestWtr			0.98		/*best investment threshold (used for keeping track of clusters with high investments)*/
 /********************************************************************************************************************************************************************/
 /*****Fixed Parameters**********/
 #define Beta      		1.		/*birth rate for neutral bacteria*/
@@ -118,7 +119,7 @@
 #define RightDown		6 /*label of the neighbor at the right-down diagonal (for the square lattice)*/
 #define LeftDown		7 /*label of the neighbor at the left-down diagonal (for the square lattice)*/
 /******defining a main MACRO for measures made during time evolution******/
-#if  defined(AVERINVRATExT)||defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(RVNxTxCORRBAC)||defined(GENTIME)||defined(DIFBACOMPxT)||defined(CLUSTERSxT)||defined(CLUSTERS_DISTxT)
+#if  defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(DIFBACOMPxT)||defined(CLUSTERSxT)||defined(CLUSTERS_DISTxT)||defined(BESTCLUSTER_TIMES)
 	#define TMEAS
 #endif
 #if defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(AVINVxMH)||defined(RHxMHxAVINV)||defined(COSTxMBxAVINV)
@@ -161,10 +162,6 @@ typedef struct{
 typedef struct{
 	int numb;
 	int numd;
-	int ngh;
-	int *nR;
-	double timegh;//generation time
-	double **timeR;
 } EvMeasures;
 typedef struct{
 	int nw;
@@ -181,13 +178,15 @@ typedef struct{
 	int sizeCLF;
 	int whichLBF;
 	double stateCL;
-} ClusterFullID;
+} ClusterFullID;//identity info of a cluster
 /***************************************************
  *            Global Variables                     *
  ***************************************************/
 extern int *host;
 extern int **neighbor;
 extern int *inverselisth;
+extern int *lb;//vector of cluster labels
+extern ClusterFullID *maxclw;//struct for the identity of the cluster with the best investment
 extern double *rho_e;
 extern double *bac;
 extern double **costvec;
@@ -200,4 +199,5 @@ extern SysTimes *stime;
 extern GenFile *gfile;
 extern EvMeasures *meas;
 extern SysMeasures *sysmeas;
+extern DynList *bestwlisth;
 #endif
