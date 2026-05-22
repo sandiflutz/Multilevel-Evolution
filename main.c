@@ -25,6 +25,17 @@ int main(void){
 	allocateMemTM();
 	stime->saveT=0.;
 	stime->Tf=TF;
+	#ifdef AVERINVxT
+	int i;
+	for(i=0; i<SAMPLE; ++i){
+        	openFiles();
+		callSysDynamics(&event,&mevent);
+		closeFiles();
+		stime->Tnow=0.;
+		stime->saveT=0.;
+		setCI();
+	}
+	#endif
 	#ifdef SAVE_CONFIG	
 	callSysDynamics(&event,&mevent);
 	#endif
@@ -47,9 +58,14 @@ int main(void){
 	closeFiles();
 	#endif
 	#ifdef BESTCLUSTER_TIMES
-        openFiles();
-	callSysDynamics(&event,&mevent);
-	closeFiles();
+	int i;
+	for(i=0; i<SAMPLE; ++i){
+        	openFiles();
+		callSysDynamics(&event,&mevent);
+		closeFiles();
+		stime->Tnow=0.;
+		setCI();
+	}
 	#endif
 	#ifdef NUMHEVENTSxT
         openFiles();
@@ -60,26 +76,6 @@ int main(void){
         openFiles();
 	callSysDynamics(&event,&mevent);
 	closeFiles();
-	#endif
-
-	#if defined(AVERINVxT)||(AVERINVRATExT)
-	int i;
-	stime->Tf=TF;
-	for(i=0; i<SAMPLE; ++i){
-		stime->saveT=stime->timewindow;
-		stime->Tnow=0.;
-        	openFiles();
-		
-		#if (CI!=2)
-		callSysDynamics(&event,&mevent);
-		#else
-		callSysDynamics1H(&event);
-		#endif
-		
-		fprintf(gfile->file,"\n");
-		setCI();
-		closeFiles();
-	}
 	#endif
 	freeMemTM();
 #endif

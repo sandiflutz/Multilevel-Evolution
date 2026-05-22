@@ -252,8 +252,9 @@ int unionFind(int x,int y,int *lblist);
 *****************************************************************/
 int fixClusterLbOrder(int nid,int *labels);
 /************************************************************************
-*       Measure the average cluster size, the related standart          *
-*       deviation and the size and label of the largest cluster.        *
+*       Measure the average cluster size whithout the largest cluster,  *
+*       the related standart deviation and the size and label of the    *
+*       largest cluster. Returns size of largest cluster                *
 *************************************************************************/
-void calcClusterSizeStats(int nid,int ncl,int *labels,int *clsize,double *stats,ClusterMinimumID *maxclid);
+int calcClusterSizeStats(int nid,int ncl,int *labels,int *clsize,double *stats,ClusterMinimumID *maxclid);
 #endif

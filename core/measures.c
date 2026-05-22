@@ -60,14 +60,13 @@ void allocateMemTM(void){
 
         char *ngeral=(char *)calloc(200,sizeof(char));
         char *ntneg = (char *)calloc(50,sizeof(char));
-	int npar=4,mul,nf;
+	int npar=3,mul,nf;
         char nparam[npar][10];
         double expo,param[npar];
         param[0]=Bacv;
-        param[1]=spar->cost;
-        param[2]=spar->mu;
-        param[3]=spar->mig;
-        
+        param[1]=spar->mu;
+        param[2]=spar->mig;
+
 	for(i=0; i<npar; ++i){
                 if(param[i]==0.){
                         sprintf(nparam[i],"0");
@@ -84,9 +83,9 @@ void allocateMemTM(void){
                 }
         }
 	#if (NETWORK==0)
-        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,spar->kh,NETWORK,Gh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,spar->kh,NETWORK,Gh,CI,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh);
 	#else
-        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f_GR%d",N,TYPES,spar->kh,NETWORK,Gh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh,GR_CORR);
+        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,spar->kh,NETWORK,Gh,CI,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh);
 	#endif
                 
 	#if (Tneg>0)
@@ -164,23 +163,6 @@ void openFiles(void){
 
         char *name=(char *)calloc(namelen,sizeof(char));
 
-#ifdef AVERINVRATExT
-        /*each execution will produce a file with a different name (with a "random" id at the end of the name)*/
-        while(ok==0){
-                sprintf(name,"%saverwRateXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
-                gfile->file=fopen(name,"r");
-                if(gfile->file!=NULL){
-                        ++id;
-                        fclose(gfile->file);
-                }else{
-                        ok=1;
-                }
-        }
-	sprintf(name,"%saverwRateXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
-        gfile->file=fopen(name,"w");
-        if (gfile->file==NULL) { perror("malloc"); exit(1);}
-
-#endif
 #ifdef AVERINVxT
         while(ok==0){
                 sprintf(name,"%saverInvXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
@@ -414,9 +396,9 @@ double calcAverInv(void){
 *	investment and its size. Return the system average	*
 *	investment.						*
 *****************************************************************/
-double findHighestInvCluster(int ncl,int *labels,double *wcl,ClusterFullID *clid){
+double findHighestInvCluster(int ncl,int *labels,double *wcl,double *clwstats,ClusterFullID *clid){
 	int i,idh,nh;
-	double w,averw,ntot,*ntotcl;
+	double w,averw,averwcl,averwcl2,ntot,*ntotcl;
 
 	ntotcl=(double *)calloc(ncl,sizeof(double));
 
@@ -434,7 +416,6 @@ double findHighestInvCluster(int ncl,int *labels,double *wcl,ClusterFullID *clid
 	for(i=0; i<nh; ++i){		
 		idh=listh->vec[i];
 		w=calcAcumInvest(idh);
-	//	printf("AVERW: labels[%d]=%d\n",i,labels[i]);
 		wcl[labels[i]]+=w;
 		averw+=w;
 		ntotcl[labels[i]]+=spar->micr[idh];
@@ -443,17 +424,46 @@ double findHighestInvCluster(int ncl,int *labels,double *wcl,ClusterFullID *clid
 	averw/=ntot;
 	clid->stateCL=0.;
 	clid->whichLBF=0;
+	averwcl=0.;
+	averwcl2=0.;
 	for(i=0; i<ncl; ++i){
 		wcl[i]/=ntotcl[i];
 		if(wcl[i]>clid->stateCL){
 			clid->stateCL=wcl[i];
 			clid->whichLBF=i;
 		}
+		averwcl+=wcl[i];
+		averwcl2+=wcl[i]*wcl[i];
 	}
 
+	if(ncl>1){
+		averwcl=(averwcl-wcl[clid->whichLBF])/((double)ncl-1.);
+		averwcl2=(averwcl2-(wcl[clid->whichLBF]*wcl[clid->whichLBF]))/((double)ncl-1.);
+		clwstats[0]=averwcl;
+		clwstats[1]=averwcl2-averwcl*averwcl;
+		clwstats[1]=sqrt(clwstats[1]);
+	}else{
+		clwstats[0]=wcl[0];
+		clwstats[1]=0.;
+	}
 
 	free(ntotcl);
 	return averw;
+}
+/********************************************************
+*  Find the number of clusters with similar investment	*
+*********************************************************/
+int findSimilarInvClusters(int numcl,double targetw, double eps, double *wcl){
+	int i,nscl;
+
+	nscl=0;
+	for(i=0; i<numcl; ++i){
+		if((wcl[i]>=targetw-eps)&&(wcl[i]<=targetw+eps)){
+			++nscl;
+		}
+	}
+
+	return nscl;
 }
 /********************************************************
 *  Calculate the difference in microbial               	*
@@ -497,27 +507,66 @@ void storeBacDiffComp(int idp,int idk){
 *   		helpers in the system                   *
 *********************************************************/
 void averInvestmentXt(void){
-	int i,idh,nh;
-	double averinv,tot_micr;
+	int nh,nclusters;
+	double averw,clsizestats[2],clwstats[2];
+	int *labels=NULL;
+	int *clsize=NULL;
+	double *wcl=NULL;
+	ClusterMinimumID maxclsize; 
 	
 	if(stime->Tnow==0.){
-		fprintf(gfile->file,"#1:time 2:average cumulative investment 3:micr. abundance on the system 4:#of hosts 5:dens_host 6:#of time steps 7:dth\n");
+		fprintf(gfile->file,"#1:t 2:<w> 3:wb 4:clsizeb 5:<wcl⁻> 6:stdwcl⁻ 7:maxclsize 8:wl⁻ 9:<clsize⁻> 10:stdclsize⁻ 11:nh/N 12:cost 13:mb 14:mh 15:rh\n");
+		printf("#1:t 2:<w> 3:wb 4:clsizeb 5:<wcl⁻> 6:stdwcl⁻ 7:maxclsize 8:wl⁻ 9:<clsize⁻> 10:stdclsize⁻ 11:nh/N 12:cost 13:mb 14:mh 15:rh\n");
 	}
 
 	/****setting investiment density per host vector and calculating average investment in the system*****/
 	nh=listh->usize;
-	averinv=calcAverInv();
+	
+/*	averinv=calcAverInv();
 
 	tot_micr=0.;
 	for(i=0; i<nh; ++i){
 		idh=listh->vec[i];
 		tot_micr+=spar->micr[idh];
-	}
+	}*/
+	maxclw=malloc(sizeof(ClusterFullID));
+	if (!maxclw){ perror("malloc"); exit(1);}
 
+	labels=(int *)calloc(nh,sizeof(int));
+
+	/*set different labels on different clusters with Hoshen-Kopelman-like algorithm using list of hosts instead of the full lattice*/
+	setClusterLabelsWithList(listh,inverselisth,neighbor,LEFT,UP,labels);	
+
+	/*fix cluster labels so they include all the integers between 0 and @numclusters-1*/
+	nclusters=fixClusterLbOrder(nh,labels);
+	clsize=(int *)calloc(nclusters,sizeof(int));
+	/*calculating the size of each clusters and also finding the size and label of the largest cluster*/
+	(void)calcClusterSizeStats(nh,nclusters,labels,clsize,clsizestats,&maxclsize);
+
+	wcl=(double *)calloc(nclusters,sizeof(double));
+	/*calculating average investment in each cluster and also finding the investment and label of the best cluster*/
+	averw=findHighestInvCluster(nclusters,labels,wcl,clwstats,maxclw);//returns system average investment
+	maxclw->sizeCLF=clsize[maxclw->whichLBF];//size of the best cluster
 	/*storing data*/
-        fprintf(gfile->file,"%f %f %f %d %f %f\n",stime->Tnow,averinv,tot_micr,nh,(double)nh/N,stime->dth);
-        printf("t=%f averinv=%f ntot=%f nh=%d nh/N=%f dth=%f\n",stime->Tnow,averinv,tot_micr,nh,(double)nh/N,stime->dth);
+        fprintf(gfile->file,"%f %f %f %d %f %f %d %f %f %f %f %f %f %f %f\n",stime->Tnow,averw,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],clwstats[0],clwstats[1],clsize[maxclsize.whichLB],wcl[maxclsize.whichLB],clsizestats[0],clsizestats[1],(double)nh/N,spar->cost,spar->mig,spar->mh,(double)spar->kh/N);
+        printf("t=%f <w>=%f wb=%f clsizeb=%d <wcl⁻>=%f stdwcl⁻=%f maxclsize=%d wl=%f <clsize⁻>=%f stdclsize⁻=%f nh/N=%f cost=%f mb=%f mh=%f rh=%f\n",stime->Tnow,averw,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],clwstats[0],clwstats[1],clsize[maxclsize.whichLB],wcl[maxclsize.whichLB],clsizestats[0],clsizestats[1],(double)nh/N,spar->cost,spar->mig,spar->mh,(double)spar->kh/N);
 
+	if(labels!=NULL){
+		free(labels);
+		labels=NULL;
+	}
+	if(clsize!=NULL){
+		free(clsize);
+		clsize=NULL;
+	}
+	if(wcl!=NULL){
+		free(wcl);
+		wcl=NULL;
+	}
+	if(maxclw!=NULL){
+		free(maxclw);
+		maxclw=NULL;
+	}
         return;
 }
 /**************************************
@@ -733,7 +782,7 @@ void invDistXt(void){
 *************************************************************************/
 void clustersXt(void){
 	int i,nh,nclusters;
-	double averw,clstats[2],meanwcl,meanwcl2,stdwcl;
+	double averw,clstats[2],clwstats[2],meanwcl,meanwcl2,stdwcl;
 	int *labels=NULL;
 	int *clsize=NULL;
 	double *wcl=NULL;
@@ -744,6 +793,8 @@ void clustersXt(void){
 	if(stime->Tnow==0.){
 		fprintf(gfile->file,"#1:time 2:<w> of the best cluster 3:cluster size of the best cluster 4:<w> of the largest cluster 5:size of the largest cluster 6:#ofclusters 7:mean cluster size 8:std(clsize) 9:<w> 10:<wcl> 11:std(wcl) 12:nh\n");
 	}
+	maxclw=malloc(sizeof(ClusterFullID));
+	if (!maxclw){ perror("malloc"); exit(1);}
 
 	labels=(int *)calloc(nh,sizeof(int));
 
@@ -758,7 +809,7 @@ void clustersXt(void){
 
 	wcl=(double *)calloc(nclusters,sizeof(double));
 	/*calculating average investment in each cluster and also finding the investment and label of the best cluster*/
-	averw=findHighestInvCluster(nclusters,labels,wcl,maxclw);//returns system average investment
+	averw=findHighestInvCluster(nclusters,labels,wcl,clwstats,maxclw);//returns system average investment
 	maxclw->sizeCLF=clsize[maxclw->whichLBF];//size of the best cluster
 
 	/*calculating mean cluster average investment and the related standart deviation*/	
@@ -784,6 +835,10 @@ void clustersXt(void){
 	free(labels);
 	free(wcl);
 	free(clsize);
+	if(maxclw!=NULL){
+		free(maxclw);
+		maxclw=NULL;
+	}
 	return;
 }
 /********************************************************
@@ -797,7 +852,7 @@ void clustersXt(void){
 void clustersInvDistXt(void){
 	int nh,nclusters;
 	int i,id,idmax,nbins=100;
-	double averw;
+	double averw,clwstats[2];
 	double binsize;
 	int *hist=NULL;
 	int *labels=NULL;
@@ -812,6 +867,8 @@ void clustersInvDistXt(void){
 	}
 
 	labels=(int *)calloc(nh,sizeof(int));
+	maxclw=malloc(sizeof(ClusterFullID));
+	if (!maxclw){ perror("malloc"); exit(1);}
 
 	/*set different labels on different clusters with Hoshen-Kopelman-like algorithm using list of hosts instead of the full lattice*/
 	setClusterLabelsWithList(listh,inverselisth,neighbor,LEFT,UP,labels);	
@@ -821,7 +878,7 @@ void clustersInvDistXt(void){
 
 	wcl=(double *)calloc(nclusters,sizeof(double));
 	/*calculating average investment in each cluster and also finding the investment and label of the best cluster*/
-	averw=findHighestInvCluster(nclusters,labels,wcl,maxclw);
+	averw=findHighestInvCluster(nclusters,labels,wcl,clwstats,maxclw);
 	/*Histogram: calculating the fraction of clusters for each investment bin*/
 	idmax=nbins-1;
 	hist=(int *)calloc(nbins,sizeof(int));
@@ -842,6 +899,10 @@ void clustersInvDistXt(void){
 	free(hist);
 	free(labels);
 	free(wcl);
+	if(maxclw!=NULL){
+		free(maxclw);
+		maxclw=NULL;
+	}
 	return;
 }
 /********************************************************
@@ -854,9 +915,8 @@ void clustersInvDistXt(void){
  * of where this it is no longer the best cluster 	*
 *********************************************************/
 void bestClusterStabilityMeasures(void){
-	int i,j,nh,nclusters,nblist,samecluster;
-	double averw, clstats[2];
-	//double meanlastbestwcl,micr_lbw;
+	int i,nh,nclusters,nblist,numsimilarw;
+	double averw, clstats[2],clwstats[2],eps;
 	int *clsize=NULL;
 	double *wcl=NULL;
 	ClusterMinimumID maxclsize; 
@@ -864,7 +924,7 @@ void bestClusterStabilityMeasures(void){
 	nh=listh->usize;
 
 	if(stime->Tnow==0.){
-		fprintf(gfile->file,"#1:t 2:<w>b 3:clsize 4:<w> participants: \n");
+		fprintf(gfile->file,"#1:t 2:wcl_best 3:clsize 4:<w> 5:#of clusters with wcl~wcl_best 6:#of clusters  participants: \n");
 	}
 
 	/*set different labels on different clusters with Hoshen-Kopelman-like algorithm using list of hosts instead of the full lattice*/
@@ -878,19 +938,11 @@ void bestClusterStabilityMeasures(void){
 
 	wcl=(double *)calloc(nclusters,sizeof(double));
 	/*calculating average investment in each cluster and also finding the investment and label of the best cluster*/
-	averw=findHighestInvCluster(nclusters,lb,wcl,maxclw);//returns system average investment
+	averw=findHighestInvCluster(nclusters,lb,wcl,clwstats,maxclw);//returns system average investment
 	maxclw->sizeCLF=clsize[maxclw->whichLBF];//size of the best cluster
 
-/*	meanlastbestwcl=0.;
-	micr_lbw=0.;
-	for(i=0; i<bestwlisth->usize; ++i){
-		meanlastbestwcl+=calcAcumInvest(listh->vec[i]);
-		micr_lbw+=spar->micr[listh->vec[i]];
-
-	}
-	if(micr_lbw>0.){
-		meanlastbestwcl/=micr_lbw;
-	}*/
+	eps=spar->inv[1];//=dw between the investments of a type of bacteria j and another of type j+1 or j-1: dw=0.01 for T=101
+	numsimilarw=findSimilarInvClusters(nclusters,maxclw->stateCL,eps,wcl);
 	/**************/
 	nblist=0;
 
@@ -901,59 +953,14 @@ void bestClusterStabilityMeasures(void){
 		}
 		bestwlisth->usize=nblist;
 	}
-	fprintf(gfile->file,"%f %f %d %f ",stime->Tnow,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],averw);
-	printf("t=%f wclb=%f clsizeb=%d <w>=%f partic.: ",stime->Tnow,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],averw);
+	fprintf(gfile->file,"%f %f %d %f %d %d ",stime->Tnow,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],averw,numsimilarw,nclusters);
+	printf("t=%f wclb=%f clsizeb=%d <w>=%f nswcl=%d numcl=%d partic.: ",stime->Tnow,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],averw,numsimilarw,nclusters);
 	for(i=0; i<nblist; ++i){
 		fprintf(gfile->file,"%d ",bestwlisth->vec[i]);
 		printf("%d ",bestwlisth->vec[i]);
 	}
 	fprintf(gfile->file,"\n");
 	printf("\n");
-
-//	if(maxclw.stateCL>=BestWtr){
-/*		if(nblist>0){
-			j=0;
-			samecluster=0;
-			while((j<nblist)&&(samecluster==0)){
-				if(host[inverselisth[bestwlisth->vec[j]]]==1){
-					if(lb[bestwlisth->vec[j]]==maxclw->whichLBF){
-						samecluster=1;
-					}
-				}
-				++j;
-			}	
-
-
-			nblist=0;
-			for(i=0; i<nh; ++i){
-				if(lb[i]==maxclw->whichLBF){
-					bestwlisth->vec[nblist]=i;
-					++nblist;
-				}
-			}
-			bestwlisth->usize=nblist;
-
-
-			if(samecluster==0){
-				fprintf(gfile->file,"%f %f %f %d %f\n",stime->Tnow,meanlastbestwcl,maxclw->stateCL,maxclw->sizeCLF,averw);
-				printf("1BESTCL,NBL>0: 1:t=%f 2:<w>lb=%f 3:<w>b=%f 4:clsize=%d 4.1:nblist=%d 5:<w>=%f 6:bestwlisth->vec[0]=%d\n",stime->Tnow,meanlastbestwcl,maxclw->stateCL,maxclw->sizeCLF,nblist,averw,bestwlisth->vec[0]);
-			}
-
-		}else{//first time a good enough (high investment) cluster appears
-			printf("0BESTCL,NBL=0: nblist=%d\n",nblist);
-			for(i=0; i<nh; ++i){
-				if(lb[i]==maxclw->whichLBF){
-					bestwlisth->vec[nblist]=i;
-					++nblist;
-				}
-			}
-			bestwlisth->usize=nblist;
-			fprintf(gfile->file,"%f %f %f %d %f\n",stime->Tnow,maxclw->stateCL,maxclw->stateCL,maxclw->sizeCLF,averw);
-			printf("1BESTCL,NBL=0: 1:t=%f 2:<w>lb=%f 3:<w>b=%f 4:clsize=%d 4.1:nblist=%d 5:<w>=%f 6:bestwlisth->vec[0]=%d\n",stime->Tnow,maxclw->stateCL,maxclw->stateCL,maxclw->sizeCLF,nblist,averw,bestwlisth->vec[0]);
-			printf("2BESTCL,NBL=0: nblist=%d\n",nblist);
-		}
-//	}*/
-	
 
 	/****freeing allocated memory*****/
 	free(wcl);
@@ -1075,7 +1082,7 @@ void averInvXrh(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double rh,drh=0.05,eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=4,mul,nf;
+	int npar=3,mul,nf;
 	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -1092,9 +1099,8 @@ void averInvXrh(Event *event,Event *mevent){
 	
 	//file name components
         param[0]=Bacv;
-        param[1]=spar->cost;
-        param[2]=spar->mu;
-        param[3]=spar->mig;
+        param[1]=spar->mu;
+        param[2]=spar->mig;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1113,9 +1119,9 @@ void averInvXrh(Event *event,Event *mevent){
         }
 
 	#if(NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,Gh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,Gh,CI,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f_GR%d",N,TYPES,NETWORK,Gh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh,GR_CORR);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,Gh,CI,nparam[0],spar->cost,nparam[1],nparam[1],spar->mh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1222,7 +1228,7 @@ void averInvXgh(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=4,mul,nf;
+	int npar=3,mul,nf;
 	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -1239,9 +1245,8 @@ void averInvXgh(Event *event,Event *mevent){
 	
 	//file name components
         param[0]=Bacv;
-        param[1]=spar->cost;
-        param[2]=spar->mu;
-        param[3]=spar->mig;
+        param[1]=spar->mu;
+        param[2]=spar->mig;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1260,9 +1265,9 @@ void averInvXgh(Event *event,Event *mevent){
         }
 
 	#if(NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,CI,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_mh%0.1f_GR%d",N,TYPES,NETWORK,spar->kh,CI,nparam[0],nparam[1],nparam[2],nparam[3],spar->mh,GR_CORR);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,CI,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1366,7 +1371,7 @@ void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax){
         int ok=0,namelen,dnl;
 	double dmb,eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=3,mul,nf;
+	int npar=2,mul,nf;
 	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -1383,8 +1388,7 @@ void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax){
 	
 	//file name components
         param[0]=Bacv;
-        param[1]=spar->cost;
-        param[2]=spar->mu;
+        param[1]=spar->mu;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1403,9 +1407,9 @@ void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax){
         }
 
 	#if(NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],spar->cost,nparam[1],spar->mh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mh%0.1f_GR%d",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh,GR_CORR);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],spar->cost,nparam[1],spar->mh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1569,7 +1573,7 @@ void averInvXcost(Event *event,Event *mevent){
 	#if (NETWORK==0)
 	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f_GR%d",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh,GR_CORR);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1675,7 +1679,7 @@ void averInvXmh(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double eps=0.05,tot_micr,stats[2],mhmax,dmh,aver_rhoe;
 	double twind=stime->timewindow;	
-	int npar=4,mul,nf;
+	int npar=3,mul,nf;
 	double param[npar],expo;
 	unsigned long id;
         char nparam[npar][10];
@@ -1692,9 +1696,8 @@ void averInvXmh(Event *event,Event *mevent){
 	
 	//file name components
         param[0]=Bacv;
-        param[1]=spar->cost;
-        param[2]=spar->mu;
-        param[3]=spar->mig;
+        param[1]=spar->mu;
+        param[2]=spar->mig;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1713,9 +1716,9 @@ void averInvXmh(Event *event,Event *mevent){
         }
 
 	#if (NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],nparam[3]);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],spar->cost,nparam[1],nparam[2]);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_GR%d",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],nparam[3],GR_CORR);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],spar->cost,nparam[1],nparam[2]);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1861,7 +1864,7 @@ void costXmbXw(Event *event,Event *mevent){
 	#if (NETWORK==0)
 	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f_GR%d",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh,GR_CORR);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1976,7 +1979,7 @@ void rhXmhXw(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double dmh,drh,rh,rhmax,mhmax,eps=0.05,stats[2];
 	double twind=stime->timewindow;	
-	int npar=4,mul,nf;
+	int npar=3,mul,nf;
 	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -1993,9 +1996,8 @@ void rhXmhXw(Event *event,Event *mevent){
 	
 	//file name components
         param[0]=Bacv;
-	param[1]=spar->cost;
-        param[2]=spar->mu;
-        param[3]=spar->mig;
+        param[1]=spar->mu;
+        param[2]=spar->mig;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -2014,9 +2016,9 @@ void rhXmhXw(Event *event,Event *mevent){
         }
 
 	#if (NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s",N,TYPES,NETWORK,spar->gh,CI,nparam[0],nparam[1],nparam[2],nparam[3]);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s",N,TYPES,NETWORK,spar->gh,CI,nparam[0],spar->cost,nparam[1],nparam[2]);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%s_mu%s_mb%s_GR%d",N,TYPES,NETWORK,spar->gh,CI,nparam[0],nparam[1],nparam[2],nparam[3],GR_CORR);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s",N,TYPES,NETWORK,spar->gh,CI,nparam[0],spar->cost,nparam[1],nparam[2]);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -2128,10 +2130,10 @@ void rhXmhXw(Event *event,Event *mevent){
 void timeMeasures(void){
 
         #ifdef AVERINVxT
-//	if((stime->Tnow>=stime->saveT-err)&&(stime->Tnow<=stime->saveT+err)){
+	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){
 		averInvestmentXt();
-//		stime->saveT+=stime->tinterval;
-//	}
+		stime->saveT=stime->Tnow+10.;
+	}
         #endif
         #ifdef SAVE_CONFIG
 	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){

@@ -44,7 +44,11 @@ double calcAverInv(void);
 *       investment and its size. Return the system average      *
 *       investment.                                             *
 *****************************************************************/
-double findHighestInvCluster(int ncl,int *labels,double *wcl,ClusterFullID *clid);
+double findHighestInvCluster(int ncl,int *labels,double *wcl,double *clwstats,ClusterFullID *clid);
+/********************************************************
+*  Find the number of clusters with similar investment  *
+*********************************************************/
+int findSimilarInvClusters(int numcl,double targetw, double eps, double *wcl);
 /********************************************************
 *  Calculate the difference in microbial 		*
 *  composition between host @idp and its children @idk.*
@@ -68,16 +72,6 @@ void save_config(void);
  * create a gnuplot script to create graphics  *
  ***********************************************/
 void invDistXt(void);
-/****************************************************************
-*       stores the most important factor of the average         *
-*       investment rate as a function of time                   *
-*       -><w>=sum(wi)/ntot (wi= investment at host i, and       *
-*         ntot=total microbial abundance in the system)         *
-*       ->d<w>/dt=tw1+t2+tw3+tw4  (in a Dt_ref time step)       *
-*       ->tw1=sum_hosts{(1-1/ntot-ni)wi/ntot                    *
-*         (ni=microbial abundance at host i)                    *
-*****************************************************************/
-void averInvRateXt(void);
 /************************************************************************
 *       Stores the following cluster related measures:                  *
 *       ->Highest cluster average investment (=best clluster)           *

@@ -11,8 +11,8 @@ MACRO = TMEAS
 #  List if available macros (for choosing what to measure)                                    
 # -------------------------------------------------------
 MEASURE_MACROS = \
-	INV_DIST \
 	AVERINVxT \
+	INV_DIST \
 	NUMHEVENTSxT \
 	CORRxT \
 	CLUSTERSxT \

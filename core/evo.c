@@ -608,25 +608,6 @@ void evolveHostSL(int dnumsteps,Event *event){
 		//updating group vacancy fraction (for groups around the newborn)
 		updateEmptySpaceGrFreq(idh);
 		//update lists related to positions of alive hosts
-/*		#ifdef BESTCLUSTER_TIMES
-		k=0;
-		ok=0;
-		while((k<VIZ)&&(ok==0)){
-			idviz=neighbor[idh][k];
-			idlistviz=inverselisth[idviz];
-			if(host[idviz]==1){
-				idlistviz=inverselisth[idviz];
-				if(lb[idlistviz]==maxclw->whichLBF){
-					printf("Birth1: maxclw->whichLBF=%d idh=%d k=%d bestwlisth->usize=%d nh=%d\n",maxclw->whichLBF,idh,k,bestwlisth->usize,nh);
-					bestwlisth->vec[bestwlisth->usize]=nh;
-					++bestwlisth->usize;
-					ok=1;
-					printf("Birth2: maxclw->whichLBF=%d idh=%d k=%d bestwlisth->usize=%d nh=%d\n",maxclw->whichLBF,idh,k,bestwlisth->usize,nh);
-				}
-			}
-			++k;
-		}
-		#endif*/
 		exchange(inverselisth,listh->vec[nh],idh);
 		exchange(listh->vec,nh,idlist);
 		++listh->usize;
@@ -635,33 +616,6 @@ void evolveHostSL(int dnumsteps,Event *event){
 		nh=listh->usize;
 		idh=listd[i];
 		idlist=inverselisth[idh];
-//		#ifdef BESTCLUSTER_TIMES
-		/*if dead host was in the best cluster it is taken off*/
-/*		if((bestwlisth->usize>0)&&(lb[idlist]==maxclw->whichLBF)){
-			j=0;
-			do{
-				++j;
-			}while((bestwlisth->vec[j-1]!=idlist)&&(j<bestwlisth->usize));
-
-			if(bestwlisth->vec[j-1]==idlist){
-				exchange(bestwlisth->vec,j-1,bestwlisth->usize-1);
-				--bestwlisth->usize;
-				printf("Death1: bestwlisth->vec[j]=%d idlist=%d bestwlisth->usize=%d nh=%d\n",bestwlisth->vec[j-1],idlist,bestwlisth->usize,nh);
-			}
-
-			if((bestwlisth->usize>0)&&(lb[nh-1]==maxclw->whichLBF)){
-				j=0;
-				do{
-					++j;
-				}while((bestwlisth->vec[j-1]!=nh-1)&&(j<bestwlisth->usize));
-				if(bestwlisth->vec[j-1]==nh-1){
-					bestwlisth->vec[j-1]=idlist;
-					printf("Death2: bestwlisth->vec[j]=%d idlist=%d bestwlisth->usize=%d nh=%d\n",bestwlisth->vec[j-1],idlist,bestwlisth->usize,nh);
-				}
-
-			}
-		}
-		#endif*/
 		//updating group vacancy fraction (for groups around the dead host)
 		updateEmptySpaceGrFreq(idh);
 		//update lists related to positions of alive hosts

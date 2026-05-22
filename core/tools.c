@@ -885,10 +885,11 @@ int fixClusterLbOrder(int nid,int *labels){
 	return numclusters;
 }
 /************************************************************************
-* 	Measure the average cluster size, the related standart		* 
-* 	deviation and the size and label of the largest	cluster.	*
+* 	Measure the average cluster size whithout the largest cluster, 	*
+* 	the related standart deviation and the size and label of the 	*
+* 	largest	cluster. Returns size of largest cluster		*
 *************************************************************************/
-void calcClusterSizeStats(int nid,int ncl,int *labels,int *clsize,double *stats,ClusterMinimumID *maxclid){
+int calcClusterSizeStats(int nid,int ncl,int *labels,int *clsize,double *stats,ClusterMinimumID *maxclid){
 	int i,averclsize,averclsize2,var;
 
 	memset(clsize,0,sizeof(int)*ncl);
@@ -908,11 +909,16 @@ void calcClusterSizeStats(int nid,int ncl,int *labels,int *clsize,double *stats,
 			maxclid->whichLB=i;
 		}
 	}
-	averclsize/=(double)ncl;
-	averclsize2/=(double)ncl;
-	var=averclsize2-averclsize*averclsize;
-	stats[0]=averclsize;
-	stats[1]=sqrt(var);
+	if(ncl>1){
+		averclsize=(averclsize-clsize[maxclid->whichLB])/((double)ncl-1.);
+		averclsize2=(averclsize2-clsize[maxclid->whichLB]*clsize[maxclid->whichLB])/((double)ncl-1.);
+		var=averclsize2-averclsize*averclsize;
+		stats[0]=averclsize;
+		stats[1]=sqrt(var);
+	}else{
+		stats[0]=clsize[0];
+		stats[1]=0.;
+	}
 
-	return; 
+	return maxclid->sizeCL; 
 }
