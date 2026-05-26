@@ -77,7 +77,7 @@ void updateEmptySpaceGrFreq(int idh);
 *               -prob[i]=1/VIZ, if neighbor is empty,   *
 *               -prob[i]=rho_e[i]/VIZ, otherwise        *
 *********************************************************/
-int chooseMigSite(int idm);
+int chooseMigSite(int idm,int rmig);
 /****************************************************************
 *       Kill hosts that have a microbiome extremely low         *
 *****************************************************************/

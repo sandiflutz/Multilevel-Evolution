@@ -28,6 +28,10 @@ void allocateMemory(void){
         }
 	/*vector that stores the frequency of empty sites in each group @i, centered on site @i */
 	rho_e=(double *)calloc(N,sizeof(double));
+	if(!rho_e){
+		printf("It wasn't possible to allocate memory for vector rho_e.\n"); 
+		exit(1);
+	}
         #endif
         
 	/*microbial abundance matrix: bac[i:host index][j:type of bacteria index]*/
@@ -60,9 +64,13 @@ void allocateMemory(void){
 	//system parameters necessary for the equations of the microbial
         
 	spar = malloc(sizeof(SysParams));
-        if (!spar) { perror("malloc"); exit(1);}
+        if(!spar){ 
+		printf("It wasn't possible to allocate memory for struct spar.\n"); 
+		exit(1);
+	}
 	spar->kh=K_H;
 	spar->gh=Gh;
+	spar->rmigh=Rmh;
 	spar->mh=Mh;
 	spar->kbac=K_bac;
 	spar->mu=Mu;
@@ -70,7 +78,15 @@ void allocateMemory(void){
 	spar->mig=Theta;
 	spar->sigma=SIGMA;
 	spar->micr=(double *)calloc(N,sizeof(double));
+	if(!spar->micr){
+		printf("It wasn't possible to allocate memory for vector spar->micr.\n"); 
+		exit(1);
+	}
 	spar->inv=(double *)calloc(TYPES,sizeof(double));
+	if(!spar->inv){
+		printf("It wasn't possible to allocate memory for vector spar->inv.\n"); 
+		exit(1);
+	}
 
 	//system times
 	stime = malloc(sizeof(SysTimes));
@@ -84,13 +100,24 @@ void allocateMemory(void){
 
 	//lists structs
         listh = malloc(sizeof(DynList));
-        if (!listh) { perror("malloc"); exit(1);}
+        if(!listh){ 
+		printf("It wasn't possible to allocate memory for struct listh.\n"); 
+		exit(1);
+	}
         listh->vec = (int *)calloc(N,sizeof(int));
+	if(!listh->vec){
+		printf("It wasn't possible to allocate memory for vector listh->vec.\n"); 
+		exit(1);
+	}
         listh->size=N;
         listh->usize=0;
 
 	//system measures
 	sysmeas = malloc(sizeof(SysMeasures));
+        if(!sysmeas){ 
+		printf("It wasn't possible to allocate memory for struct sysmeas.\n"); 
+		exit(1);
+	}
 	sysmeas->averw=0.;
 	sysmeas->averw2=0.;
 	sysmeas->nw=0;

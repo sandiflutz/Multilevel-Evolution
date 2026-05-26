@@ -509,10 +509,15 @@ void setNetLinks(int **neighbor,int *netlink,int nviz,int sites){
 void cumulProb(int size, double *prob,double *cprob){
         int i;
 
-        cprob[0]=prob[0];
-        for(i=1; i<size; ++i){
-                cprob[i]=cprob[i-1]+prob[i];
-        }
+	if(cprob&&prob){
+        	cprob[0]=prob[0];
+        	for(i=1; i<size; ++i){
+			cprob[i]=cprob[i-1]+prob[i];
+        	}
+	}else{
+		printf("Error trying to access vectors prob or cprob in cumulProb()");
+		exit(1);
+	}
 
         return;
 }

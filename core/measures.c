@@ -83,9 +83,9 @@ void allocateMemTM(void){
                 }
         }
 	#if (NETWORK==0)
-        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,spar->kh,NETWORK,Gh,CI,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh);
+        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,spar->kh,NETWORK,Gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
 	#else
-        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,spar->kh,NETWORK,Gh,CI,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh);
+        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,spar->kh,NETWORK,Gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
 	#endif
                 
 	#if (Tneg>0)
@@ -441,7 +441,11 @@ double findHighestInvCluster(int ncl,int *labels,double *wcl,double *clwstats,Cl
 		averwcl2=(averwcl2-(wcl[clid->whichLBF]*wcl[clid->whichLBF]))/((double)ncl-1.);
 		clwstats[0]=averwcl;
 		clwstats[1]=averwcl2-averwcl*averwcl;
-		clwstats[1]=sqrt(clwstats[1]);
+		if(clwstats[1]<=EPS*EPS){
+			clwstats[1]=0.;
+		}else{
+			clwstats[1]=sqrt(clwstats[1]);
+		}
 	}else{
 		clwstats[0]=wcl[0];
 		clwstats[1]=0.;
@@ -515,8 +519,8 @@ void averInvestmentXt(void){
 	ClusterMinimumID maxclsize; 
 	
 	if(stime->Tnow==0.){
-		fprintf(gfile->file,"#1:t 2:<w> 3:wb 4:clsizeb 5:<wcl⁻> 6:stdwcl⁻ 7:maxclsize 8:wl⁻ 9:<clsize⁻> 10:stdclsize⁻ 11:nh/N 12:cost 13:mb 14:mh 15:rh\n");
-		printf("#1:t 2:<w> 3:wb 4:clsizeb 5:<wcl⁻> 6:stdwcl⁻ 7:maxclsize 8:wl⁻ 9:<clsize⁻> 10:stdclsize⁻ 11:nh/N 12:cost 13:mb 14:mh 15:rh\n");
+		fprintf(gfile->file,"#1:t 2:<w> 3:wb 4:clsizeb 5:<wcl⁻> 6:stdwcl⁻ 7:maxclsize 8:wl⁻ 9:<clsize⁻> 10:stdclsize⁻ 11:nh/N 12:cost 13:mb 14:mh 15:rmig 16:rh\n");
+		printf("#1:t 2:<w> 3:wb 4:clsizeb 5:<wcl⁻> 6:stdwcl⁻ 7:maxclsize 8:wl⁻ 9:<clsize⁻> 10:stdclsize⁻ 11:nh/N 12:cost 13:mb 14:mh 15:rmig 16:rh\n");
 	}
 
 	/****setting investiment density per host vector and calculating average investment in the system*****/
@@ -548,8 +552,8 @@ void averInvestmentXt(void){
 	averw=findHighestInvCluster(nclusters,labels,wcl,clwstats,maxclw);//returns system average investment
 	maxclw->sizeCLF=clsize[maxclw->whichLBF];//size of the best cluster
 	/*storing data*/
-        fprintf(gfile->file,"%f %f %f %d %f %f %d %f %f %f %f %f %f %f %f\n",stime->Tnow,averw,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],clwstats[0],clwstats[1],clsize[maxclsize.whichLB],wcl[maxclsize.whichLB],clsizestats[0],clsizestats[1],(double)nh/N,spar->cost,spar->mig,spar->mh,(double)spar->kh/N);
-        printf("t=%f <w>=%f wb=%f clsizeb=%d <wcl⁻>=%f stdwcl⁻=%f maxclsize=%d wl=%f <clsize⁻>=%f stdclsize⁻=%f nh/N=%f cost=%f mb=%f mh=%f rh=%f\n",stime->Tnow,averw,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],clwstats[0],clwstats[1],clsize[maxclsize.whichLB],wcl[maxclsize.whichLB],clsizestats[0],clsizestats[1],(double)nh/N,spar->cost,spar->mig,spar->mh,(double)spar->kh/N);
+        fprintf(gfile->file,"%f %f %f %d %f %f %d %f %f %f %f %f %f %f %d %f\n",stime->Tnow,averw,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],clwstats[0],clwstats[1],clsize[maxclsize.whichLB],wcl[maxclsize.whichLB],clsizestats[0],clsizestats[1],(double)nh/N,spar->cost,spar->mig,spar->mh,spar->rmigh,(double)spar->kh/N);
+        printf("t=%f <w>=%f wb=%f clsizeb=%d <wcl⁻>=%f stdwcl⁻=%f maxclsize=%d wl=%f <clsize⁻>=%f stdclsize⁻=%f nh/N=%f cost=%f mb=%f mh=%f rmig=%d rh=%f\n",stime->Tnow,averw,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],clwstats[0],clwstats[1],clsize[maxclsize.whichLB],wcl[maxclsize.whichLB],clsizestats[0],clsizestats[1],(double)nh/N,spar->cost,spar->mig,spar->mh,spar->rmigh,(double)spar->kh/N);
 
 	if(labels!=NULL){
 		free(labels);
@@ -1119,9 +1123,9 @@ void averInvXrh(Event *event,Event *mevent){
         }
 
 	#if(NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,Gh,CI,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,Gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,Gh,CI,nparam[0],spar->cost,nparam[1],nparam[1],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,Gh,nparam[0],spar->cost,nparam[1],nparam[1],spar->mh,spar->rmigh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1265,9 +1269,9 @@ void averInvXgh(Event *event,Event *mevent){
         }
 
 	#if(NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,CI,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,CI,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1407,9 +1411,9 @@ void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax){
         }
 
 	#if(NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],spar->cost,nparam[1],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_cost%0.2f_mu%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],spar->cost,nparam[1],spar->mh,spar->rmigh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],spar->cost,nparam[1],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_cost%0.2f_mu%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],spar->cost,nparam[1],spar->mh,spar->rmigh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1571,9 +1575,9 @@ void averInvXcost(Event *event,Event *mevent){
         }
 
 	#if (NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],nparam[1],nparam[2],spar->mh,spar->rmigh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],nparam[1],nparam[2],spar->mh,spar->rmigh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1716,9 +1720,9 @@ void averInvXmh(Event *event,Event *mevent){
         }
 
 	#if (NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],spar->cost,nparam[1],nparam[2]);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->rmigh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],spar->cost,nparam[1],nparam[2]);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->rmigh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1862,9 +1866,9 @@ void costXmbXw(Event *event,Event *mevent){
         }
 
 	#if (NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],nparam[1],nparam[2],spar->mh,spar->rmigh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_CI%d_Bv%s_mu%s_mb%s_mh%0.1f",N,TYPES,NETWORK,spar->kh,spar->gh,CI,nparam[0],nparam[1],nparam[2],spar->mh);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],nparam[1],nparam[2],spar->mh,spar->rmigh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -2016,9 +2020,9 @@ void rhXmhXw(Event *event,Event *mevent){
         }
 
 	#if (NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s",N,TYPES,NETWORK,spar->gh,CI,nparam[0],spar->cost,nparam[1],nparam[2]);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_rmh%d",N,TYPES,NETWORK,spar->gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->rmigh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_CI%d_Bv%s_cost%0.2f_mu%s_mb%s",N,TYPES,NETWORK,spar->gh,CI,nparam[0],spar->cost,nparam[1],nparam[2]);
+	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_rmh%d",N,TYPES,NETWORK,spar->gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->rmigh);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;

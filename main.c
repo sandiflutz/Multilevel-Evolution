@@ -125,86 +125,65 @@ void callSetSystem(void){
 void freeMemory(void){
 	int i;
 
-	if(host!=NULL){
+	if(host){
 		free(host);
-		host=NULL;
 	}
-	if(bac!=NULL){
+	if(bac){
 		free(bac);
-		bac=NULL;
 	}
-        for(i=0; i<N; ++i){
-		if(costvec[i]!=NULL){
-			free(costvec[i]);
-			costvec[i]=NULL;
-		}
-        }
 	#if (Tneg>0)
-	if(costvec!=NULL){
+	if(costvec){
 		free(costvec);
-		costvec=NULL;
 	}
 	#endif
         
-	if(dtVec!=NULL){
+	if(dtVec){
 		free(dtVec);
-		dtVec=NULL;
 	}
 
 	//Structs and their arrays
-	if(spar->inv!=NULL){
+	if(spar->inv){
 		free(spar->inv);
-		spar->inv=NULL;
 	}
-	if(spar->micr!=NULL){
+	if(spar->micr){
 		free(spar->micr);
-		spar->micr=NULL;
 	}
-	if(spar!=NULL){
+	if(spar){
 		free(spar);
-		spar=NULL;
 	}
-	if(stime!=NULL){
+	if(stime){
 		free(stime);
-		stime=NULL;
 	}
 
 #if (NETWORK!=0)
 	for(i=0; i<N; ++i){
-		if(neighbor[i]!=NULL){
+		if(neighbor[i]){
 			free(neighbor[i]);
-			neighbor[i]=NULL;
 		}
 	}
 
-	if(neighbor!=NULL){
+	if(neighbor){
 		free(neighbor);
-		neighbor=NULL;
 	}
 
-	if(rho_e!=NULL){
+	if(rho_e){
 		free(rho_e);
-		rho_e=NULL;
 	}
 
 #endif
-	if(listh->vec!=NULL){
+	if(listh->vec){
 		free(listh->vec);
-		listh->vec=NULL;
 	}
-	if(inverselisth!=NULL){
+	if(inverselisth){
 		free(inverselisth);
-		inverselisth=NULL;
 	}
 
 	/*structs*/
-	if(listh!=NULL){
+	if(listh){
 		free(listh);
-		listh=NULL;
 	}
-	if(sysmeas!=NULL){
+	if(sysmeas){
 		free(sysmeas);
-		sysmeas=NULL;
 	}
 
 	return;

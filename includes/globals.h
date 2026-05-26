@@ -13,9 +13,7 @@
 							 *1: square lattice
 							 */ 
 #define Mh        		4.			/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
-
-#define GR_CORR			0			/*0: effective rates are individual
-							 *1: the effective host rates (for the square lattice) of a host are averaged over its focus group*/
+#define Rmh        		2			/*host migration distance host in number of steps (1 is for first neighbors)*/
 
 
 #define L               	100			/*linear system size*/
@@ -86,7 +84,7 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			30000		/*host maximum time (measured using continuous values for the times steps)*/
+#define TF			20000		/*host maximum time (measured using continuous values for the times steps)*/
 #define Ttrans			15000		/*transient time (to a first trial)*/
 #define	Twin			25000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
@@ -131,6 +129,7 @@
 typedef struct{
 	int kh;
 	int gh;
+        int rmigh;//host migration distance
 	double kbac;
         double mu;//bacteria mutation rate
         double cost;//cost of helping for an ideal helper bacteria
