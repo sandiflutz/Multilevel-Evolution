@@ -399,6 +399,59 @@ void updateEmptySpaceGrFreq(int idh){
 
 	return;
 }
+/****************************************************************************************
+* 		store site network id's for host migration and				*
+* 		the related probability of being chosen 				*
+* 		depending on dilution.							*
+* 		Sites included are only the one at a given				*
+* 		distance								*	
+*****************************************************************************************/
+double findMigSiteswithRmig(int id0,int r,int i0,int imax,double da,int *which_host,double *prob){
+	int i,idf;
+	int xr,yr,x0,y0,xf,yf;
+	double angle,anglerad,sum_prob;
+
+	y0=(int)(id0/L);
+	x0=id0-y0*L;
+
+	sum_prob=0.;
+	angle=0.;
+	for(i=i0; i<imax; ++i){
+		anglerad=((double)Pi)*(angle/180.);
+
+		xr=(int)(round((double)r*cos(anglerad)));
+		yr=(int)(round((double)r*sin(anglerad)));
+		
+		/*boundary conditions*/
+		if(xr<0){//left
+			xf=(x0+xr+L)%L;
+		}else{//right
+			xf=(x0+xr)%L;
+		}
+		
+		if(yr<0){//up
+			yf=(y0+yr+L)%L;
+		}else{//down
+			yf=(y0+yr)%L;
+		}
+
+		/*recovering network id and calculation its prob. of being chosen based on dilution*/
+		idf=yf*L+xf;
+		
+		which_host[i]=idf;
+		prob[i]=0.;
+		if(host[idf]==0){
+			prob[i]=1.;
+		}else if(rho_e[idf]>0.){
+			prob[i]=rho_e[idf];
+		}
+		sum_prob+=prob[i];
+
+		angle+=da;
+	}
+
+	return sum_prob;
+}
 /********************************************************
 *	Choose site for migration:			*
 *	states of sites @idm and one chosen are 	*
@@ -409,84 +462,105 @@ void updateEmptySpaceGrFreq(int idh){
 *		-prob[i]=rho_e[i]/VIZ, otherwise	* 
 *********************************************************/
 int chooseMigSite(int idm,int rmig){
-	int i,id,idlist,id_site;
-	int nmig;
-	int xr,yr,x0,y0,xf,yf;
+	int i,i0,imax,idf,idlist,id_site;
+	int r,r0,rx,ry,rf,rmin;
+	int x0,y0,xf,yf,xmax,xmin,ymax,ymin;
+	int ok,trials,maxtrials,nmig;
+	double sum_prob,da;
 	int *which_host = NULL;
-	double sum_prob,angle,anglerad,da,cossine,sine;
 	double *prob = NULL;    
 
-	nmig=VIZ*rmig;
+	if(FRANDOM<spar->plr){//plr is the probability of choosing a random long range site
+		y0=(int)(idm/L);
+		x0=idm-y0*L;
+		trials=0;
+		maxtrials=L;
+		ok=0;
+		rmin=(int)ceil(L/20.);
+		do{
+			idf=(int)(FRANDOM*N);
+			yf=(int)(idf/L);
+			xf=idf-yf*L;
+			xmax=max(x0,xf);
+			xmin=x0+xf-xmax;
+			if((L-xmax+x0)<(xmax-xmin)){
+				rx=L-xmax+x0;
+			}else{
+				rx=xmax-xmin;
+			}
+			ymax=max(y0,yf);
+			ymin=y0+yf-ymax;
+			if((L-ymax+y0)<(ymax-ymin)){
+				ry=L-ymax+y0;//because of boundary conditions
+			}else{
+				ry=ymax-ymin;
+			}
+			rf=(int)round(sqrt((rx*rx+ry*ry)));
+			++trials;
+			if((rf>=rmin)&&(idf!=idm)&&(rho_e[idf]>0.))ok=1;
+			if(trials>maxtrials){//avoinding unending loop
+				if(idf==idm){
+					++maxtrials;
+				}else{
+					ok=1;
+				}
+			}
+		}while(ok==0);
 
-	prob=(double *)calloc(nmig,sizeof(double));
-	if(!prob){
-		printf("It wasn't possible to allocate memory for vector prob on chooseMigSite().\n");
-		exit(1);
-	}
-	which_host=(int *)calloc(nmig,sizeof(int));
-	if(!which_host){
-		printf("It wasn't possible to allocate memory for vector which_host on chooseMigSite().\n");
-		exit(1);
-	}
-
-	y0=(int)(idm/L);
-	x0=idm-y0*L;
-
-	da=360./((double)nmig);
-	angle=0.;
-	sum_prob=0.;
-	for(i=0; i<nmig; ++i){
-		anglerad=((double)Pi)*(angle/180.);
-		sine=sin(anglerad);
-		cossine=cos(anglerad);
-		xf=x0;
-		yf=y0;
-
-		xr=(int)(round((double)rmig*cossine));
-		if(xr<0){//left
-			xf=(x0+xr+L)%L;
-		}else if(xr>0){//right
-			xf=(x0+xr)%L;
-		}
+		id_site=idf;
 		
-		yr=(int)(round((double)rmig*sine));
-		if(yr<0){//up
-			yf=(y0+yr+L)%L;
-		}else if(yr>0){//down
-			yf=(y0+yr)%L;
-		}
 
-		id=yf*L+xf;
-		
-		which_host[i]=id;
-		prob[i]=0.;
-		if(host[id]==0){
-			prob[i]=1.;
-		}else if(rho_e[id]>0.){
-			prob[i]=rho_e[id];
-		}
-		sum_prob+=prob[i];
-
-		angle+=da;
-	}
-	
-	if(sum_prob>0.){
-		for(i=0; i<nmig; ++i){
-			prob[i]/=sum_prob;
-		}
-		idlist=selectEvent(FRANDOM,prob,nmig);
 	}else{
-		idlist=(int)(FRANDOM*nmig);
-	}
-	id_site=which_host[idlist];
 
-	if(prob){
-		free(prob);
-		prob=NULL;
-	}
-	if(which_host){
-		free(which_host);
-		which_host=NULL;
+		#if (MIG_SITES==0)//sites included are only the ones at a distance of rmig from the focus site
+		r0=rmig;
+		#else//all sites with the range of rmig are included
+		r0=1;
+		#endif
+		nmig=0;
+		for(r=1; r<=rmig; ++r){
+			nmig+=VIZ*r;//number of angles to calculate the position of the sites that can be choose fo the jump
+		}
+
+		prob=(double *)calloc(nmig,sizeof(double));
+		if(!prob){
+			printf("It wasn't possible to allocate memory for vector prob on chooseMigSite().\n");
+			exit(1);
+		}
+		which_host=(int *)calloc(nmig,sizeof(int));
+		if(!which_host){
+			printf("It wasn't possible to allocate memory for vector which_host on chooseMigSite().\n");
+			exit(1);
+		}
+
+		sum_prob=0.;
+		i0=0;
+		for(r=r0; r<=rmig; ++r){
+			imax=r*VIZ+i0;
+			da=360./((double)r*VIZ);
+			sum_prob+=findMigSiteswithRmig(idm,r,i0,imax,da,which_host,prob);
+			i0=imax;
+		}
+	
+		/*selecting a site based on prob[]*/
+		if(sum_prob>0.){
+			for(i=0; i<nmig; ++i){
+				prob[i]/=sum_prob;
+			}
+			idlist=selectEvent(FRANDOM,prob,nmig);
+		}else{//if the region is fully crowded, choose randomly with uniform dist.
+			idlist=(int)(FRANDOM*nmig);
+		}
+		id_site=which_host[idlist];
+
+		if(prob){
+			free(prob);
+			prob=NULL;
+		}
+		if(which_host){
+			free(which_host);
+			which_host=NULL;
+		}
 	}
 	return id_site;
 }

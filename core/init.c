@@ -71,6 +71,7 @@ void allocateMemory(void){
 	spar->kh=K_H;
 	spar->gh=Gh;
 	spar->rmigh=Rmh;
+	spar->plr=Plr;
 	spar->mh=Mh;
 	spar->kbac=K_bac;
 	spar->mu=Mu;

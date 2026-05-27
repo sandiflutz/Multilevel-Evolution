@@ -68,6 +68,14 @@ int hostNTSPerBacNTS(Event *event);
 *       there was an increase.                                  *
 *****************************************************************/
 void updateEmptySpaceGrFreq(int idh);
+/****************************************************************************************
+*               store site network id's for host migration and                          *
+*               the related probability of being chosen                                 *
+*               depending on dilution.                                                  *
+*               Sites included are only the one at a given                              *
+*               distance                                                                *
+*****************************************************************************************/
+double findMigSiteswithRmig(int id0,int r,int i0,int imax,double da,int *which_host,double *prob);
 /********************************************************
 *       Choose site for migration:                      *
 *       states of sites @idm and one chosen are         *

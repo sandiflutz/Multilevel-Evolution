@@ -13,7 +13,12 @@
 							 *1: square lattice
 							 */ 
 #define Mh        		4.			/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
-#define Rmh        		2			/*host migration distance host in number of steps (1 is for first neighbors)*/
+#define Rmh        		1			/*host migration distance host in number of steps (1 is for first neighbors)*/
+#define MIG_SITES		0			/*0:Sites in the group of available sites for host migration innclude only the ones 
+							 *at a distance of Rmh (or spar->rmigh, when the mig. distance is being varied)
+							 *1:Sites in the group of available sites for host migration include all sites with a range of Rmh 
+							 *(or spar->rmigh, when the mig. distance is being varied)*/
+#define Plr			0.1			/*probability of choosing a long range migration jump, ignoring migration distance, for host migration*/
 
 
 #define L               	100			/*linear system size*/
@@ -47,7 +52,7 @@
 						 	*paper uses 19 when TYPES=2 and 29 otherwise (??)*/
 
 /*****COST*******************************************************/
-#define Gamma     		0.05		/*cost for helping when the investment is 1*/
+#define Gamma     		0.01		/*cost for helping when the investment is 1*/
 /***Parameters for cases where there are negative types*******************/
 /*when there are negative types, the cost for positive and negative types can be influenced by the total frequency of the negative types (f⁻): 
  * for negative types: cost Gamma*investiment[type] is multiplied by CRnn0*exp(-CRnn1*d⁻/(1-f⁻)) 
@@ -84,7 +89,7 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			20000		/*host maximum time (measured using continuous values for the times steps)*/
+#define TF			10000		/*host maximum time (measured using continuous values for the times steps)*/
 #define Ttrans			15000		/*transient time (to a first trial)*/
 #define	Twin			25000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
@@ -130,13 +135,13 @@ typedef struct{
 	int kh;
 	int gh;
         int rmigh;//host migration distance
-	double kbac;
+	double kbac;//microbial carrying capacity
         double mu;//bacteria mutation rate
         double cost;//cost of helping for an ideal helper bacteria
         double mig;//bacteria migration rate
         double mh;//host migration coeficient
+	double plr;//long range host migration probability
 	double sigma;
-	double fmin;
 	double *inv;
 	double *micr;
 } SysParams;

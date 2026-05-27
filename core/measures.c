@@ -83,9 +83,9 @@ void allocateMemTM(void){
                 }
         }
 	#if (NETWORK==0)
-        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,spar->kh,NETWORK,Gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
+        sprintf(ngeral,"L%d_Ty%d_Kh%d_net%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MS%d",L,TYPES,spar->kh,NETWORK,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh,spar->prl,MIG_SITES);
 	#else
-        sprintf(ngeral,"N%d_Ty%d_Kh%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,spar->kh,NETWORK,Gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
+        sprintf(ngeral,"L%d_Ty%d_Kh%d_net%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MS%d",L,TYPES,spar->kh,NETWORK,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh,spar->plr,MIG_SITES);
 	#endif
                 
 	#if (Tneg>0)
@@ -105,42 +105,42 @@ void allocateMemTM(void){
 *************************************************/
 void freeMemTM(void){
 	
-	if(gfile->file!=NULL){
+	if(gfile->file){
 		fclose(gfile->file);
 		gfile->file = NULL;
 	}
-	if(gfile->fname!=NULL){
+	if(gfile->fname){
 		free(gfile->fname);
 		gfile->fname = NULL;
 	}
-	if(gfile->fdatapath!=NULL){
+	if(gfile->fdatapath){
 		free(gfile->fdatapath);
 		gfile->fdatapath=NULL;
 	}
-	if(gfile!=NULL){
+	if(gfile){
 		free(gfile);
 		gfile=NULL;
 	}
 	#ifdef DIFBACOMPxT
-	if(offcomp->vecf!=NULL){
+	if(offcomp->vecf){
 		free(offcomp->vecf);
 		offcomp->vecf=NULL;
 	}
-        if(offcomp!=NULL){
+        if(offcomp){
 		free(offcomp);
 		offcomp=NULL;
 	}
 	#endif
 	#ifdef BESTCLUSTER_TIMES
-	if(bestwlisth->vec!=NULL){
+	if(bestwlisth->vec){
 		free(bestwlisth->vec);
 		bestwlisth->vec=NULL;
 	}
-	if(bestwlisth!=NULL){
+	if(bestwlisth){
 		free(bestwlisth);
 		bestwlisth=NULL;
 	}
-	if(maxclw!=NULL){
+	if(maxclw){
 		free(maxclw);
 		maxclw=NULL;
 	}
@@ -555,19 +555,19 @@ void averInvestmentXt(void){
         fprintf(gfile->file,"%f %f %f %d %f %f %d %f %f %f %f %f %f %f %d %f\n",stime->Tnow,averw,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],clwstats[0],clwstats[1],clsize[maxclsize.whichLB],wcl[maxclsize.whichLB],clsizestats[0],clsizestats[1],(double)nh/N,spar->cost,spar->mig,spar->mh,spar->rmigh,(double)spar->kh/N);
         printf("t=%f <w>=%f wb=%f clsizeb=%d <wcl⁻>=%f stdwcl⁻=%f maxclsize=%d wl=%f <clsize⁻>=%f stdclsize⁻=%f nh/N=%f cost=%f mb=%f mh=%f rmig=%d rh=%f\n",stime->Tnow,averw,wcl[maxclw->whichLBF],clsize[maxclw->whichLBF],clwstats[0],clwstats[1],clsize[maxclsize.whichLB],wcl[maxclsize.whichLB],clsizestats[0],clsizestats[1],(double)nh/N,spar->cost,spar->mig,spar->mh,spar->rmigh,(double)spar->kh/N);
 
-	if(labels!=NULL){
+	if(labels){
 		free(labels);
 		labels=NULL;
 	}
-	if(clsize!=NULL){
+	if(clsize){
 		free(clsize);
 		clsize=NULL;
 	}
-	if(wcl!=NULL){
+	if(wcl){
 		free(wcl);
 		wcl=NULL;
 	}
-	if(maxclw!=NULL){
+	if(maxclw){
 		free(maxclw);
 		maxclw=NULL;
 	}
@@ -839,7 +839,7 @@ void clustersXt(void){
 	free(labels);
 	free(wcl);
 	free(clsize);
-	if(maxclw!=NULL){
+	if(maxclw){
 		free(maxclw);
 		maxclw=NULL;
 	}
@@ -903,7 +903,7 @@ void clustersInvDistXt(void){
 	free(hist);
 	free(labels);
 	free(wcl);
-	if(maxclw!=NULL){
+	if(maxclw){
 		free(maxclw);
 		maxclw=NULL;
 	}
@@ -1202,19 +1202,19 @@ void averInvXrh(Event *event,Event *mevent){
 	free(avinv->vecf);
 	free(avinv);
 
-	if(gfile->file!=NULL){
+	if(gfile->file){
 		fclose(gfile->file);
 		gfile->file=NULL;
 	}
-	if(gfile->fname!=NULL){
+	if(gfile->fname){
 		free(gfile->fname);
 		gfile->fname=NULL;
 	}
-	if(gfile->fdatapath!=NULL){
+	if(gfile->fdatapath){
 		free(gfile->fdatapath);
 		gfile->fdatapath=NULL;
 	}
-	if(gfile!=NULL){
+	if(gfile){
 		free(gfile);
 		gfile=NULL;
 	}
@@ -1347,19 +1347,19 @@ void averInvXgh(Event *event,Event *mevent){
 	free(avinv->vecf);
 	free(avinv);
 
-	if(gfile->file!=NULL){
+	if(gfile->file){
 		fclose(gfile->file);
 		gfile->file=NULL;
 	}
-	if(gfile->fname!=NULL){
+	if(gfile->fname){
 		free(gfile->fname);
 		gfile->fname=NULL;
 	}
-	if(gfile->fdatapath!=NULL){
+	if(gfile->fdatapath){
 		free(gfile->fdatapath);
 		gfile->fdatapath=NULL;
 	}
-	if(gfile!=NULL){
+	if(gfile){
 		free(gfile);
 		gfile=NULL;
 	}
@@ -1509,19 +1509,19 @@ void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax){
 	free(avinv->vecf);
 	free(avinv);
 
-	if(gfile->file!=NULL){
+	if(gfile->file){
 		fclose(gfile->file);
 		gfile->file=NULL;
 	}
-	if(gfile->fname!=NULL){
+	if(gfile->fname){
 		free(gfile->fname);
 		gfile->fname=NULL;
 	}
-	if(gfile->fdatapath!=NULL){
+	if(gfile->fdatapath){
 		free(gfile->fdatapath);
 		gfile->fdatapath=NULL;
 	}
-	if(gfile!=NULL){
+	if(gfile){
 		free(gfile);
 		gfile=NULL;
 	}
@@ -1655,19 +1655,19 @@ void averInvXcost(Event *event,Event *mevent){
 	free(avinv->vecf);
 	free(avinv);
 
-	if(gfile->file!=NULL){
+	if(gfile->file){
 		fclose(gfile->file);
 		gfile->file=NULL;
 	}
-	if(gfile->fname!=NULL){
+	if(gfile->fname){
 		free(gfile->fname);
 		gfile->fname=NULL;
 	}
-	if(gfile->fdatapath!=NULL){
+	if(gfile->fdatapath){
 		free(gfile->fdatapath);
 		gfile->fdatapath=NULL;
 	}
-	if(gfile!=NULL){
+	if(gfile){
 		free(gfile);
 		gfile=NULL;
 	}
@@ -1803,19 +1803,19 @@ void averInvXmh(Event *event,Event *mevent){
 	free(avinv->vecf);
 	free(avinv);
 
-	if(gfile->file!=NULL){
+	if(gfile->file){
 		fclose(gfile->file);
 		gfile->file=NULL;
 	}
-	if(gfile->fname!=NULL){
+	if(gfile->fname){
 		free(gfile->fname);
 		gfile->fname=NULL;
 	}
-	if(gfile->fdatapath!=NULL){
+	if(gfile->fdatapath){
 		free(gfile->fdatapath);
 		gfile->fdatapath=NULL;
 	}
-	if(gfile!=NULL){
+	if(gfile){
 		free(gfile);
 		gfile=NULL;
 	}
@@ -1955,19 +1955,19 @@ void costXmbXw(Event *event,Event *mevent){
 		spar->cost+=dc;
 	}
 	
-	if(gfile->file!=NULL){
+	if(gfile->file){
 		fclose(gfile->file);
 		gfile->file=NULL;
 	}
-	if(gfile->fname!=NULL){
+	if(gfile->fname){
 		free(gfile->fname);
 		gfile->fname=NULL;
 	}
-	if(gfile->fdatapath!=NULL){
+	if(gfile->fdatapath){
 		free(gfile->fdatapath);
 		gfile->fdatapath=NULL;
 	}
-	if(gfile!=NULL){
+	if(gfile){
 		free(gfile);
 		gfile=NULL;
 	}
@@ -2103,19 +2103,19 @@ void rhXmhXw(Event *event,Event *mevent){
 	free(avinv->vecf);
 	free(avinv);
 
-	if(gfile->file!=NULL){
+	if(gfile->file){
 		fclose(gfile->file);
 		gfile->file=NULL;
 	}
-	if(gfile->fname!=NULL){
+	if(gfile->fname){
 		free(gfile->fname);
 		gfile->fname=NULL;
 	}
-	if(gfile->fdatapath!=NULL){
+	if(gfile->fdatapath){
 		free(gfile->fdatapath);
 		gfile->fdatapath=NULL;
 	}
-	if(gfile!=NULL){
+	if(gfile){
 		free(gfile);
 		gfile=NULL;
 	}

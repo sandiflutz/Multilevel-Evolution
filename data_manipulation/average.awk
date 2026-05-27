@@ -38,22 +38,25 @@
 END {
 # The integer division gives the number of lines (incomplete lines
 # are neglected):
-     for (i=0; i< maximo/colunas; ++i)
-         {
-          for (j=0; j < colunas; ++j)
-              {
-               media = coluna[i*colunas+j]/sets[i*colunas+j];
-               printf("%.8f ",media);
-#              erro = sqrt(coluna2[i*colunas+j]/sets[i*colunas+j]-media*media);
-#              if (erro==0.0) printf("%.4lf ",media);
-#                        else printf("%.4lf %.4lf ",media,erro);
-              }
-          printf("%d\n",sets[i*colunas]);
-#          if(coluna[i*colunas]/sets[i*colunas]==1000000.){
-#             printf("\n");
-#             printf("\n");
-#          }
-         }
-    }
+     for(i=0; i< maximo/colunas; ++i){
+          for(j=0; j < colunas; ++j){
+               
+		  media = coluna[i*colunas+j]/sets[i*colunas+j];
+               
+		 # printf("%.8f ",media);
+              
+		  if(j==1){
+		  	erro = coluna2[i*colunas+j]/sets[i*colunas+j]-media*media;
+	      
+		  	erro=sqrt(erro);
+              
+		  	printf("%.8f %.8f ",media,erro);
+	  	}else{
+			printf("%.8f ",media);
+		}
+	  }
+	  printf("%d\n",sets[i*colunas]);
+     }
+}
 
 
