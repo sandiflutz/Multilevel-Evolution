@@ -12,6 +12,7 @@ MACRO = TMEAS
 # -------------------------------------------------------
 MEASURE_MACROS = \
 	AVERINVxT \
+	MULTIPLE_COSTS_WxT \
 	INV_DIST \
 	NUMHEVENTSxT \
 	CORRxT \

@@ -21,6 +21,9 @@ int main(void){
 	callSetSystem();
 	/**********/
         
+#ifdef MULTIPLE_COSTS_WxT
+	averInvXtMultipleCosts(&event,&mevent);
+#endif
 #ifdef TMEAS
 	allocateMemTM();
 	stime->saveT=0.;
@@ -123,7 +126,6 @@ void callSetSystem(void){
 * 	Clean Allocated Memory            *
 *******************************************/
 void freeMemory(void){
-	int i;
 
 	if(host){
 		free(host);
@@ -156,6 +158,7 @@ void freeMemory(void){
 	}
 
 #if (NETWORK!=0)
+	int i;
 	for(i=0; i<N; ++i){
 		if(neighbor[i]){
 			free(neighbor[i]);

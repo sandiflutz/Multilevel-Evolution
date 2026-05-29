@@ -18,7 +18,7 @@
 							 *at a distance of Rmh (or spar->rmigh, when the mig. distance is being varied)
 							 *1:Sites in the group of available sites for host migration include all sites with a range of Rmh 
 							 *(or spar->rmigh, when the mig. distance is being varied)*/
-#define Plr			0.1			/*probability of choosing a long range migration jump, ignoring migration distance, for host migration*/
+#define Plr			0.			/*probability of choosing a long range migration jump, ignoring migration distance, for host migration*/
 
 
 #define L               	100			/*linear system size*/
@@ -89,7 +89,7 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			10000		/*host maximum time (measured using continuous values for the times steps)*/
+#define TF			20000		/*host maximum time (measured using continuous values for the times steps)*/
 #define Ttrans			15000		/*transient time (to a first trial)*/
 #define	Twin			25000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:

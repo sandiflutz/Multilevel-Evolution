@@ -878,6 +878,9 @@ void callSysDynamics(Event *event, Event *mevent){
 				stime->saveT+=10.;
                         }
                 #endif
+		#ifdef MULTIPLE_COSTS_WxT
+		timeMeasures();
+		#endif
 		
 		setIndividualHostRates(event);
                 #if (NETWORK==0)//complete graph with adjustable host dt

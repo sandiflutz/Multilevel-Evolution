@@ -13,7 +13,6 @@
 *     initialize system parameters                         *
 ************************************************************/
 void allocateMemory(void){
-        int i;
 	int e0,ef,m0,mf;//variable related to the range of dtVec: [m0*10^e0;mf*10^ef]
 
 	/*host network*/
@@ -21,6 +20,7 @@ void allocateMemory(void){
 	memset(host,0,sizeof(int)*N);
 	
 	#if (NETWORK!=0)//not the well-mixed/complete graph case
+        int i;
 	/*network array: e.g. neighbor[k][idh]=idh_viz (label of the k-th neighbor of host @idh is @idh_viz)*/
 	neighbor=(int **)calloc(N,sizeof(int *));
 	for(i=0; i<N; ++i){
@@ -131,7 +131,7 @@ void allocateMemory(void){
 *   are uniformly distributed                        *
 *****************************************************/
 void initialStateUniD(void){
-       int i,j,k,idviz,nh=0,ne=0;
+       int i,j,nh=0,ne=0;
         double norm,p_oc;
 
 	for(i=0; i<N; ++i){
@@ -142,6 +142,7 @@ void initialStateUniD(void){
 	p_oc=(double)H0/N;
 
 	#if (NETWORK!=0)//not well-mixed
+	int k,idviz;
 	for(i=0; i<N; ++i){
 		rho_e[i]=0.;
 	}
@@ -191,7 +192,7 @@ void initialStateUniD(void){
 * 	distribution with x=(investment[j]-mean)/stdinv   *
 ***********************************************************/
 void initialStateNormD(void){
-       int i,j,k,idviz,nh=0,ne=0;
+       int i,j,nh=0,ne=0;
         double x,*bacinit;
         double norm,p_oc;
 
@@ -214,6 +215,7 @@ void initialStateNormD(void){
 	}
 
 	#if (NETWORK!=0)//not well-mixed
+	int k,idviz;
 	for(i=0; i<N; ++i){
 		rho_e[i]=0.;
 	}

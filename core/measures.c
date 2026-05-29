@@ -83,7 +83,7 @@ void allocateMemTM(void){
                 }
         }
 	#if (NETWORK==0)
-        sprintf(ngeral,"L%d_Ty%d_Kh%d_net%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MS%d",L,TYPES,spar->kh,NETWORK,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh,spar->prl,MIG_SITES);
+        sprintf(ngeral,"L%d_Ty%d_Kh%d_net%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",L,TYPES,spar->kh,NETWORK,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
 	#else
         sprintf(ngeral,"L%d_Ty%d_Kh%d_net%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MS%d",L,TYPES,spar->kh,NETWORK,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh,spar->plr,MIG_SITES);
 	#endif
@@ -152,6 +152,34 @@ void freeMemTM(void){
 *	Open Global Files                 *
 *******************************************/
 void openFiles(void){
+
+#ifdef MULTIPLE_COSTS_WxT
+        int ok=0,namelen,dnl;
+        unsigned long id;
+
+        id = (unsigned long)time(NULL);
+
+        dnl=200;
+        namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
+
+        char *name=(char *)calloc(namelen,sizeof(char));
+        
+	while(ok==0){
+                sprintf(name,"%saverInvXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+        sprintf(name,"%saverInvXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+        
+	free(name);
+#endif
 #ifdef TMEAS
         int ok=0,namelen,dnl;
         unsigned long id;
@@ -511,28 +539,22 @@ void storeBacDiffComp(int idp,int idk){
 *   		helpers in the system                   *
 *********************************************************/
 void averInvestmentXt(void){
-	int nh,nclusters;
-	double averw,clsizestats[2],clwstats[2];
+	int nh;
+	double averw;
+	
+	nh=listh->usize;
+	
+	#if (NETWORK!=0)//not well-mixed
+	int nclusters;
+	double clsizestats[2],clwstats[2];
 	int *labels=NULL;
 	int *clsize=NULL;
 	double *wcl=NULL;
 	ClusterMinimumID maxclsize; 
-	
 	if(stime->Tnow==0.){
 		fprintf(gfile->file,"#1:t 2:<w> 3:wb 4:clsizeb 5:<wcl⁻> 6:stdwcl⁻ 7:maxclsize 8:wl⁻ 9:<clsize⁻> 10:stdclsize⁻ 11:nh/N 12:cost 13:mb 14:mh 15:rmig 16:rh\n");
 		printf("#1:t 2:<w> 3:wb 4:clsizeb 5:<wcl⁻> 6:stdwcl⁻ 7:maxclsize 8:wl⁻ 9:<clsize⁻> 10:stdclsize⁻ 11:nh/N 12:cost 13:mb 14:mh 15:rmig 16:rh\n");
 	}
-
-	/****setting investiment density per host vector and calculating average investment in the system*****/
-	nh=listh->usize;
-	
-/*	averinv=calcAverInv();
-
-	tot_micr=0.;
-	for(i=0; i<nh; ++i){
-		idh=listh->vec[i];
-		tot_micr+=spar->micr[idh];
-	}*/
 	maxclw=malloc(sizeof(ClusterFullID));
 	if (!maxclw){ perror("malloc"); exit(1);}
 
@@ -571,6 +593,17 @@ void averInvestmentXt(void){
 		free(maxclw);
 		maxclw=NULL;
 	}
+	#else
+	if(stime->Tnow==0.){
+		fprintf(gfile->file,"#1:t 2:<w> 3:nh/N 4:cost 5:mb 6:rh\n");
+		printf("#1:t 2:<w> 3:nh/N 4:cost 5:mb 6:rh\n");
+	}
+
+	averw=calcAverInv();
+	fprintf(gfile->file,"%f %f %f %f %f %f\n",stime->Tnow,averw,(double)nh/N,spar->cost,spar->mig,(double)spar->kh/N);
+	printf("t=%f <w>=%f nh/N=%f cost=%f mv=%f rh=%f\n",stime->Tnow,averw,(double)nh/N,spar->cost,spar->mig,(double)spar->kh/N);
+
+	#endif
         return;
 }
 /**************************************
@@ -1073,6 +1106,58 @@ void difMicrCompXt(void){
 		offcomp->usizef=0;
 	}
 	
+	return;
+}
+/************************************************************************
+*  Store in @SAMPLE files the average investment over time		*
+*  for multiple costs (@sample files for each cost).			*
+*  The routine changes the values of the cost, but the measuring and 	*
+*  storing is made by @averInvestmentXt(), which is being called in the 	*
+*  the evolution routine @callSysDynamics().				*	
+*************************************************************************/
+void averInvXtMultipleCosts(Event *event,Event *mevent){
+        int i;
+	double dc, costmax;
+
+        stime->saveT=0.;
+        stime->Tf=TF;
+        
+	spar->cost=0.01;
+	dc=0.01;
+	costmax=0.2;
+
+	while(spar->cost<=costmax){
+		allocateMemTM();
+        #if (NETWORK==0)
+		if(spar->cost<=0.1){
+			stime->Tf=60000;
+		}else{
+			stime->Tf=120000;
+		}
+	#else
+		if(spar->cost<=0.05){
+			stime->Tf=20000;
+		}else if(spar->cost<0.1){
+			stime->Tf=80000;
+		}else if(spar->cost<=0.15){
+			stime->Tf=100000;
+		}else{
+			stime->Tf=150000;
+		}
+	#endif
+		for(i=0; i<SAMPLE; ++i){
+			openFiles();
+			callSysDynamics(event,mevent);
+			closeFiles();
+			stime->Tnow=0.;
+			stime->saveT=0.;
+			setCI();
+		}
+		spar->cost+=dc;
+		freeMemTM();
+	}
+
+
 	return;
 }
 /*******steady state measures***********************************************************/
@@ -2139,6 +2224,13 @@ void timeMeasures(void){
 		stime->saveT=stime->Tnow+10.;
 	}
         #endif
+	#ifdef MULTIPLE_COSTS_WxT
+	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){
+		averInvestmentXt();
+		stime->saveT=stime->Tnow+10.;
+	}
+        #endif
+
         #ifdef SAVE_CONFIG
 	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){
 		printf("Time of measure:%f,  ",stime->Tnow);

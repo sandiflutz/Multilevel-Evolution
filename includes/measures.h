@@ -116,6 +116,14 @@ void spatialCorrXt(void);
 *       transmission approachs)                         *
 *********************************************************/
 void difMicrCompXt(void);
+/************************************************************************
+*  Store in @SAMPLE files the average investment over time              *
+*  for multiple costs (@sample files for each cost).                    *
+*  The routine changes the values of the cost, but the measuring and    *
+*  storing is made by @averInvestmentXt(), which is being called in the         *
+*  the evolution routine @callSysDynamics().                            *
+*************************************************************************/
+void averInvXtMultipleCosts(Event *event,Event *mevent);
 /****************************************************************
 *  Store in @SAMPLE files the average investment                *
 *  in the system as a function of the system carrying dilution  *
