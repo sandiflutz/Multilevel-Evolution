@@ -1163,6 +1163,150 @@ void averInvXtMultipleCosts(Event *event,Event *mevent){
 /*******steady state measures***********************************************************/
 
 /****************************************************************
+*  Store the steady state average investment for different  	*
+*  costs and probability values of long range migration, plr	*	
+*****************************************************************/
+void costXplrXw(Event *event,Event *mevent){
+	int i,nh;
+        int ok=0,namelen,dnl;
+	double dplr,dc,cmax,cmin,plrmax,stats[2];
+	int npar=3,mul,nf;
+	double expo,param[npar];
+	unsigned long id;
+        char nparam[npar][10];
+	
+	/******seting file*************************************/ 
+        //generic file struct
+	gfile=malloc(sizeof(GenFile));
+	if (!gfile) { perror("malloc"); exit(1);}
+        gfile->fnsize=300;
+        gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
+	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
+        sprintf(gfile->fdatapath,"data_manipulation/");
+	
+	//file name components
+        param[0]=Bacv;
+        param[1]=spar->mu;
+        param[2]=spar->mig;
+
+        for(i=0; i<npar; ++i){
+                if(param[i]==0.){
+                        sprintf(nparam[i],"0");
+                }else{
+			expo=floor(log10(param[i]));
+        		mul=ceil(param[i]/pow(10.,expo));
+			nf=0;
+			while(ceil(param[i]/pow(10.,expo))!=(int)(param[i]/pow(10.,expo))){
+				--expo;
+				mul=ceil(param[i]/pow(10.,expo));
+				++nf;
+			}
+                        sprintf(nparam[i],"%de%d",mul,(int)expo);
+                }
+        }
+
+	sprintf(gfile->fname,"L%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_mu%s_mb%s_mh%0.1f_rmh%d_MS%d",L,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],nparam[1],nparam[2],spar->mh,spar->rmigh,MIG_SITES);
+        dnl=200;
+	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
+	char *name=(char *)calloc(namelen,sizeof(char));
+
+        id = (unsigned long)time(NULL);
+        
+        while(ok==0){
+		sprintf(name,"%scostXplrXw_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+               
+	sprintf(name,"%scostXplrXw_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+	
+	/****Allocate memory**********************************************/
+
+	avinv=malloc(sizeof(DynVec));
+	if (!avinv) { perror("malloc"); exit(1);}
+	avinv->sizef=40000;
+	avinv->usizef=0;
+	avinv->vecf=(double *)calloc(avinv->sizef,sizeof(double));
+
+	cmax=0.2;
+	cmin=1e-2;
+	spar->cost=cmin;
+	dc=cmin;
+	dplr=0.1;
+	spar->plr=0.;
+	plrmax=1.;
+
+	while(spar->cost<=cmax){
+		if(spar->cost<=0.05){
+			stime->Tf=20000;
+		}else if(spar->cost<=0.07){
+			stime->Tf=30000;
+		}else if(spar->cost<=0.09){
+			stime->Tf=40000;
+		}else if(spar->cost<=0.11){
+			stime->Tf=80000;
+		}else if(spar->cost<=0.15){
+			stime->Tf=100000;
+		}else{
+			stime->Tf=150000;
+		}
+		
+		stime->timewindow=ceil(0.25*stime->Tf);
+		stime->transtime=stime->Tf-stime->timewindow;
+	
+		spar->plr=0.;
+		while(spar->plr<=plrmax){
+			setCI();
+			stime->Tnow=0.;
+			stime->saveT=stime->transtime;
+			callSysDynamics(event,mevent);
+			
+			nh=listh->usize;
+
+			calcRMSError(avinv->vecf,0,avinv->usizef,stats);
+		
+			fprintf(gfile->file,"%f %f %f %f %d %f\n",spar->cost,spar->plr,stats[0],stats[1],nh,stime->Tf);
+			fflush(gfile->file);
+			printf("cost=%f plr=%f <w>=%f sdtw=%f nh=%d Tf=%f\n",spar->cost,spar->plr,stats[0],stats[1],nh,stime->Tf);
+		
+			avinv->usizef=0;
+
+			spar->plr+=dplr;
+		}
+		fprintf(gfile->file,"\n");
+		printf("\n");
+
+		spar->cost+=dc;
+	}
+	
+	if(gfile->file){
+		fclose(gfile->file);
+		gfile->file=NULL;
+	}
+	if(gfile->fname){
+		free(gfile->fname);
+		gfile->fname=NULL;
+	}
+	if(gfile->fdatapath){
+		free(gfile->fdatapath);
+		gfile->fdatapath=NULL;
+	}
+	if(gfile){
+		free(gfile);
+		gfile=NULL;
+	}
+
+	free(name);
+	return;
+}
+/****************************************************************
 *  Store in @SAMPLE files the average investment		*
 *  in the system as a function of the system carrying dilution	*	
 *****************************************************************/

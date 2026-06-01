@@ -52,7 +52,7 @@
 						 	*paper uses 19 when TYPES=2 and 29 otherwise (??)*/
 
 /*****COST*******************************************************/
-#define Gamma     		0.01		/*cost for helping when the investment is 1*/
+#define Gamma     		0.1		/*cost for helping when the investment is 1*/
 /***Parameters for cases where there are negative types*******************/
 /*when there are negative types, the cost for positive and negative types can be influenced by the total frequency of the negative types (f⁻): 
  * for negative types: cost Gamma*investiment[type] is multiplied by CRnn0*exp(-CRnn1*d⁻/(1-f⁻)) 
@@ -89,7 +89,7 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			20000		/*host maximum time (measured using continuous values for the times steps)*/
+#define TF			80000		/*host maximum time (measured using continuous values for the times steps)*/
 #define Ttrans			15000		/*transient time (to a first trial)*/
 #define	Twin			25000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
@@ -125,7 +125,7 @@
 #if  defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(DIFBACOMPxT)||defined(CLUSTERSxT)||defined(CLUSTERS_DISTxT)||defined(BESTCLUSTER_TIMES)
 	#define TMEAS
 #endif
-#if defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(AVINVxMH)||defined(RHxMHxAVINV)||defined(COSTxMBxAVINV)
+#if defined(COSTxPLRxAVINV)||defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(AVINVxMH)||defined(RHxMHxAVINV)||defined(COSTxMBxAVINV)
 	#define STEADY_STATE_MEAS
 #endif
 /********************************************

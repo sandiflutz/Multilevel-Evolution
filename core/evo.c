@@ -863,7 +863,7 @@ void callSysDynamics(Event *event, Event *mevent){
                 	timeMeasures();
                 #endif
                 #ifdef STEADY_STATE_MEAS
-                        if((stime->Tnow<stime->saveT+stime->timewindow)&&(stime->Tnow>=stime->saveT)){
+                        if((stime->Tnow>=stime->saveT-0.0001)&&(stime->Tnow<=stime->saveT+0.0001)){
                                 avinv->vecf[avinv->usizef]=calcAverInv();
                                 ++avinv->usizef;
 				#ifdef AVINVxRH
@@ -875,7 +875,10 @@ void callSysDynamics(Event *event, Event *mevent){
 				#ifdef AVINVxCOST
 				printf("cost=%f time=%f avinv[%d]=%f\n",spar->cost,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
 				#endif
-				stime->saveT+=10.;
+				#ifdef COSTxPLRxAVINV
+				printf("cost=%f plr=%f time=%f avinv[%d]=%f\n",spar->cost,spar->plr,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
+				#endif
+				stime->saveT=stime->Tnow+1.;
                         }
                 #endif
 		#ifdef MULTIPLE_COSTS_WxT

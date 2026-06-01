@@ -125,6 +125,11 @@ void difMicrCompXt(void);
 *************************************************************************/
 void averInvXtMultipleCosts(Event *event,Event *mevent);
 /****************************************************************
+*  Store the steady state average investment for different      *
+*  costs and probability values of long range migration, plr    *
+*****************************************************************/
+void costXplrXw(Event *event,Event *mevent);
+/****************************************************************
 *  Store in @SAMPLE files the average investment                *
 *  in the system as a function of the system carrying dilution  *
 *****************************************************************/

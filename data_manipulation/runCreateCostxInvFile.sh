@@ -1,16 +1,15 @@
-network=$1 
+parfile=$1 
 
+read net lsize types kh gh bv mu mb mh rmh plr < <(grep -v '^#' $parfile | grep -v '^$')
 
-if [[ "$network" == "CG" ]]
+if [[ $net -eq 0 ]]
 then
-	name=costXw_CG_L100_Ty101_Kh500_Gh100_Bv1e-3_mu1e-2_mb1e-6.dat
+	name=costXw_CG_L${lsize}_Ty${types}_Kh${kh}_Gh${gh}_Bv${bv}_mu${mu}_mb${mb}.dat
 	./createCostxInvFile.sh $name 1 3
 	cp $name ~/docs/work/France/research/prog/project/data_manipulation/gp_scripts/
-elif [[ "$network" == "SL" ]]
+elif [[ $net -eq 1 ]]
 then
-	name=costXw_SL_L100_Ty101_Kh500_Gh100_Bv1e-3_mu1e-2_mb1e-6_mh4_rmh1_plr0.00.dat
+	name=costXw_SL_L${lsize}_Ty${types}_Kh${kh}_Gh${gh}_Bv${bv}_mu${mu}_mb${mb}_mh${mh}_rmh${rmh}_plr${plr}.dat
 	./createCostxInvFile.sh $name 1 11
 	cp  $name ~/docs/work/France/research/prog/project/data_manipulation/gp_scripts/
-else
-	echo "Error. Expected syntax is: ./runCreateCostxInvFile.sh <network type(=CG,SL)>"
 fi

@@ -107,6 +107,9 @@ int main(void){
 		#ifdef COSTxMBxAVINV
 		costXmbXw(&event,&mevent);
 		#endif
+		#ifdef COSTxPLRxAVINV
+		costXplrXw(&event,&mevent);
+		#endif
 	}
 #endif
 
