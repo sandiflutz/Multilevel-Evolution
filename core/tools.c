@@ -418,10 +418,234 @@ void squareLattice(int **neighbor,int viz,int lsize){
 
         return;
 }
-/**********************************************************
-*               Set network of a complete graph           *
-*               (without self-neighboring)
-***********************************************************/
+/****************************************************************
+*	Returns the position (in a linear representation) of 	*
+*	the upper nearest neighbor of the @id-th site in a 	*
+*	square lattice						*
+*****************************************************************/
+int nearestUpNeighbor(int id,int lsize){
+	return ((id-lsize+lsize*lsize)%(lsize*lsize));
+}
+/****************************************************************
+*	Returns the position (in a linear representation) of 	*
+*	the lower nearest neighbor of the @id-th site in a 	*
+*	square lattice						*
+*****************************************************************/
+int nearestLowerNeighbor(int id,int lsize){
+	return ((id+lsize)%(lsize*lsize));
+}
+/****************************************************************
+*	Returns the position (in a linear representation) of 	*
+*	the nearest neighbor at the right of the @id-th site 	*
+*	in a square lattice					*
+*****************************************************************/
+int nearestRightNeighbor(int id,int lsize){
+	return ((id+1)%lsize);
+}
+/****************************************************************
+*	Returns the position (in a linear representation) of 	*
+*	the nearest neighbor at the left of the @id-th site 	*
+*	in a square lattice					*
+*****************************************************************/
+int nearestLeftNeighbor(int id,int lsize){
+	return ((id-1+lsize)%lsize);
+}
+/****************************************************************
+*  		Sets a smallworld network			*
+*****************************************************************/
+int setSmallWorld(int lsize,double rfrac, int *con,int *listviz){
+	int i,sites,maxcon;
+	int *netlink=NULL;
+
+	sites=lsize*lsize;
+
+	netlink=(int *)calloc(sites*sites,sizeof(int));
+
+	memset(con,0,sizeof(int)*sites);
+
+	for(i=0; i<sites; ++i){
+		//right
+		listviz[i*sites+con[i]]=nearestRightNeighbor(i,lsize);
+		netlink[i*sites+listviz[i*sites+con[i]]]=1;
+		netlink[listviz[i*sites+con[i]]*sites+i]=1;
+		++con[i];
+		
+		//up
+		listviz[i*sites+con[i]]=nearestUpNeighbor(i,lsize);
+		netlink[i*sites+listviz[i*sites+con[i]]]=1;
+		netlink[listviz[i*sites+con[i]]*sites+i]=1;
+		++con[i];
+
+		//bottom
+		listviz[i*sites+con[i]]=nearestLowerNeighbor(i,lsize);
+		netlink[i*sites+listviz[i*sites+con[i]]]=1;
+		netlink[listviz[i*sites+con[i]]*sites+i]=1;
+		++con[i];
+
+		//left
+		listviz[i*sites+con[i]]=nearestLeftNeighbor(i,lsize);
+		netlink[i*sites+listviz[i*sites+con[i]]]=1;
+		netlink[listviz[i*sites+con[i]]*sites+i]=1;
+		++con[i];
+	}
+
+	maxcon=networkRewiring(sites,rfrac,con,listviz,netlink);
+
+	free(netlink);
+	
+	return maxcon;
+}
+/********************************************************************************
+*	Rewires a fraction of the links of a network				*
+*********************************************************************************/
+int networkRewiring(int sites,double rfrac,int *con,int *listviz,int *netlink){
+	int i,k,k1,k2,id,numrewiring,iscon,ok;
+	int oldnode,newnode,oldcon,maxcon;
+
+	numrewiring=(int)(sites*rfrac/2.);
+
+	iscon=0;
+	for(i=0; i<numrewiring; ++i){
+		do{
+			id=(int)(FRANDOM*sites);
+			oldcon=(int)(con[id]*FRANDOM);
+			oldnode=listviz[id*sites+oldcon];
+			newnode=(int)(FRANDOM*sites);
+			if(con[oldnode]>1){
+				if((newnode!=id)&&(netlink[id+newnode*sites]==0)){
+					netlink[id+oldnode*sites]=0;
+					netlink[oldnode+id*sites]=0;
+					netlink[id+newnode*sites]=1;
+					netlink[newnode+id*sites]=1;
+					iscon=areNodesConnected(id,oldnode,sites,netlink);
+					if(iscon==0){
+						netlink[id+oldnode*sites]=1;
+						netlink[oldnode+id*sites]=1;
+						netlink[id+newnode*sites]=0;
+						netlink[newnode+id*sites]=0;
+					}
+				}
+			}
+		}while(iscon==0);
+		k1=0;
+		//
+		while(k1<con[oldnode]){
+			if(listviz[oldnode*sites+k1]==id){
+				k2=0;
+				while(k2<con[oldnode]-1){
+					listviz[oldnode*sites+k2]=listviz[oldnode*sites+k2+1];
+					++k2;
+				}
+				--con[oldnode];
+			}
+			++k1;
+		}
+		ok=0;
+		k=0;
+		do{
+			if(listviz[id*sites+k]==oldnode){
+				listviz[id*sites+k]=newnode;
+				listviz[newnode*sites+con[newnode]]=id;
+				++con[newnode];
+				ok=1;
+			}
+			++k;
+		}while(ok==0);
+	}
+
+	maxcon=1;
+	for(i=0; i<sites; ++i){
+		if(con[i]>maxcon)maxcon=con[i];
+	}
+
+	return maxcon;
+}
+/****************************************************************
+*	Connectivity testing: test if two nodes are 		*
+*	connected (directly or indirectly)			*
+*****************************************************************/
+int areNodesConnected(int id1, int id2,int sites,int *netlink){
+	int i,k,id,iscon=0;
+	int *visited;
+	DynList nextfocusites;
+
+	visited=(int *)calloc(sites,sizeof(int));
+	nextfocusites.vec=(int *)calloc(sites-1,sizeof(int));
+	nextfocusites.size=sites;
+
+	nextfocusites.usize=1;
+	nextfocusites.vec[0]=id1;
+	visited[id1]=1;
+	i=0;
+	while(i<nextfocusites.usize){
+		id=nextfocusites.vec[i];
+		visited[id]=1;
+		if(netlink[id+id2*sites]==0){
+			for(k=0; k<sites;++k){
+				if((netlink[id+k*sites]==1)&&(visited[k]==0)){
+					nextfocusites.vec[nextfocusites.usize]=k;
+					++nextfocusites.usize;
+					visited[k]=1;
+				}
+			}
+		}else{
+			iscon=1;
+			i=nextfocusites.usize;
+		}
+		++i;
+	}
+
+
+	free(visited);
+	free(nextfocusites.vec);
+	return iscon;
+}
+/****************************************************************
+*	Connectivity testing: test if network is fully		*
+*	connected						*
+*****************************************************************/
+int networkConnectivityTest(int sites,int *con,int **neighbor){
+	int i,j,k,id0,idviz,idvizviz,numvisited,iscon=0;
+	DynList nextfocusites;
+	int *visited;
+	
+	nextfocusites.vec=(int *)calloc(sites,sizeof(int));
+	nextfocusites.size=sites;
+	visited=(int *)calloc(sites,sizeof(int));
+
+	numvisited=0;
+	id0=0;
+	nextfocusites.usize=1;
+	nextfocusites.vec[0]=id0;
+	visited[id0]=1;
+	for(i=0; i<nextfocusites.usize; ++i){
+		id0=nextfocusites.vec[i];
+		for(k=0; k<con[id0]; ++k){
+			idviz=neighbor[id0][k];
+			if(visited[idviz]!=1){
+				visited[idviz]=1;
+				++numvisited;
+			}
+			for(j=0; j<con[idviz]; ++j){
+				idvizviz=neighbor[idviz][j];
+				if(visited[idvizviz]!=1){
+					nextfocusites.vec[nextfocusites.usize]=idvizviz;
+					++nextfocusites.usize;
+				}
+			}
+		}
+	}
+	
+
+	free(nextfocusites.vec);
+	free(visited);
+
+	return iscon;
+}
+/****************************************************************
+*               Set network of a complete graph           	*
+*               (without self-neighboring)			*
+*****************************************************************/
 void setCompleteGraph(int **neighbor,int sites){
         int i,j,*nviz;
 
@@ -489,14 +713,15 @@ int randNeighborID(int vec_id,int *vec,int id1,int id2,int size){
 /*************************************************
 *       Set network links between sites          *
 **************************************************/
-void setNetLinks(int **neighbor,int *netlink,int nviz,int sites){
+void setNetLinks(int *neighborlist,int *netlink,int *con,int sites){
         int i,j,viz;
 
         memset(netlink,0,sizeof(int)*sites*sites);
         for(i=0; i<sites; ++i){
-                for(j=0; j<nviz; ++j){
-                        viz=neighbor[i][j];
+                for(j=0; j<con[i]; ++j){
+                        viz=neighborlist[i*sites+j];
                         netlink[i*sites+viz]=1;
+                        netlink[viz*sites+i]=1;
                 }
         }
 

@@ -98,6 +98,9 @@ int main(void){
 		#ifdef AVINVxCOST
 		averInvXcost(&event,&mevent);
 		#endif
+		#ifdef AVINVxPlr
+		averInvXplr(&event,&mevent);
+		#endif
 		#ifdef AVINVxMH
 		averInvXmh(&event,&mevent);
 		#endif
@@ -167,6 +170,11 @@ void freeMemory(void){
 			free(neighbor[i]);
 		}
 	}
+	#if (NETWORK==2)
+	if(con){
+		free(con);
+	}
+	#endif
 
 	if(neighbor){
 		free(neighbor);
@@ -175,7 +183,6 @@ void freeMemory(void){
 	if(rho_e){
 		free(rho_e);
 	}
-
 #endif
 	if(listh->vec){
 		free(listh->vec);

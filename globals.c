@@ -3,6 +3,7 @@
 #include"globals.h"
 int *host = NULL;
 int **neighbor = NULL;
+int *con = NULL;
 int *inverselisth = NULL;
 int *lb = NULL;
 ClusterFullID *maxclw =NULL;

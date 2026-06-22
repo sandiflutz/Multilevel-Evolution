@@ -147,6 +147,12 @@ void averInvXgh(Event *event,Event *mevent);
 void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax);
 /************************************************************************
 *  Store in @SAMPLE files the average investment                        *
+*  in the system as a function of the fraction of long-range host       *
+*  migration                                                            *
+*************************************************************************/
+void averInvXplr(Event *event,Event *mevent);
+/************************************************************************
+*  Store in @SAMPLE files the average investment                        *
 *  in the system as a function of the cost factor payed by helpfull     *
 *  bacteria                                                             *
 *************************************************************************/

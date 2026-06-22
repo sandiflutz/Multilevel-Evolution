@@ -18,6 +18,17 @@ void initialStateUniD(void);
 *       distribution with x=(investment[j]-mean)/stdinv   *
 ***********************************************************/
 void initialStateNormD(void);
+/****************************************************************
+*       Initial Condition with a central low investment         *
+*       cluster in a system with high investment hosts          *
+*       randomly distributed                                    *
+*****************************************************************/
+void initialStateCentralCluster(void);
+/********************************************************
+*       Populate a Node with a Host an only one         *
+*       Bacteria Type                                   *
+*********************************************************/
+void populateHostWithSingleType(int id,int btype,double bamount);
 /*****************************************************
 *   Populates Host layer with a single host          *
 *   Bacteria yypes are uniformly distributed         *

@@ -60,12 +60,11 @@ void allocateMemTM(void){
 
         char *ngeral=(char *)calloc(200,sizeof(char));
         char *ntneg = (char *)calloc(50,sizeof(char));
-	int npar=3,mul,nf;
+	int npar=2,mul,nf;
         char nparam[npar][10];
         double expo,param[npar];
-        param[0]=Bacv;
-        param[1]=spar->mu;
-        param[2]=spar->mig;
+        param[0]=spar->mu;
+        param[1]=spar->mig;
 
 	for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -83,9 +82,23 @@ void allocateMemTM(void){
                 }
         }
 	#if (NETWORK==0)
-        sprintf(ngeral,"L%d_Ty%d_Kh%d_net%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",L,TYPES,spar->kh,NETWORK,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
-	#else
-        sprintf(ngeral,"L%d_Ty%d_Kh%d_net%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MS%d",L,TYPES,spar->kh,NETWORK,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh,spar->plr,MIG_SITES);
+		#if (CI!=1)
+        	sprintf(ngeral,"CG_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_CI%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->mh,spar->rmigh,CI);
+		#else
+        	sprintf(ngeral,"CG_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->mh,spar->rmigh);
+		#endif
+	#elif (NETWORK==1)
+		#if (CI!=1)
+        	sprintf(ngeral,"SL_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MT%d_CI%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->mh,spar->rmigh,spar->plr,MIGRATION_TYPE,CI);
+		#else
+        	sprintf(ngeral,"SL_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MT%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->mh,spar->rmigh,spar->plr,MIGRATION_TYPE);
+		#endif
+	#else //smallworld
+		#if (CI!=1)
+        	sprintf(ngeral,"SW_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_psw%0.1f_CI%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->mh,spar->rmigh,Psw,CI);
+		#else
+        	sprintf(ngeral,"SW_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_psw%0.1f",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->mh,spar->rmigh,Psw);
+		#endif
 	#endif
                 
 	#if (Tneg>0)
@@ -544,7 +557,7 @@ void averInvestmentXt(void){
 	
 	nh=listh->usize;
 	
-	#if (NETWORK!=0)//not well-mixed
+	#if (NETWORK==1)//square lattice
 	int nclusters;
 	double clsizestats[2],clwstats[2];
 	int *labels=NULL;
@@ -654,7 +667,7 @@ void save_config(void){
 
 	/*********Defining point size for NIntervthe gnuplot script****************************************/
         if(L>=100){
-                pointsize=0.5;
+                pointsize=0.85;
         }else if(L>=50){
                 pointsize=1.5;
         }else{
@@ -751,7 +764,7 @@ void invDistXt(void){
 #if (FIG_EXT==0)
         sprintf(nt_format,"idt%f",(double)stime->Tnow/stime->Tf);
 #else
-        sprintf(nt_format,"Tf%d",stime->Tnow);
+        sprintf(nt_format,"Tf%f",stime->Tnow);
 #endif
         sprintf(namedat,"%s%s_%s.dat",gfile->fdatapath,name,nt_format);
         sprintf(name_gp,"%s%s_%s.gp",gfile->fdatapath,name,nt_format);
@@ -784,7 +797,7 @@ void invDistXt(void){
        fprintf(fgp,"set output'%s_idt%f.png'\n",name,(double)stime->Tnow/stime->Tf);
 #else
         fprintf(fgp,"set term post eps enha color 20\n");
-        fprintf(fgp,"set output'%s_Tf%d_fm.eps'\n",name,stime->Tnow);
+        fprintf(fgp,"set output'%s_Tf%f_fm.eps'\n",name,stime->Tnow);
 #endif
 
 	fprintf(fgp,"set title'{/=15 time steps=%f}'\n",stime->Tnow);
@@ -1170,7 +1183,7 @@ void costXplrXw(Event *event,Event *mevent){
 	int i,nh;
         int ok=0,namelen,dnl;
 	double dplr,dc,cmax,cmin,plrmax,stats[2];
-	int npar=3,mul,nf;
+	int npar=2,mul,nf;
 	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -1185,9 +1198,8 @@ void costXplrXw(Event *event,Event *mevent){
         sprintf(gfile->fdatapath,"data_manipulation/");
 	
 	//file name components
-        param[0]=Bacv;
-        param[1]=spar->mu;
-        param[2]=spar->mig;
+        param[0]=spar->mu;
+        param[1]=spar->mig;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1205,7 +1217,7 @@ void costXplrXw(Event *event,Event *mevent){
                 }
         }
 
-	sprintf(gfile->fname,"L%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_mu%s_mb%s_mh%0.1f_rmh%d_MS%d",L,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],nparam[1],nparam[2],spar->mh,spar->rmigh,MIG_SITES);
+        sprintf(gfile->fname,"SL_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MT%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->mh,spar->rmigh,spar->plr,MIGRATION_TYPE);
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
 	char *name=(char *)calloc(namelen,sizeof(char));
@@ -1315,7 +1327,7 @@ void averInvXrh(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double rh,drh=0.05,eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=3,mul,nf;
+	int npar=2,mul,nf;
 	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -1331,9 +1343,8 @@ void averInvXrh(Event *event,Event *mevent){
         sprintf(gfile->fdatapath,"data_manipulation/");
 	
 	//file name components
-        param[0]=Bacv;
-        param[1]=spar->mu;
-        param[2]=spar->mig;
+        param[0]=spar->mu;
+        param[1]=spar->mig;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1352,9 +1363,9 @@ void averInvXrh(Event *event,Event *mevent){
         }
 
 	#if(NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,Gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
+        sprintf(gfile->fname,"CG_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1]);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,Gh,nparam[0],spar->cost,nparam[1],nparam[1],spar->mh,spar->rmigh);
+        sprintf(gfile->fname,"SL_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MT%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->mh,spar->rmigh,spar->plr,MIGRATION_TYPE);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1461,7 +1472,7 @@ void averInvXgh(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=3,mul,nf;
+	int npar=2,mul,nf;
 	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -1477,9 +1488,8 @@ void averInvXgh(Event *event,Event *mevent){
         sprintf(gfile->fdatapath,"data_manipulation/");
 	
 	//file name components
-        param[0]=Bacv;
-        param[1]=spar->mu;
-        param[2]=spar->mig;
+        param[0]=spar->mu;
+        param[1]=spar->mig;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1498,9 +1508,9 @@ void averInvXgh(Event *event,Event *mevent){
         }
 
 	#if(NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
+        sprintf(gfile->fname,"CG_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1]);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Bv%s_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,nparam[0],spar->cost,nparam[1],nparam[2],spar->mh,spar->rmigh);
+        sprintf(gfile->fname,"SL_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MT%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->mh,spar->rmigh,spar->plr,MIGRATION_TYPE);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1604,10 +1614,10 @@ void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax){
         int ok=0,namelen,dnl;
 	double dmb,eps=0.05,tot_micr,stats[2];
 	double twind=stime->timewindow;	
-	int npar=2,mul,nf;
-	double expo,param[npar];
+	int mul,nf;
+	double expo,param;
 	unsigned long id;
-        char nparam[npar][10];
+        char nparam[10];
 	
        
 	/******seting file*************************************/ 
@@ -1620,29 +1630,26 @@ void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax){
         sprintf(gfile->fdatapath,"data_manipulation/");
 	
 	//file name components
-        param[0]=Bacv;
-        param[1]=spar->mu;
+        param=spar->mu;
 
-        for(i=0; i<npar; ++i){
-                if(param[i]==0.){
-                        sprintf(nparam[i],"0");
-                }else{
-			expo=floor(log10(param[i]));
-        		mul=ceil(param[i]/pow(10.,expo));
-			nf=0;
-			while(ceil(param[i]/pow(10.,expo))!=(int)(param[i]/pow(10.,expo))){
-				--expo;
-				mul=ceil(param[i]/pow(10.,expo));
-				++nf;
-			}
-                        sprintf(nparam[i],"%de%d",mul,(int)expo);
-                }
-        }
+	if(param==0.){
+		sprintf(nparam,"0");
+	}else{
+		expo=floor(log10(param));
+		mul=ceil(param/pow(10.,expo));
+		nf=0;
+		while(ceil(param/pow(10.,expo))!=(int)(param/pow(10.,expo))){
+			--expo;
+			mul=ceil(param/pow(10.,expo));
+			++nf;
+		}		
+		sprintf(nparam,"%de%d",mul,(int)expo);
+	}
 
 	#if(NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_cost%0.2f_mu%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],spar->cost,nparam[1],spar->mh,spar->rmigh);
+        sprintf(gfile->fname,"CG_L%d_Ty%d_Kh%d_cost%0.2f_mu%s",L,TYPES,spar->kh,spar->cost,nparam);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_cost%0.2f_mu%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],spar->cost,nparam[1],spar->mh,spar->rmigh);
+        sprintf(gfile->fname,"SL_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mh%0.1f_rmh%d_plr%0.2f_MT%d",L,TYPES,spar->kh,spar->cost,nparam,spar->mh,spar->rmigh,spar->plr,MIGRATION_TYPE);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1767,7 +1774,7 @@ void averInvXcost(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double eps=0.05,tot_micr,stats[2],cost_max,dc;
 	double twind=stime->timewindow;	
-	int npar=3,mul,nf;
+	int npar=2,mul,nf;
 	double param[npar],expo;
 	unsigned long id;
         char nparam[npar][10];
@@ -1783,9 +1790,8 @@ void averInvXcost(Event *event,Event *mevent){
         sprintf(gfile->fdatapath,"data_manipulation/");
 	
 	//file name components
-        param[0]=Bacv;
-        param[1]=spar->mu;
-        param[2]=spar->mig;
+        param[0]=spar->mu;
+        param[1]=spar->mig;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1804,9 +1810,9 @@ void averInvXcost(Event *event,Event *mevent){
         }
 
 	#if (NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],nparam[1],nparam[2],spar->mh,spar->rmigh);
+	sprintf(gfile->fname,"CG_L%d_Ty%d_Kh%d_mu%s_mb%s",L,TYPES,spar->kh,nparam[0],nparam[1],spar->mh,spar->rmigh);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],nparam[1],nparam[2],spar->mh,spar->rmigh);
+	sprintf(gfile->fname,"SL_L%d_Ty%d_Kh%d_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MT%d",L,TYPES,spar->kh,nparam[0],nparam[1],spar->mh,spar->rmigh,spar->plr,MIGRATION_TYPE);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -1905,6 +1911,147 @@ void averInvXcost(Event *event,Event *mevent){
 }
 /************************************************************************
 *  Store in @SAMPLE files the average investment			*
+*  in the system as a function of the fraction of long-range host 	*
+*  migration 								*	
+*************************************************************************/
+void averInvXplr(Event *event,Event *mevent){
+	int i,idh,nh,steady;
+        int ok=0,namelen,dnl;
+	double eps=0.05,tot_micr,stats[2],plrmax,dp;
+	double twind=stime->timewindow;	
+	int npar=2,mul,nf;
+	double param[npar],expo;
+	unsigned long id;
+        char nparam[npar][10];
+	
+       
+	/******seting file*************************************/ 
+        //generic file struct
+	gfile=malloc(sizeof(GenFile));
+	if (!gfile) { perror("malloc"); exit(1);}
+        gfile->fnsize=300;
+        gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
+	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
+        sprintf(gfile->fdatapath,"data_manipulation/");
+	
+	//file name components
+        param[0]=spar->mu;
+        param[1]=spar->mig;
+
+        for(i=0; i<npar; ++i){
+                if(param[i]==0.){
+                        sprintf(nparam[i],"0");
+                }else{
+			expo=floor(log10(param[i]));
+        		mul=ceil(param[i]/pow(10.,expo));
+			nf=0;
+			while(ceil(param[i]/pow(10.,expo))!=(int)(param[i]/pow(10.,expo))){
+				--expo;
+				mul=ceil(param[i]/pow(10.,expo));
+				++nf;
+			}
+                        sprintf(nparam[i],"%de%d",mul,(int)expo);
+                }
+        }
+
+	sprintf(gfile->fname,"SL_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_mh%0.1f_rmh%d_MT%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->mh,spar->rmigh,MIGRATION_TYPE);
+        dnl=200;
+	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
+	char *name=(char *)calloc(namelen,sizeof(char));
+
+        id = (unsigned long)time(NULL);
+        
+        while(ok==0){
+                sprintf(name,"%savInvXplr_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+               
+	sprintf(name,"%savInvXplr_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+	
+	/****Allocate memory**********************************************/
+
+	avinv=malloc(sizeof(DynVec));
+	if (!avinv) { perror("malloc"); exit(1);}
+	avinv->sizef=stime->timewindow/stime->tinterval+1;
+	avinv->usizef=0;
+	avinv->vecf=(double *)calloc(avinv->sizef,sizeof(double));
+
+	/****Dynamics******************/
+
+	spar->plr=0.;
+	plrmax=0.1;
+	dp=0.01;
+
+
+	while(spar->plr<=plrmax){
+		setCI();
+
+		stime->saveT=stime->transtime;
+		stime->Tf=stime->saveT+twind;
+		steady=0;
+		do{
+			callSysDynamics(event,mevent);
+
+			calcRMSError(avinv->vecf,0,avinv->usizef,stats);//test if system reached equilibrium
+			if(stats[1]<eps){
+				steady=1;
+			}else{
+				stime->Tf+=twind;
+				stime->saveT=stime->Tnow;
+				avinv->usizef=0.;
+			}
+			printf("steady=%d time=%f <avinv>=%f std=%f\n",steady,stime->Tnow,stats[0],stats[1]);
+		}while(steady==0);
+
+		nh=listh->usize;
+		tot_micr=0.;
+		for(i=0; i<nh; ++i){
+			idh=listh->vec[i];
+			tot_micr+=spar->micr[idh];
+		}
+		
+		fprintf(gfile->file,"%f %f %f %d %f %f\n",spar->plr,stats[0],stats[1],nh,stime->Tf,tot_micr);
+		fflush(gfile->file);
+		printf("%f %f %f %d %f %f\n",spar->plr,stats[0],stats[1],nh,stime->Tf,tot_micr);
+		
+		avinv->usizef=0;
+
+		spar->plr+=dp;
+	}
+		
+	/***freeing memory*****/
+	free(avinv->vecf);
+	free(avinv);
+
+	if(gfile->file){
+		fclose(gfile->file);
+		gfile->file=NULL;
+	}
+	if(gfile->fname){
+		free(gfile->fname);
+		gfile->fname=NULL;
+	}
+	if(gfile->fdatapath){
+		free(gfile->fdatapath);
+		gfile->fdatapath=NULL;
+	}
+	if(gfile){
+		free(gfile);
+		gfile=NULL;
+	}
+	free(name);
+	return;
+}
+/************************************************************************
+*  Store in @SAMPLE files the average investment			*
 *  in the system as a function of the host migration coefficient mh     *	
 *************************************************************************/
 void averInvXmh(Event *event,Event *mevent){
@@ -1928,9 +2075,8 @@ void averInvXmh(Event *event,Event *mevent){
         sprintf(gfile->fdatapath,"data_manipulation/");
 	
 	//file name components
-        param[0]=Bacv;
-        param[1]=spar->mu;
-        param[2]=spar->mig;
+        param[0]=spar->mu;
+        param[1]=spar->mig;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -1949,9 +2095,9 @@ void averInvXmh(Event *event,Event *mevent){
         }
 
 	#if (NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->rmigh);
+	sprintf(gfile->fname,"CG_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1]);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->rmigh);
+	sprintf(gfile->fname,"SL_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_rmh%d_plr%0.2f_MT%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->rmigh,spar->plr,MIGRATION_TYPE);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -2055,14 +2201,14 @@ void averInvXmh(Event *event,Event *mevent){
 *       (cost X bac. migr. rate X average investment)   		*
 *************************************************************************/
 void costXmbXw(Event *event,Event *mevent){
-	int i,nh,steady;
+	int nh,steady;
         int ok=0,namelen,dnl;
 	double dmb,dc,cmax,cmin,mbmax,mbmin,eps=0.05,stats[2];
 	double twind=stime->timewindow;	
-	int npar=3,mul,nf;
-	double expo,param[npar];
+	int mul,nf;
+	double expo,param;
 	unsigned long id;
-        char nparam[npar][10];
+        char nparam[10];
 	
 	/******seting file*************************************/ 
         //generic file struct
@@ -2074,30 +2220,26 @@ void costXmbXw(Event *event,Event *mevent){
         sprintf(gfile->fdatapath,"data_manipulation/");
 	
 	//file name components
-        param[0]=Bacv;
-        param[1]=spar->mu;
-        param[2]=spar->mig;
-
-        for(i=0; i<npar; ++i){
-                if(param[i]==0.){
-                        sprintf(nparam[i],"0");
-                }else{
-			expo=floor(log10(param[i]));
-        		mul=ceil(param[i]/pow(10.,expo));
-			nf=0;
-			while(ceil(param[i]/pow(10.,expo))!=(int)(param[i]/pow(10.,expo))){
-				--expo;
-				mul=ceil(param[i]/pow(10.,expo));
-				++nf;
-			}
-                        sprintf(nparam[i],"%de%d",mul,(int)expo);
-                }
-        }
+        param=spar->mu;
+	
+	if(param==0.){
+		sprintf(nparam,"0");
+	}else{
+		expo=floor(log10(param));
+		mul=ceil(param/pow(10.,expo));
+		nf=0;
+		while(ceil(param/pow(10.,expo))!=(int)(param/pow(10.,expo))){
+			--expo;
+			mul=ceil(param/pow(10.,expo));
+			++nf;
+		}
+		sprintf(nparam,"%de%d",mul,(int)expo);
+	}
 
 	#if (NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],nparam[1],nparam[2],spar->mh,spar->rmigh);
+	sprintf(gfile->fname,"CG_L%d_Ty%d_Kh%d_mu%s",L,TYPES,spar->kh,nparam);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Kh%d_Gh%d_Bv%s_mu%s_mb%s_mh%0.1f_rmh%d",N,TYPES,NETWORK,spar->kh,spar->gh,nparam[0],nparam[1],nparam[2],spar->mh,spar->rmigh);
+	sprintf(gfile->fname,"SL_L%d_Ty%d_Kh%d_mu%s_mh%0.1f_rmh%d_plr%0.2f_MT%d",L,TYPES,spar->kh,nparam,spar->mh,spar->rmigh,spar->plr,MIGRATION_TYPE);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -2212,7 +2354,7 @@ void rhXmhXw(Event *event,Event *mevent){
         int ok=0,namelen,dnl;
 	double dmh,drh,rh,rhmax,mhmax,eps=0.05,stats[2];
 	double twind=stime->timewindow;	
-	int npar=3,mul,nf;
+	int npar=2,mul,nf;
 	double expo,param[npar];
 	unsigned long id;
         char nparam[npar][10];
@@ -2228,9 +2370,8 @@ void rhXmhXw(Event *event,Event *mevent){
         sprintf(gfile->fdatapath,"data_manipulation/");
 	
 	//file name components
-        param[0]=Bacv;
-        param[1]=spar->mu;
-        param[2]=spar->mig;
+        param[0]=spar->mu;
+        param[1]=spar->mig;
 
         for(i=0; i<npar; ++i){
                 if(param[i]==0.){
@@ -2249,9 +2390,9 @@ void rhXmhXw(Event *event,Event *mevent){
         }
 
 	#if (NETWORK==0)
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_rmh%d",N,TYPES,NETWORK,spar->gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->rmigh);
+	sprintf(gfile->fname,"CG_L%d_Ty%d_cost%0.2f_mu%s_mb%s",L,TYPES,spar->cost,nparam[0],nparam[1]);
 	#else
-	sprintf(gfile->fname,"N%d_Ty%d_net%d_Gh%d_Bv%s_cost%0.2f_mu%s_mb%s_rmh%d",N,TYPES,NETWORK,spar->gh,nparam[0],spar->cost,nparam[1],nparam[2],spar->rmigh);
+	sprintf(gfile->fname,"SL_L%d_Ty%d_cost%0.2f_mu%s_mb%s_rmh%d_plr%0.2f_MT%d",L,TYPES,spar->cost,nparam[0],nparam[1],spar->rmigh,spar->plr,MIGRATION_TYPE);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;

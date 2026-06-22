@@ -129,6 +129,48 @@ void searchAllLiveLinks(int sites,int nh,int *listh,int *netlink,int *nviz,int *
 * Set neighbors for a square lattice network     *
 **************************************************/
 void squareLattice(int **neighbor,int viz,int lsize);
+/****************************************************************
+*       Returns the position (in a linear representation) of    *
+*       the upper nearest neighbor of the @id-th site in a      *
+*       square lattice                                          *
+*****************************************************************/
+int nearestUpNeighbor(int id,int lsize);
+/****************************************************************
+*       Returns the position (in a linear representation) of    *
+*       the lower nearest neighbor of the @id-th site in a      *
+*       square lattice                                          *
+*****************************************************************/
+int nearestLowerNeighbor(int id,int lsize);
+/****************************************************************
+*       Returns the position (in a linear representation) of    *
+*       the nearest neighbor at the right of the @id-th site    *
+*       in a square lattice                                     *
+*****************************************************************/
+int nearestRightNeighbor(int id,int lsize);
+/****************************************************************
+*       Returns the position (in a linear representation) of    *
+*       the nearest neighbor at the left of the @id-th site     *
+*       in a square lattice                                     *
+*****************************************************************/
+int nearestLeftNeighbor(int id,int lsize);
+/****************************************************************
+*               Sets a smallworld network                       *
+*****************************************************************/
+int setSmallWorld(int lsize,double rfrac, int *con,int *listviz);
+/********************************************************************************
+*       Rewires a fraction of the links of a network                            *
+*********************************************************************************/
+int networkRewiring(int sites,double rfrac,int *con,int *listviz,int *netlink);
+/****************************************************************
+*       Connectivity testing: test if two nodes are             *
+*       connected (directly or indirectly)                      *
+*****************************************************************/
+int areNodesConnected(int id1, int id2,int sites,int *netlink);
+/****************************************************************
+*       Connectivity testing: test if network is fully          *
+*       connected                                               *
+*****************************************************************/
+int networkConnectivityTest(int sites,int *con,int **neighbor);
 /**********************************************************
 *               Set network of a complete graph           *
 *               (without self-neighboring)                *
@@ -147,7 +189,7 @@ int randNeighborID(int id,int *vec,int id1,int id2,int size);
 /*************************************************
 *       Set network links between sites          *
 **************************************************/
-void setNetLinks(int **neighbor,int *netlink,int nviz,int sites);
+void setNetLinks(int *neighborlist,int *netlink,int *con,int sites);
 /****************************************************
 * Calculates the cumulative probability vector from *
 * a simple probability vector                       *

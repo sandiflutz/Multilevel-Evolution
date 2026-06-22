@@ -28,24 +28,18 @@ double calcAcumInvest(int index){
         return cinv;
 }
 /********************************************************
-*       Set host birth-death rates                      *
+*       Set host birth, death and migration rates       *
 *********************************************************/
-void setIndividualHostRates(Event *event){
+void setIndividualHostRates(Event *event,Event *mevent){
         int i,idh,nh;
 	int gh=spar->gh;
 	int kh=spar->kh;
+	double w,averagew,ntot,aver_rhoe;
 	double beta=Beta;
 	double sb=Sb;
 	double sd=Sd;
-	double *w=NULL;
 
 	nh=listh->usize;//number of hosts
-
-	w=(double *)calloc(nh,sizeof(double));//vector for the accumulated investments of each live host
-	if(!w){
-		printf("It wasn't possible to allocate memory for vector w.\n");
-		exit(1);
-	}	
 
         event->sizeE=(2*nh);//# of possible host events (birth or death for each host)
 
@@ -59,59 +53,48 @@ void setIndividualHostRates(Event *event){
 		exit(1);
 	}	
 
-        //birth events
+        //birth and death events
+	averagew=0.;
+	ntot=0.;
+	aver_rhoe=0.;
 	for(i=0; i<nh; ++i){
 		idh=listh->vec[i];
-		w[i]=calcAcumInvest(idh);
-		event->ratesE[i]=(double)beta*(1.+sb*w[i])/gh;
+		w=calcAcumInvest(idh);
+		averagew+=w;
+		ntot+=spar->micr[idh];
+		aver_rhoe+=rho_e[idh];
+		event->ratesE[i]=(double)beta*(1.+sb*w)/gh;
+		event->ratesE[i+nh]=beta*(1.-sd*w)*nh/((double)kh*gh);//death events
 	}
-
-        //death events
-	for(i=nh; i<(2*nh); ++i){
-		event->ratesE[i]=beta*(1.-sd*w[i-nh])*nh/((double)kh*gh);
+	aver_rhoe/=(double)nh;
+	averagew/=ntot;
+#if (NETWORK!=0)
+	mevent->sizeE=nh;
+	if(mevent->ratesE){
+		free(mevent->ratesE);
+		mevent->ratesE=NULL;
 	}
-
-
-	if(w){
-		free(w);
-		w=NULL;
+	mevent->ratesE=(double *)calloc(mevent->sizeE,sizeof(double));
+	if(!mevent->ratesE){
+		printf("It wasn't possible to allocate memory for mevent->ratesE.\n");
+		exit(1);
 	}
+	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
+	#if (MIGRATION_TYPE==0)//homogeneous host migration rate (no local component)
+		mevent->ratesE[i]=beta*(1.+sb*averagew)*(1.-aver_rhoe);
+	#elif (MIGRATION_TYPE==1)//local component comes from the host's neighborhood dilution
+		mevent->ratesE[i]=beta*(1.+sb*averagew)*(1.-rho_e[idh]);
+	#elif (MIGRATION_TYPE==2)//local component comes from the host's investment
+		mevent->ratesE[i]=event->ratesE[i]*(1.-aver_rhoe);
+	#else//local component comes from the host's neighborhood dilution its investment
+		mevent->ratesE[i]=event->ratesE[i]*(1.-rho_e[idh]);
+	#endif
+		event->ratesE[i]*=ceil(rho_e[idh]);//birth rate spatial adjustment: if there is no empty sites on idh's neighborhood, its birth rate is 0
+	}
+#endif
+
         return;
-}
-/****************************************************************
-*   For non well-mixed cases: 					*
-*   each host event rate, associated to host @i, is 		*
-*   substituted by the average host rate in the group centered	*
-*   on @i. Probabilities are also multiplied by:		*
-*   	-Repr. of i: rho_e[i]					*
-*   	-Death: (1-rho_e[i])					*
-*   	(rho_e[i]=fraction of empty sites in @i's group)	*
-*****************************************************************/
-void setGrRates(Event *event,Event *mevent){
-	int i,idh,nh;
-
-	nh=listh->usize;
-
-	if(spar->mh>0.){
-		mevent->sizeE=nh;
-		if(mevent->ratesE){
-			free(mevent->ratesE);
-			mevent->ratesE=NULL;
-		}
-		mevent->ratesE=(double *)calloc(mevent->sizeE,sizeof(double));
-		if(!mevent->ratesE){
-			printf("It wasn't possible to allocate memory for mevent->ratesE.\n");
-			exit(1);
-		}
-	}
-	for(i=0; i<nh; ++i){
-		idh=listh->vec[i];
-		if(spar->mh>0.){
-			mevent->ratesE[i]=event->ratesE[i]*(1.-rho_e[idh]);
-		}
-		event->ratesE[i]*=ceil(rho_e[idh]);//if there is no empty sites on idh's neighborhood, its birth rate is 0
-	}
-	return;
 }
 /****************************************************************
 *       set cumulative rates for host events                    *
@@ -272,7 +255,8 @@ void hostDeath(int idh){
 }
 /****************************************
 *	moviment of hosts:		*
-*	2 neighbors exchange places	*
+*	2 states in the network 	*
+*	exchange places			*
 *****************************************/
 void hostMoviment(int id1,int id2){
 	int i,htmp;
@@ -400,13 +384,97 @@ void updateEmptySpaceGrFreq(int idh){
 	return;
 }
 /****************************************************************************************
+*	Choose a site to migrate within a specific connection distance			*
+*****************************************************************************************/ 
+int chooseMigSiteConDis(int id, int rf){
+	int i,i0,k,idv,idlist,r,nlviz,viz;
+	double sum_prob;
+	DynList listviz;
+	int *ilistviz;
+	int *which_host = NULL;
+	double *prob = NULL;    
+
+	listviz.size=N;
+	listviz.usize=0;
+	listviz.vec=(int *)malloc(sizeof(int)*N);
+	ilistviz=(int *)malloc(sizeof(int)*N);
+	for(i=0; i<N; ++i){
+		ilistviz[i]=-1;
+	}
+
+	r=0;
+	nlviz=0;
+	do{
+		if(nlviz==0){
+			for(i=0; i<con[id]; ++i){
+				viz=neighbor[id][i];
+				if(ilistviz[viz]==-1){
+					listviz.vec[nlviz]=viz;
+					ilistviz[viz]=nlviz;
+					++nlviz;
+				}
+			}
+			i0=0;
+			++r;
+			listviz.usize=nlviz;
+		}else if(r<rf){
+			for(i=i0; i<listviz.usize; ++i){
+				for(k=0; k<con[i]; ++k){
+					viz=neighbor[i][k];
+					 if(ilistviz[viz]==-1){
+						 listviz.vec[nlviz]=viz;
+						 ilistviz[viz]=nlviz;
+						 ++nlviz;
+					 }
+				}
+			}
+			++r;
+			i0=listviz.usize;
+			listviz.usize=nlviz;
+		}
+	}while(r<rf);
+
+
+	which_host=(int *)malloc(sizeof(int)*nlviz);
+	prob=(double *)malloc(sizeof(double)*nlviz);
+
+	sum_prob=0.;
+	for(i=0; i<nlviz; ++i){
+		idv=listviz.vec[i];
+		which_host[i]=idv;
+		prob[i]=0.;
+		if(host[idv]==0){
+			prob[i]=1.;
+		}else if(rho_e[idv]>0.){
+			prob[i]=rho_e[idv];
+		}
+		sum_prob+=prob[i];
+	}
+	/*selecting a site based on prob[]*/
+	if(sum_prob>0.){
+		for(i=0; i<nlviz; ++i){
+			prob[i]/=sum_prob;
+		}
+		idlist=selectEvent(FRANDOM,prob,nlviz);
+	}else{//if the region is fully crowded, choose randomly with uniform dist.
+		idlist=(int)(FRANDOM*nlviz);
+	}
+
+	
+	free(ilistviz);
+	free(listviz.vec);
+	free(prob);
+	free(which_host);
+	return idlist;
+}
+/****************************************************************************************
 * 		store site network id's for host migration and				*
 * 		the related probability of being chosen 				*
 * 		depending on dilution.							*
 * 		Sites included are only the one at a given				*
 * 		distance								*	
 *****************************************************************************************/
-double findMigSiteswithRmig(int id0,int r,int i0,int imax,double da,int *which_host,double *prob){
+double findMigSiteswithEuclRmig(int id0,int r,int i0,int imax,double da,int *which_host,double *prob){
 	int i,idf;
 	int xr,yr,x0,y0,xf,yf;
 	double angle,anglerad,sum_prob;
@@ -419,8 +487,8 @@ double findMigSiteswithRmig(int id0,int r,int i0,int imax,double da,int *which_h
 	for(i=i0; i<imax; ++i){
 		anglerad=((double)Pi)*(angle/180.);
 
-		xr=(int)(round((double)r*cos(anglerad)));
-		yr=(int)(round((double)r*sin(anglerad)));
+		xr=(int)((double)r*cos(anglerad));
+		yr=(int)((double)r*sin(anglerad));
 		
 		/*boundary conditions*/
 		if(xr<0){//left
@@ -452,117 +520,123 @@ double findMigSiteswithRmig(int id0,int r,int i0,int imax,double da,int *which_h
 
 	return sum_prob;
 }
-/********************************************************
-*	Choose site for migration:			*
-*	states of sites @idm and one chosen are 	*
-*	exchanged. Choice randomly chooses a 		*
-*	neighboring site, according to probabilities 	*
-*	that depend on vacancy (VIZ=#of neighbors):	*
-*		-prob[i]=1/VIZ, if neighbor is empty,	*
-*		-prob[i]=rho_e[i]/VIZ, otherwise	* 
-*********************************************************/
+/****************************************************************
+*	Choose site for migration within a distance r:		*
+*	states of sites @idm and one chosen are exchanged. 	*
+*	The probability of being chosen given that a site 	*
+*	is within a distance r depends of on vacancy:		*
+*		-prob[i]=1/sumprob, if neighbor is empty,	*
+*		-prob[i]=rho_e[i]/sumprob, if site i not 	*
+*			empty and rho_e[i]>0 for at least	* 
+*			one of the sites being consider		*
+*		-prob[i]=1/num_sites, for all sites being 	*
+*		consider otherwise				*
+*****************************************************************/
 int chooseMigSite(int idm,int rmig){
-	int i,i0,imax,idf,idlist,id_site;
-	int r,r0,rx,ry,rf,rmin;
-	int x0,y0,xf,yf,xmax,xmin,ymax,ymin;
-	int ok,trials,maxtrials,nmig;
+	int i,i0,imax,idlist,id_site,nmig;
+	int r,r0;
 	double sum_prob,da;
 	int *which_host = NULL;
 	double *prob = NULL;    
 
-	if(FRANDOM<spar->plr){//plr is the probability of choosing a random long range site
-		y0=(int)(idm/L);
-		x0=idm-y0*L;
-		trials=0;
-		maxtrials=L;
-		ok=0;
-		rmin=(int)ceil(L/20.);
-		do{
-			idf=(int)(FRANDOM*N);
-			yf=(int)(idf/L);
-			xf=idf-yf*L;
-			xmax=max(x0,xf);
-			xmin=x0+xf-xmax;
-			if((L-xmax+x0)<(xmax-xmin)){
-				rx=L-xmax+x0;
-			}else{
-				rx=xmax-xmin;
-			}
-			ymax=max(y0,yf);
-			ymin=y0+yf-ymax;
-			if((L-ymax+y0)<(ymax-ymin)){
-				ry=L-ymax+y0;//because of boundary conditions
-			}else{
-				ry=ymax-ymin;
-			}
-			rf=(int)round(sqrt((rx*rx+ry*ry)));
-			++trials;
-			if((rf>=rmin)&&(idf!=idm)&&(rho_e[idf]>0.))ok=1;
-			if(trials>maxtrials){//avoinding unending loop
-				if(idf==idm){
-					++maxtrials;
-				}else{
-					ok=1;
-				}
-			}
-		}while(ok==0);
-
-		id_site=idf;
-		
-
-	}else{
-
-		#if (MIG_SITES==0)//sites included are only the ones at a distance of rmig from the focus site
-		r0=rmig;
-		#else//all sites with the range of rmig are included
-		r0=1;
-		#endif
-		nmig=0;
-		for(r=1; r<=rmig; ++r){
-			nmig+=VIZ*r;//number of angles to calculate the position of the sites that can be choose fo the jump
-		}
-
-		prob=(double *)calloc(nmig,sizeof(double));
-		if(!prob){
-			printf("It wasn't possible to allocate memory for vector prob on chooseMigSite().\n");
-			exit(1);
-		}
-		which_host=(int *)calloc(nmig,sizeof(int));
-		if(!which_host){
-			printf("It wasn't possible to allocate memory for vector which_host on chooseMigSite().\n");
-			exit(1);
-		}
-
-		sum_prob=0.;
-		i0=0;
-		for(r=r0; r<=rmig; ++r){
-			imax=r*VIZ+i0;
-			da=360./((double)r*VIZ);
-			sum_prob+=findMigSiteswithRmig(idm,r,i0,imax,da,which_host,prob);
-			i0=imax;
-		}
-	
-		/*selecting a site based on prob[]*/
-		if(sum_prob>0.){
-			for(i=0; i<nmig; ++i){
-				prob[i]/=sum_prob;
-			}
-			idlist=selectEvent(FRANDOM,prob,nmig);
-		}else{//if the region is fully crowded, choose randomly with uniform dist.
-			idlist=(int)(FRANDOM*nmig);
-		}
-		id_site=which_host[idlist];
-
-		if(prob){
-			free(prob);
-			prob=NULL;
-		}
-		if(which_host){
-			free(which_host);
-			which_host=NULL;
-		}
+	r0=1;
+	nmig=0;
+	for(r=1; r<=rmig; ++r){
+		nmig+=VIZ*r;//number of angles to calculate the position of the sites that can be choose fo the jump
 	}
+	prob=(double *)calloc(nmig,sizeof(double));
+	if(!prob){
+		printf("It wasn't possible to allocate memory for vector prob on chooseMigSite().\n");
+		exit(1);
+	}
+	which_host=(int *)calloc(nmig,sizeof(int));
+	if(!which_host){
+		printf("It wasn't possible to allocate memory for vector which_host on chooseMigSite().\n");
+		exit(1);
+	}
+	
+	sum_prob=0.;
+	i0=0;
+	for(r=r0; r<=rmig; ++r){
+		imax=r*VIZ+i0;
+		da=360./((double)r*VIZ);
+		sum_prob+=findMigSiteswithEuclRmig(idm,r,i0,imax,da,which_host,prob);
+		i0=imax;
+	}
+
+	/*selecting a site based on prob[]*/
+	if(sum_prob>0.){
+		for(i=0; i<nmig; ++i){
+			prob[i]/=sum_prob;
+		}
+		idlist=selectEvent(FRANDOM,prob,nmig);
+	}else{//if the region is fully crowded, choose randomly with uniform dist.
+		idlist=(int)(FRANDOM*nmig);
+	}
+	id_site=which_host[idlist];
+	if(prob){
+		free(prob);
+		prob=NULL;
+	}
+	if(which_host){
+		free(which_host);
+		which_host=NULL;
+	}
+	
 	return id_site;
+}
+/****************************************************************
+*	Long-range random host migration:			*
+*	randomly choose a site for migration under the  	*
+*	the following constraints:				*
+*		-its distance from the focus site (network 	*
+*		id @idm) has to be equal or larger than a 	*
+*		minimum rmin					*
+*		-the fraction of empty sites in it 		*
+*		neighborhood has to be larger than 0.		*
+*****************************************************************/
+int longRangeMigSite(int idm, int rmig,int rmin){
+	int idf, ok,trials,maxtrials;
+	int rx,ry,rf;
+	int x0,y0,xf,yf,xmax,xmin,ymax,ymin;
+	
+	
+	y0=(int)(idm/L);
+	x0=idm-y0*L;
+	trials=0;
+	maxtrials=L;
+	ok=0;
+	do{
+		idf=(int)(FRANDOM*N);
+		yf=(int)(idf/L);
+		xf=idf-yf*L;
+		xmax=max(x0,xf);
+		xmin=x0+xf-xmax;
+		if((L-xmax+x0)<(xmax-xmin)){//because of boundary conditions
+			rx=L-xmax+x0;
+		}else{
+			rx=xmax-xmin;
+		}
+		ymax=max(y0,yf);
+		ymin=y0+yf-ymax;
+		if((L-ymax+y0)<(ymax-ymin)){//because of boundary conditions
+			ry=L-ymax+y0;
+		}else{
+			ry=ymax-ymin;
+		}
+		rf=(int)round(sqrt((rx*rx+ry*ry)));
+		++trials;
+		if((rf>=rmin)&&(idf!=idm)&&(rho_e[idf]>0.))ok=1;
+		if(trials>maxtrials){//avoinding unending loop
+			if(idf==idm){
+				++maxtrials;
+			}else{
+				ok=1;
+			}
+		}
+	}while(ok==0);
+
+	return idf;
 }
 /****************************************************************
 *	Kill hosts that have a microbiome extremely low		*
@@ -592,7 +666,7 @@ void killHostWithoutMicr(void){
 *	time step)				*
 *************************************************/
 void hostMigrationDynamics(int dnumsteps,Event *mevent){
-	int i,idh,idlist,idk,idlistk,nh,nm;
+	int i,idh,idlist,idk,idlistk,nh,nm,ok;
 	double nr,pm;
 	int *listm = NULL;
 	
@@ -606,25 +680,50 @@ void hostMigrationDynamics(int dnumsteps,Event *mevent){
 
 	for(i=0; i<dnumsteps; ++i){
 		nr=FRANDOM;
+		#if (MIGRATION_TYPE==0)
+		pm=mevent->cprobE[nh-1]*spar->mh*stime->dth;
+		if(nr<pm){
+			ok=0;
+			do{
+				idlist=(int)(FRANDOM*nh);
+				if(host[listh->vec[idlist]]==1)ok=1;
+			}while(ok==0);
+			listm[nm]=idlist;//storing its listh's id to keep track of its state and not the physical position
+			++nm;
+		}
+		#else
 		pm=mevent->cprobE[nh-1]*spar->mh*stime->dth;
 		if(nr<pm){
 			idlist=selectEventCP(nr,mevent->cprobE,mevent->sizeE);//selects a host for future migration
 			listm[nm]=idlist;//storing its listh's id to keep track of its state and not the physical position
 			++nm;
 		}
+		#endif
 	}
 	                
 	for(i=0; i<nm; ++i){//host migration list
 		idlist=listm[i];
 		idh=listh->vec[idlist];
+	#if (NETWORK==1)
+		#if (LONG_RANGE_MIG!=0)
+		if(FRANDOM<spar->plr){
+			idk=longRangeMigSite(idh,spar->rmigh,Rmin);
+		}else{
+			idk=chooseMigSite(idh,spar->rmigh);
+		}
+		#else
 		idk=chooseMigSite(idh,spar->rmigh);
+		#endif
+	#elif (NETWORK==2)
+		idk=chooseMigSiteConDis(idh,spar->rmigh);
+	#endif
 		idlistk=inverselisth[idk];
 
-		hostMoviment(idh,idk);//idh and idviz change places
+		hostMoviment(idh,idk);//idh and idk change places
 		
 		exchange(inverselisth,idh,idk);
 		exchange(listh->vec,idlist,idlistk);
-		if(host[idh]==0){//if idk was empty before the change, idh is now empty both of their groups suffer a change in the fraction of empty sites
+		if((host[idh]==0)&&(host[idk]!=0)){//if idk was empty before the change, idh is now empty both of their groups suffer a change in the fraction of empty sites 
 			updateEmptySpaceGrFreq(idh);
 			updateEmptySpaceGrFreq(idk);
 		}
@@ -885,8 +984,8 @@ void callSysDynamics(Event *event, Event *mevent){
 		timeMeasures();
 		#endif
 		
-		setIndividualHostRates(event);
-                #if (NETWORK==0)//complete graph with adjustable host dt
+		setIndividualHostRates(event,mevent);
+                #if (NETWORK==0)//well-mixed
 		setCumulativeRates(event);
 		dnumsteps=hostNTSPerBacNTS(event);
 		for(i=0; i<event->sizeE; ++i){
@@ -895,8 +994,7 @@ void callSysDynamics(Event *event, Event *mevent){
                 evolveHostCG(dnumsteps,event);
 		freeVecsEvent(event);
 
-                #elif (NETWORK==1)//square lattice with adjustable host dt
-		setGrRates(event,mevent);//group rates for birth, death and migration events
+                #else//square lattice or smallworld
 		setCumulativeRates(event);
 		dnumsteps=hostNTSPerBacNTS(event);
 		if(spar->mh>0.){
@@ -905,8 +1003,7 @@ void callSysDynamics(Event *event, Event *mevent){
 			hostMigrationDynamics(dnumsteps,mevent);
 			freeVecsEvent(mevent);
 			//update host rates and probs (since maxprox prob. doesn't change, time substep is the same)
-			setIndividualHostRates(event);
-			setGrRates(event,mevent);
+			setIndividualHostRates(event,mevent);
 			setCumulativeRates(event);
 		}
                 for(i=0; i<event->sizeE; ++i){

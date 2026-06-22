@@ -5,16 +5,18 @@
 *****************************************************************/
 double calcAcumInvest(int index);
 /********************************************************
-*	Set host birth-death rates  			*
+*       Set host birth-death rates without any spatial  *
+*       characteristics                                 *
 *********************************************************/
-void setIndividualHostRates(Event *event);
-/****************************************************************
-*   For non well-mixed cases:                                   *
-*   each host event rate, associated to host @i, is             *
-*   substituted by the average host rate in the group centered  *
-*   on @i                                                       *
-*****************************************************************/
-void setGrRates(Event *event,Event *mevent);
+void setPureHostBDRates(Event *event);
+/********************************************************
+*       Set the spatial of the host rates:              *
+*       -include migration rates                        *
+*       -multiply birth rates by a step funcion of the  *
+*       density of empty sites in the neighborhood of   *
+*       each host                                       *
+*********************************************************/
+void setHostRatesSpatialEv(Event *event,Event *mevent);
 /****************************************************************
 *       set cumulative rates for host events        		*
 *****************************************************************/
@@ -43,7 +45,8 @@ void hostBirth(int idp, int idk);
 void hostDeath(int idh);
 /****************************************
 *       moviment of hosts:              *
-*       2 neighbors exchange places     *
+*       2 states in the network         *
+*       exchange places                 *
 *****************************************/
 void hostMoviment(int id1,int id2);
 /************************************************
@@ -69,23 +72,41 @@ int hostNTSPerBacNTS(Event *event);
 *****************************************************************/
 void updateEmptySpaceGrFreq(int idh);
 /****************************************************************************************
+*       Choose a site to migrate within a specific connection distance                  *
+*****************************************************************************************/
+int chooseMigSiteConDis(int id, int rf);
+/****************************************************************************************
 *               store site network id's for host migration and                          *
 *               the related probability of being chosen                                 *
 *               depending on dilution.                                                  *
 *               Sites included are only the one at a given                              *
 *               distance                                                                *
 *****************************************************************************************/
-double findMigSiteswithRmig(int id0,int r,int i0,int imax,double da,int *which_host,double *prob);
-/********************************************************
-*       Choose site for migration:                      *
-*       states of sites @idm and one chosen are         *
-*       exchanged. Choice randomly chooses a            *
-*       neighboring site, according to probabilities    *
-*       that depend on vacancy (VIZ=#of neighbors):     *
-*               -prob[i]=1/VIZ, if neighbor is empty,   *
-*               -prob[i]=rho_e[i]/VIZ, otherwise        *
-*********************************************************/
+double findMigSiteswithEuclRmig(int id0,int r,int i0,int imax,double da,int *which_host,double *prob);
+/****************************************************************
+*       Choose site for migration within a distance r:          *
+*       states of sites @idm and one chosen are exchanged.      *
+*       The probability of being chosen given that a site       *
+*       is within a distance r depends of on vacancy:           *
+*               -prob[i]=1/sumprob, if neighbor is empty,       *
+*               -prob[i]=rho_e[i]/sumprob, if site i not        *
+*                       empty and rho_e[i]>0 for at least       *
+*                       one of the sites being consider         *
+*               -prob[i]=1/num_sites, for all sites being       *
+*               consider otherwise                              *
+*****************************************************************/
 int chooseMigSite(int idm,int rmig);
+/****************************************************************
+*       Long-range random host migration:                       *
+*       randomly choose a site for migration under the          *
+*       the following constraints:                              *
+*               -its distance from the focus site has           *
+*               to be at equal or larger than a minimum         *
+*               value                                           *
+*               -the fraction of empty sites in it              *
+*               neighborhood has to be larger than 0.           *
+*****************************************************************/
+int longRangeMigSite(int idm,int rmig,int rmin);
 /****************************************************************
 *       Kill hosts that have a microbiome extremely low         *
 *****************************************************************/

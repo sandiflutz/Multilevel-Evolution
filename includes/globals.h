@@ -10,16 +10,29 @@
 *                 Defining global constants and macros                              *
 *************************************************************************************/
 #define NETWORK			1			/*0: complete graph 
-							 *1: square lattice
-							 */ 
-#define Mh        		4.			/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
-#define Rmh        		1			/*host migration distance host in number of steps (1 is for first neighbors)*/
-#define MIG_SITES		0			/*0:Sites in the group of available sites for host migration innclude only the ones 
-							 *at a distance of Rmh (or spar->rmigh, when the mig. distance is being varied)
-							 *1:Sites in the group of available sites for host migration include all sites with a range of Rmh 
-							 *(or spar->rmigh, when the mig. distance is being varied)*/
-#define Plr			0.			/*probability of choosing a long range migration jump, ignoring migration distance, for host migration*/
+							 *1: square lattice 
+							 *2: small-world
+							 */
+#define Psw			0.01			/*rewiring fraction*/
 
+//host migration
+#define Mh        		1.			/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
+#define MIGRATION_TYPE		1			/*0: homogeneous type of migration (no local component): Mi=mh*beta(1+sb*<w>(t) )(1-<rho_e>(t) )/gh
+							 *1: local migration component depends on the host's neighborhood dilution: Mi=mh*beta(1+sb*<w>(t) )(1-rho_e[i](t) )/gh
+							 *2: local migration component depends on the host's investment: Mi=mh*beta(1+sb*wi(t) )(1-<rho_e>(t) )/gh
+							 *3: local migration component depends on the host's neighborhood dilution and its investment: Mi=mh*beta(1+sb*wi(t) )(1-rho_e[i](t) )/gh*/
+#define Rmh        		1			/*host migration distance host in number of steps (1 is for first neighbors)*/
+#if (NETWORK==1)
+	#define Plr		0.05			/*probability of choosing a long range migration jump, ignoring migration distance, for host migration*/
+	#define LONG_RANGE_MIG	1			/*0,if there are not random long-range migrations in the dynamics, 1 otherwise 
+							 *(@Plr sets a global value for the fraction long-range migrations, and spar->plr for using different values through simulations)*/
+#else
+	#define Plr		0.			
+	#define LONG_RANGE_MIG	0			 
+#endif
+#define Rmin			5			/*minimum distance for long-range host migration*/
+
+/****/
 
 #define L               	100			/*linear system size*/
 #define N               	(L*L)			/*size number of sites*/
@@ -52,7 +65,7 @@
 						 	*paper uses 19 when TYPES=2 and 29 otherwise (??)*/
 
 /*****COST*******************************************************/
-#define Gamma     		0.1		/*cost for helping when the investment is 1*/
+#define Gamma     		0.10		/*cost for helping when the investment is 1*/
 /***Parameters for cases where there are negative types*******************/
 /*when there are negative types, the cost for positive and negative types can be influenced by the total frequency of the negative types (f⁻): 
  * for negative types: cost Gamma*investiment[type] is multiplied by CRnn0*exp(-CRnn1*d⁻/(1-f⁻)) 
@@ -72,15 +85,13 @@
 
 
 /***initial conditions********************************************************/
-#define Bac0      		1.		/*initial bacteria density in each host (t=0)*/
-#define H0        		K_H		/*initial number of hosts*/
-#if ((TYPES==2)&&(Tpos==TYPES-1))
-	#define CI		0
-#else
-	#define CI		1		/*0: system starts with types being randomly distributed with a uniform distribution
-						 *1 (default): system starts with types being randomly distributed using a normal distribution for the frequencies of each type
-						 *2: system starts with only the 1 host*/
-#endif
+#define Bac0      	1.		/*initial bacteria density in each host (t=0)*/
+#define H0        	K_H		/*initial number of hosts*/
+#define CI		1		/*0: system starts with types being randomly distributed with a uniform distribution
+					 *1 (default): system starts with types being randomly distributed using a normal distribution for the frequencies of each type
+					 *2: system starts with only the 1 host
+					 *3: system starts with a low investment central clusters in a system with high investment hosts randomly distributed*/
+#define R_CCL		4		/*radius for the central cluster in CI=3*/
 /***Routine Choices*********************************************************************************************************************************************************************************/
 #define TV			1	/*rule for vertical transmission:
 					 *0=normal dist. (around parent bac. type freq.) 
@@ -89,14 +100,14 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			80000		/*host maximum time (measured using continuous values for the times steps)*/
+#define TF			20000		/*host maximum time (measured using continuous values for the times steps)*/
 #define Ttrans			15000		/*transient time (to a first trial)*/
 #define	Twin			25000		/*time window for measures*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 					 	* 0:png (good for creating animations later)
 						* 1:eps*/
-#define NF			5000		/*number of files for routines that create scripts for images*/
-#define NInterv			1000		/*Ninterv*Dt_ref=time interval between snapshots taken*/
+#define NF			1000		/*number of files for routines that create scripts for images*/
+#define NInterv			1		/*Ninterv*Dt_ref=time interval between snapshots taken*/
 #define SAMPLE			100             /*general sample size of measures done within the program (during evolution or number of files produced with raw data)*/
 #define EPS			1e-8
 #define BestWtr			0.98		/*best investment threshold (used for keeping track of clusters with high investments)*/
@@ -125,7 +136,7 @@
 #if  defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(NUMHEVENTSxT)||defined(CORRxT)||defined(DIFBACOMPxT)||defined(CLUSTERSxT)||defined(CLUSTERS_DISTxT)||defined(BESTCLUSTER_TIMES)
 	#define TMEAS
 #endif
-#if defined(COSTxPLRxAVINV)||defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(AVINVxMH)||defined(RHxMHxAVINV)||defined(COSTxMBxAVINV)
+#if defined(COSTxPLRxAVINV)||defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(AVINVxPlr)||defined(AVINVxMH)||defined(RHxMHxAVINV)||defined(COSTxMBxAVINV)
 	#define STEADY_STATE_MEAS
 #endif
 /********************************************
@@ -188,6 +199,7 @@ typedef struct{
  ***************************************************/
 extern int *host;
 extern int **neighbor;
+extern int *con;
 extern int *inverselisth;
 extern int *lb;//vector of cluster labels
 extern ClusterFullID *maxclw;//struct for the identity of the cluster with the best investment

@@ -19,13 +19,17 @@ void allocateMemory(void){
         host=(int *)calloc(N,sizeof(int));
 	memset(host,0,sizeof(int)*N);
 	
-	#if (NETWORK!=0)//not the well-mixed/complete graph case
+	#if (NETWORK==1)//square lattice
         int i;
 	/*network array: e.g. neighbor[k][idh]=idh_viz (label of the k-th neighbor of host @idh is @idh_viz)*/
 	neighbor=(int **)calloc(N,sizeof(int *));
 	for(i=0; i<N; ++i){
                 neighbor[i]=(int *)calloc(VIZ,sizeof(int));
         }
+        #elif (NETWORK==2)//smallworld
+	con=(int *)calloc(N,sizeof(int));
+        #endif
+	#if (NETWORK!=0)//not the well-mixed/complete graph case
 	/*vector that stores the frequency of empty sites in each group @i, centered on site @i */
 	rho_e=(double *)calloc(N,sizeof(double));
 	if(!rho_e){
@@ -172,10 +176,16 @@ void initialStateUniD(void){
 				bac[i*TYPES+j]=0.;
 			}
 			spar->micr[i]=0.;
-			#if (NETWORK!=0)//not well-mixed
+			#if (NETWORK==1)//square lattice
 			for(k=0; k<VIZ; ++k){
 				idviz=neighbor[i][k];
 				rho_e[idviz]+=1./VIZ;
+			}
+			#endif
+			#if (NETWORK==2)//smallworld
+			for(k=0; k<con[i]; ++k){
+				idviz=neighbor[i][k];
+				rho_e[idviz]+=1./con[i];
 			}
 			#endif
 		}
@@ -241,10 +251,16 @@ void initialStateNormD(void){
 				bac[i*TYPES+j]=0.;
 			}
 			spar->micr[i]=0.;
-			#if (NETWORK!=0)//not well-mixed
+			#if (NETWORK==1)//square lattice
 			for(k=0; k<VIZ; ++k){
 				idviz=neighbor[i][k];
 				rho_e[idviz]+=1./VIZ;
+			}
+			#endif
+			#if (NETWORK==2)//smallworld
+			for(k=0; k<con[i]; ++k){
+				idviz=neighbor[i][k];
+				rho_e[idviz]+=1./con[i];
 			}
 			#endif
 		}
@@ -254,6 +270,106 @@ void initialStateNormD(void){
 
 	free(bacinit);
         return;
+}
+/****************************************************************
+* 	Initial Condition with a central low investment		*
+* 	cluster in a system with high investment hosts		*
+* 	randomly distributed					*
+*****************************************************************/
+void initialStateCentralCluster(void){
+	int i,j,id,imax,viz,nintrud,ne=0;
+	int x0,y0,xr,yr,xf,yf,r,radius;
+        double p_oc,da,anglerad,angle;
+
+	radius=R_CCL;
+
+	for(i=0; i<N; ++i){
+		listh->vec[i]=0;
+		inverselisth[i]=0;
+		host[i]=0;
+		for(j=0; j<TYPES; ++j){
+			bac[i*TYPES+j]=0.;
+		}
+		spar->micr[i]=0.;
+		rho_e[i]=0.;
+	}
+	//central cluster with low investment
+	id=(int)(L/2)+(int)(L/2)*L;//site in the center of the lattice
+	populateHostWithSingleType(id,0,Bac0);
+	nintrud=1;
+
+	y0=(int)(id/L);
+        x0=id-y0*L;
+	for(r=1; r<=radius; ++r){
+                imax=r*VIZ;
+                da=360./((double)r*VIZ);
+		angle=0.;
+		for(i=0; i<imax; ++i){
+			anglerad=((double)Pi)*(angle/180.);
+                
+			//xr=(int)(round((double)r*cos(anglerad)));
+			xr=(int)((double)r*cos(anglerad));
+			//yr=(int)(round((double)r*sin(anglerad)));
+			yr=(int)((double)r*sin(anglerad));
+
+			/*boundary conditions*/
+			if(xr<0){//left
+				xf=(x0+xr+L)%L;
+			}else{//right
+				xf=(x0+xr)%L;
+			}
+			if(yr<0){//up
+				yf=(y0+yr+L)%L;
+			}else{//down
+				yf=(y0+yr)%L;
+			}
+			/*recovering network id*/
+		       	id=yf*L+xf;
+
+			populateHostWithSingleType(id,0,Bac0);
+			++nintrud;
+               
+		      	angle+=da;
+		}
+
+	}
+
+	//rest of the lattice
+
+	p_oc=(double)(H0-nintrud)/N;
+        for(i=0; i<N; ++i){
+		if(host[i]==0){
+			if(FRANDOM<p_oc){
+				populateHostWithSingleType(i,(TYPES-1),Bac0);
+			}else{
+				listh->vec[N-1-ne]=i;//empty sites are stored at the end of the list of hosts
+				inverselisth[i]=N-1-ne;
+				++ne;
+				for(j=0; j<VIZ; ++j){
+					viz=neighbor[i][j];
+					rho_e[viz]+=1./VIZ;
+				}
+			}			
+		}
+	}
+	
+	return;
+}
+/********************************************************
+*	Populate a Node with a Host an only one 	*
+*	Bacteria Type					*
+*********************************************************/
+void populateHostWithSingleType(int id,int btype,double bamount){
+	int nh=listh->usize;
+	
+	host[id]=1;
+	spar->micr[id]=bamount;
+	bac[id*TYPES+btype]=bamount;//bacteria type 0 is the only one present in host @id
+	listh->vec[nh]=id;//@id goes to the list of occupied nodes
+	inverselisth[id]=nh;
+	++listh->usize;
+
+	return;
 }
 /*****************************************************
 *   Populates Host layer with a single host          *
@@ -364,8 +480,10 @@ void setCI(void){
 		initialStateUniD();
 	#elif(CI==1)//frequencies come from normal distribution
 		initialStateNormD();
-	#else//single host
+	#elif(CI==2)//single host
 		initialStateSingleH();
+	#else//low investment centra cluster in a high investment system
+		initialStateCentralCluster();
 	#endif
 	#if (Tneg>0)
 	setCostVec();
@@ -386,6 +504,19 @@ void setSystem(void){
 	/*setting hosts network*/	
 	#if(NETWORK==1)
 		squareLattice(neighbor,VIZ,L);//from tools
+	#elif(NETWORK==2)
+		int i,k,maxcon,*listviz;
+		listviz=(int *)calloc(N*N,sizeof(int));
+		maxcon=setSmallWorld(L,Psw,con,listviz);
+
+		neighbor=(int **)calloc(N,sizeof(int *));
+		for(i=0; i<N; ++i){
+			neighbor[i]=(int *)calloc(maxcon,sizeof(int));
+			for(k=0; k<con[i]; ++k){
+				neighbor[i][k]=listviz[i*N+k];
+			}
+		}
+		free(listviz);
 	#endif
 
 	/*setting initial state (alive hosts and bacteria abundances)*/
