@@ -1,6 +1,7 @@
 /*globals.c*/
 #include"tools.h"
 #include"globals.h"
+int maxcon;
 int *host = NULL;
 int **neighbor = NULL;
 int *con = NULL;

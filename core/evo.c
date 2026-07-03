@@ -34,7 +34,7 @@ void setIndividualHostRates(Event *event,Event *mevent){
         int i,idh,nh;
 	int gh=spar->gh;
 	int kh=spar->kh;
-	double w,averagew,ntot,aver_rhoe;
+	double *w,averagew,ntot,aver_rhoe;
 	double beta=Beta;
 	double sb=Sb;
 	double sd=Sd;
@@ -53,18 +53,19 @@ void setIndividualHostRates(Event *event,Event *mevent){
 		exit(1);
 	}	
 
+	w=(double *)calloc(nh,sizeof(double));
         //birth and death events
 	averagew=0.;
 	ntot=0.;
 	aver_rhoe=0.;
 	for(i=0; i<nh; ++i){
 		idh=listh->vec[i];
-		w=calcAcumInvest(idh);
-		averagew+=w;
+		w[i]=calcAcumInvest(idh);
+		averagew+=w[i];
 		ntot+=spar->micr[idh];
 		aver_rhoe+=rho_e[idh];
-		event->ratesE[i]=(double)beta*(1.+sb*w)/gh;
-		event->ratesE[i+nh]=beta*(1.-sd*w)*nh/((double)kh*gh);//death events
+		event->ratesE[i]=(double)beta*(1.+sb*w[i])/gh;
+		event->ratesE[i+nh]=beta*(1.-sd*w[i])*nh/((double)kh*gh);//death events
 	}
 	aver_rhoe/=(double)nh;
 	averagew/=ntot;
@@ -82,18 +83,21 @@ void setIndividualHostRates(Event *event,Event *mevent){
 	for(i=0; i<nh; ++i){
 		idh=listh->vec[i];
 	#if (MIGRATION_TYPE==0)//homogeneous host migration rate (no local component)
-		mevent->ratesE[i]=beta*(1.+sb*averagew)*(1.-aver_rhoe);
+		mevent->ratesE[i]=spar->mh*beta*(1.+sb*averagew)*(1.-aver_rhoe)/gh;
 	#elif (MIGRATION_TYPE==1)//local component comes from the host's neighborhood dilution
-		mevent->ratesE[i]=beta*(1.+sb*averagew)*(1.-rho_e[idh]);
+		mevent->ratesE[i]=spar->mh*(1.+sb*averagew)*(1.-rho_e[idh])/gh;
 	#elif (MIGRATION_TYPE==2)//local component comes from the host's investment
-		mevent->ratesE[i]=event->ratesE[i]*(1.-aver_rhoe);
+		mevent->ratesE[i]=spar->mh*(1.+sb*w[i])*(1.-aver_rhoe)/gh;
 	#else//local component comes from the host's neighborhood dilution its investment
-		mevent->ratesE[i]=event->ratesE[i]*(1.-rho_e[idh]);
+		mevent->ratesE[i]=spar->mh*(1.+sb*w[i])*(1.-rho_e[idh])/gh;
 	#endif
-		event->ratesE[i]*=ceil(rho_e[idh]);//birth rate spatial adjustment: if there is no empty sites on idh's neighborhood, its birth rate is 0
+		if(rho_e[idh]==0.){
+			event->ratesE[i]=0.;
+		}
 	}
 #endif
 
+	free(w);
         return;
 }
 /****************************************************************
@@ -612,15 +616,15 @@ int longRangeMigSite(int idm, int rmig,int rmin){
 		xf=idf-yf*L;
 		xmax=max(x0,xf);
 		xmin=x0+xf-xmax;
-		if((L-xmax+x0)<(xmax-xmin)){//because of boundary conditions
-			rx=L-xmax+x0;
+		if((L-xmax+xmin)<(xmax-xmin)){//because of boundary conditions
+			rx=L-xmax+xmin;
 		}else{
 			rx=xmax-xmin;
 		}
 		ymax=max(y0,yf);
 		ymin=y0+yf-ymax;
-		if((L-ymax+y0)<(ymax-ymin)){//because of boundary conditions
-			ry=L-ymax+y0;
+		if((L-ymax+ymin)<(ymax-ymin)){//because of boundary conditions
+			ry=L-ymax+ymin;
 		}else{
 			ry=ymax-ymin;
 		}
@@ -667,7 +671,7 @@ void killHostWithoutMicr(void){
 *************************************************/
 void hostMigrationDynamics(int dnumsteps,Event *mevent){
 	int i,idh,idlist,idk,idlistk,nh,nm,ok;
-	double nr,pm;
+	double nr,nrscaled,pm;
 	int *listm = NULL;
 	
 	nh=listh->usize;
@@ -678,32 +682,28 @@ void hostMigrationDynamics(int dnumsteps,Event *mevent){
 	}
 	nm=0;
 
+	pm=mevent->cprobE[nh-1]*stime->dth;
 	for(i=0; i<dnumsteps; ++i){
 		nr=FRANDOM;
-		#if (MIGRATION_TYPE==0)
-		pm=mevent->cprobE[nh-1]*spar->mh*stime->dth;
 		if(nr<pm){
+			#if (MIGRATION_TYPE==0)
 			ok=0;
 			do{
 				idlist=(int)(FRANDOM*nh);
 				if(host[listh->vec[idlist]]==1)ok=1;
 			}while(ok==0);
+			#else
+			nrscaled=FRANDOM*mevent->cprobE[mevent->sizeE-1];
+			idlist=selectEventCP(nrscaled,mevent->cprobE,mevent->sizeE);//selects a host for future migration
+			#endif
 			listm[nm]=idlist;//storing its listh's id to keep track of its state and not the physical position
 			++nm;
 		}
-		#else
-		pm=mevent->cprobE[nh-1]*spar->mh*stime->dth;
-		if(nr<pm){
-			idlist=selectEventCP(nr,mevent->cprobE,mevent->sizeE);//selects a host for future migration
-			listm[nm]=idlist;//storing its listh's id to keep track of its state and not the physical position
-			++nm;
-		}
-		#endif
 	}
 	                
 	for(i=0; i<nm; ++i){//host migration list
 		idlist=listm[i];
-		idh=listh->vec[idlist];
+		idh=listh->vec[idlist];//current position of host tagged as @idlist
 	#if (NETWORK==1)
 		#if (LONG_RANGE_MIG!=0)
 		if(FRANDOM<spar->plr){
@@ -723,12 +723,16 @@ void hostMigrationDynamics(int dnumsteps,Event *mevent){
 		
 		exchange(inverselisth,idh,idk);
 		exchange(listh->vec,idlist,idlistk);
-		if((host[idh]==0)&&(host[idk]!=0)){//if idk was empty before the change, idh is now empty both of their groups suffer a change in the fraction of empty sites 
+		if((host[idh]==0)&&(host[idk]!=0)){//if idk was empty before the change, idh is now empty. Both of their groups suffer a change in the fraction of empty sites (otherwise, nothing changes, 
+						   //because idh has to be occupied before migration)
 			updateEmptySpaceGrFreq(idh);
 			updateEmptySpaceGrFreq(idk);
 		}
 	}
 
+	#ifdef NUMHEVENTSxT
+	meas->nummh+=nm;
+	#endif
 	if(listm){
 		free(listm);
 		listm=NULL;
@@ -741,7 +745,7 @@ void hostMigrationDynamics(int dnumsteps,Event *mevent){
 *****************************************************************/
 void evolveHostCG(int dnumsteps,Event *event){
 	int i,idh,idlist,ide,idk,nh,nb,nd,ne,whichE;
-	double nr;
+	double nr,nrscaled,pbd;
 	int *listb = NULL;
 	int *listd = NULL;
 	
@@ -763,8 +767,10 @@ void evolveHostCG(int dnumsteps,Event *event){
 
 	for(i=0; i<dnumsteps; ++i){
 		nr=FRANDOM;
-		if(nr<event->cprobE[event->sizeE-1]){
-			whichE=selectEventCP(nr,event->cprobE,event->sizeE);
+		pbd=event->cprobE[event->sizeE-1];
+		if(nr<pbd){
+			nrscaled=FRANDOM*event->cprobE[event->sizeE-1];
+			whichE=selectEventCP(nrscaled,event->cprobE,event->sizeE);
 			idh=listh->vec[whichE%nh];
 			if(host[idh]==1){//if chosen host is alive and the system has more than 1 host
 				switch(whichE/nh){
@@ -812,8 +818,8 @@ void evolveHostCG(int dnumsteps,Event *event){
 	
 	/**************/
 	#ifdef NUMHEVENTSxT
-	meas->numb=nb;
-	meas->numd=nd;
+	meas->numb+=nb;
+	meas->numd+=nd;
 	#endif
 
 	if(listb){
@@ -832,11 +838,15 @@ void evolveHostCG(int dnumsteps,Event *event){
 *****************************************************************/
 void evolveHostSL(int dnumsteps,Event *event){
 	int i,idh,idlist,idk,ne,ide,nh,nb,nd,whichE;
-	double nr;
+	double nr,nrscaled,pbd;
 	DynList empty_viz;
 	
 	nh=listh->usize;
+	#if (NETWORK==1)
 	empty_viz.size=VIZ;
+	#elif (NETWORK==2)
+	empty_viz.size=maxcon;
+	#endif
 	empty_viz.usize=0;
 	empty_viz.vec = (int *)calloc(empty_viz.size,sizeof(int));
 	if(!empty_viz.vec){
@@ -859,8 +869,10 @@ void evolveHostSL(int dnumsteps,Event *event){
 
 	for(i=0; i<dnumsteps; ++i){
 		nr=FRANDOM;
-		if(nr<event->cprobE[event->sizeE-1]){
-			whichE=selectEventCP(nr,event->cprobE,event->sizeE);
+		pbd=event->cprobE[event->sizeE-1];
+		if(nr<pbd){
+			nrscaled=FRANDOM*event->cprobE[event->sizeE-1];
+			whichE=selectEventCP(nrscaled,event->cprobE,event->sizeE);
 			idh=listh->vec[whichE%nh];
 			if(host[idh]==1){//if chosen host is alive and the system has more than 1 host
 				switch((int)(whichE/nh)){
@@ -913,8 +925,8 @@ void evolveHostSL(int dnumsteps,Event *event){
 	
 	/**************/
 	#ifdef NUMHEVENTSxT
-	meas->numb=nb;
-	meas->numd=nd;
+	meas->numb+=nb;
+	meas->numd+=nd;
 	#endif
 
 	if(empty_viz.vec){
@@ -944,12 +956,15 @@ void callSysDynamics(Event *event, Event *mevent){
 	sysmeas->averw=0.;
 	sysmeas->averw2=0.;
 	sysmeas->nw=0;
+                       
+	#ifdef NUMHEVENTSxT
+	meas->numb=0;
+	meas->numd=0;
+	meas->nummh=0;
+	#endif
+
         while((stime->Tnow<=stime->Tf)&&(finish==0)){
                 #ifdef TMEAS
-                        #ifdef NUMHEVENTSxT
-                        meas->numb=0;
-                        meas->numd=0;
-                        #endif
 			#ifdef BESTCLUSTER_TIMES
 			lb=(int *)calloc(listh->usize,sizeof(int));
 			if(!lb){
@@ -977,8 +992,15 @@ void callSysDynamics(Event *event, Event *mevent){
 				#ifdef COSTxPLRxAVINV
 				printf("cost=%f plr=%f time=%f avinv[%d]=%f\n",spar->cost,spar->plr,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
 				#endif
-				stime->saveT=stime->Tnow+1.;
-                        }
+				#ifdef MHxPLRxAVINV
+				printf("(Storing time) mh=%f plr=%f avinv[%d]=%f time=%f\n",spar->mh,spar->plr,avinv->usizef-1,avinv->vecf[avinv->usizef-1],stime->Tnow);
+				#endif
+				stime->saveT=stime->Tnow+stime->tinterval;
+                        }else{
+				#ifdef MHxPLRxAVINV
+				printf("(Transient time) time=%f\n",stime->Tnow);
+				#endif
+			}
                 #endif
 		#ifdef MULTIPLE_COSTS_WxT
 		timeMeasures();
@@ -1006,9 +1028,8 @@ void callSysDynamics(Event *event, Event *mevent){
 			setIndividualHostRates(event,mevent);
 			setCumulativeRates(event);
 		}
-                for(i=0; i<event->sizeE; ++i){
+		for(i=0; i<event->sizeE; ++i){
 			event->cprobE[i]*=stime->dth;
-                	
 		}
                 evolveHostSL(dnumsteps,event);
 			

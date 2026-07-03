@@ -875,14 +875,20 @@ void calcRMSError(double *vec,int idi, int idf,double *stats){
 	if(!stats)exit(1);
 
 	sample=idf-idi;
-	for(i=idi; i<=idf; ++i){
-		aver+=vec[i];
+	if(sample>0){
+		for(i=idi; i<=idf; ++i){
+			aver+=vec[i];
+		}
+		aver/=(double)sample;
+		for(i=idi; i<=idf; ++i){
+			err+=(vec[i]-aver)*(vec[i]-aver);
+		}
+		if(err<0.){//in case is err=0, but because of numerical errors it stays as -0...
+			err=0.;
+		}else{
+			err=sqrt(err/(double)sample);
+		}
 	}
-	aver/=(double)sample;
-	for(i=idi; i<=idf; ++i){
-		err+=(vec[i]-aver)*(vec[i]-aver);
-	}
-	err=sqrt(err/(double)sample);
 	
 	stats[0]=aver;
 	stats[1]=err;

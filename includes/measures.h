@@ -38,6 +38,10 @@ void calcInvDist(double binsize,double *hist_inv,double *freqInvH);
 *       averInv=sum_host(sum_type(bac[host][type]))/total amount of bac. in the system  *
 ****************************************************************************************/
 double calcAverInv(void);
+/****************************************************************************************
+*               calculate current average neighborhood vacancy (for hosts)	        *
+****************************************************************************************/
+double calcAverNeighborhoodVacancy(void);
 /****************************************************************
 *       Calculate the average investment in each cluster,       *
 *       the label of the cluster with the highest               *
@@ -109,6 +113,11 @@ void rvnXtXw(void);
 *       as a function of time and distance                      *
 *****************************************************************/
 void spatialCorrXt(void);
+/****************************************************************
+*       store spatial correlation for the idividual investment  *
+*       as a function of time and distance                      *
+*****************************************************************/
+void spatialInvestmentCorrXt(void);
 /********************************************************
 *       Measure average difference of hosts parents     *
 *       and their childrens microbial composition       *
@@ -167,11 +176,18 @@ void averInvXmh(Event *event,Event *mevent);
 *       (cost X bac. migr. rate X average investment)                   *
 *************************************************************************/
 void costXmbXw(Event *event,Event *mevent);
-/************************************************************************
-*  		Store heatmap rhXmhX<w>					* 
-*  	(Kh/N X host migration rate coefficient X average investment)	*
-*************************************************************************/
+/****************************************************************************************
+*  		Store heatmap rhXmhX<w>asy						* 
+*  	(Kh/N X host migration rate coefficient X asymptotic average investment)	*
+*****************************************************************************************/
 void rhXmhXw(Event *event,Event *mevent);
+/************************************************************************
+*  		Store heatmap mhXplrX<w>asy				* 
+* 		*mh=migration rate coefficient  			*
+* 		*plr=frac. of long-range host migrations 		*
+* 		*<w>=asymptotic average investment			*
+*************************************************************************/
+void mhXplrXw(Event *event,Event *mevent);
 /************************************************************************
 *  Store in @SAMPLE files the average investment                        *
 *  in the system as a function of the cost factor payed by helpfull     *

@@ -15,7 +15,8 @@ MEASURE_MACROS = \
 	MULTIPLE_COSTS_WxT \
 	INV_DIST \
 	NUMHEVENTSxT \
-	CORRxT \
+	CORRHxT \
+	CORRWxT \
 	CLUSTERSxT \
 	CLUSTERS_DISTxT \
 	BESTCLUSTER_TIMES \
@@ -29,6 +30,7 @@ MEASURE_MACROS = \
 	AVINVxCOST \
 	AVINVxPlr \
 	RHxMHxAVINV \
+	MHxPLRxAVINV \
 	COSTxMBxAVINV \
 	COSTxPLRxAVINV \
 # -------------------------------------------------------

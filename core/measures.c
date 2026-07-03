@@ -234,9 +234,9 @@ void openFiles(void){
         gfile->file=fopen(name,"w");
         if (gfile->file==NULL) { perror("malloc"); exit(1);}
 #endif
-#ifdef CORRxT
+#ifdef CORRHxT
         while(ok==0){
-                sprintf(name,"%scorrXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                sprintf(name,"%scorrhXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
                 gfile->file=fopen(name,"r");
                 if(gfile->file!=NULL){
                         ++id;
@@ -245,7 +245,22 @@ void openFiles(void){
                         ok=1;
                 }
         }
-	sprintf(name,"%scorrXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+	sprintf(name,"%scorrhXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+#endif
+#ifdef CORRWxT
+        while(ok==0){
+                sprintf(name,"%scorrwXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+        sprintf(name,"%scorrwXt_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
         gfile->file=fopen(name,"w");
         if (gfile->file==NULL) { perror("malloc"); exit(1);}
 #endif
@@ -430,6 +445,23 @@ double calcAverInv(void){
 
 	free(densInvH);	
 	return averinv;
+}
+/****************************************************************************************
+*       	calculate current average neighborhood vacancy (for hosts)		*
+****************************************************************************************/
+double calcAverNeighborhoodVacancy(void){
+        int i,idh,nh;
+        double averhoe;
+
+        nh=listh->usize;
+        averhoe=0.;
+        for(i=0; i<nh; ++i){
+                idh=listh->vec[i];
+		averhoe+=rho_e[idh];
+        }
+        averhoe/=nh;//averaging over the wholcalcAverInve microbe population
+
+        return averhoe;
 }
 /****************************************************************
 *	Calculate the average investment in each cluster, 	*
@@ -701,31 +733,35 @@ void save_config(void){
 
 	/*********filling gnuplot file**********************************************/
         if(L>=100){
-                pointsize=0.5;
+                pointsize=0.84;
         }else if(L>=50){
                 pointsize=1.5;
         }else{
                 pointsize=2;
         }
 #if (FIG_EXT==0)
-        fprintf(fgp,"set term png size 720,540\n");
+        fprintf(fgp,"set term png size 540,540\n");
 	fprintf(fgp,"set output'%s_idt%f.png'\n",name,stime->Tnow/stime->Tf);
 #else
         fprintf(fgp,"set term post eps enha color 20\n");
         fprintf(fgp,"set output'%s_Tf%f_fm.eps'\n",name,stime->Tnow);
 #endif
-
+        fprintf(fgp,"unset tics\n");
+        fprintf(fgp,"unset border\n");
+        fprintf(fgp,"set lmargin 0\n");
+        fprintf(fgp,"set rmargin 0\n");
+        fprintf(fgp,"set tmargin 0\n");
+        fprintf(fgp,"set bmargin 0\n");
+        fprintf(fgp,"set size square\n");
         fprintf(fgp,"unset key\n");
-        fprintf(fgp,"unset xtics\n");
-        fprintf(fgp,"unset ytics\n");
         fprintf(fgp,"L=%d\n",L);
         fprintf(fgp,"set yr[0:L-1]\n");
         fprintf(fgp,"set xr[0:L-1]\n");
-        fprintf(fgp,"set size square\n");
+        //fprintf(fgp,"set title'{/=15 %0.0f}'\n",stime->Tnow);
         fprintf(fgp,"set pointsize %0.2f\n",pointsize);
         fprintf(fgp,"rgb(r,g,b) = 65536 * int(r) + 256 * int(g) + int(b)\n");
-        fprintf(fgp,"plot '%s_%s.dat' u 1:(($3>=0)?$2:1/0):(rgb(255*(1-$3),0,255*$3)) w p pt 5 lc rgb variable,\\\n",name,nt_format);
-        fprintf(fgp,"'%s_%s.dat' u 1:(($3<0)?$2:1/0):(rgb(0,0,0)) w p pt 5 lc rgb variable\n",name,nt_format);
+        fprintf(fgp,"plot '%s_%s.dat' u 1:(($3<0)?$2:1/0):(rgb(0,0,0)) w p pt 5 lc rgb variable,\\\n",name,nt_format);
+        fprintf(fgp,"'%s_%s.dat' u 1:(($3>=0)?$2:1/0):(rgb(255*(1-$3),0,255*$3)) w p pt 5 lc rgb variable\n",name,nt_format);
 
 
 	/***freeing allocated memory and closing files******/
@@ -940,8 +976,8 @@ void clustersInvDistXt(void){
 	}
 	/*storing data*/
 	for(i=0; i<nbins; ++i){
-		fprintf(gfile->file,"%f %f %f %f %d\n",stime->Tnow,(double)i/nbins,(double)hist[i]/nclusters,averw,nh);
-		printf("t=%f <w>=%f cl_frac=%f <w>sys=%f nh=%d\n",stime->Tnow,(double)i/nbins,(double)hist[i]/nclusters,averw,nh);
+		fprintf(gfile->file,"%f %f %f %f %d %d\n",stime->Tnow,(double)i/nbins,(double)hist[i]/nclusters,averw,nclusters,nh);
+		printf("t=%f <w>=%f cl_frac=%f <w>sys=%f nclusters=%d nh=%d\n",stime->Tnow,(double)i/nbins,(double)hist[i]/nclusters,averw,nclusters,nh);
 	}
 	fprintf(gfile->file,"%f %f %f %f %d\n\n",stime->Tnow,1.,(double)hist[nbins-1]/nclusters,averw,nh);
 
@@ -1022,12 +1058,35 @@ void bestClusterStabilityMeasures(void){
 *  microbial time steps                            *
 ****************************************************/
 void numHostEventsPerDtXt(void){
-
+	int i,nh,idh;
+	double averw,averhoe;
 	if(stime->Tnow==0.){
-		fprintf(gfile->file,"#1:time 2:#of host events per Dt_ref 3:#of host births per Dt_ref 4:#of host deaths per Dt_ref 5:#of hosts\n");
+		if(spar->mh>0.){
+			fprintf(gfile->file,"#1:time 2:#of host births until now 3:#of host deaths event until now 4:#of host migration events until now 5:<w> 6:#of hosts 7:numsteps 8:<rho_e[i]>\n");
+			printf("#1:time 2:#of host births until now 3:#of host deaths event until now 4:#of host migration events until now 5:<w> 6:#of hosts 7:numsteps 8:<rho_e[i]>\n");
+		}else{
+			fprintf(gfile->file,"#1:time 2:#of host births until now 3:#of host deaths event until now 4:<w> 5:#of hosts 6:numsteps 7:<rho_e[i]>\n");
+			printf("#1:time 2:#of host births until now 3:#of host deaths event until now 4:<w> 5:#of hosts 6:numsteps 7:<rho_e[i]>\n");
+		}
 	}
-	fprintf(gfile->file,"%f %d %d %d %d\n",stime->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,listh->usize);
-	printf("%f %d %d %d %d\n",stime->Tnow,meas->numb+meas->numd,meas->numb,meas->numd,listh->usize);
+	
+	averw=0.;
+	averhoe=0.;
+	nh=listh->usize;
+	for(i=0; i<nh; ++i){
+		idh=listh->vec[i];
+		averw+=calcAcumInvest(idh);
+		averhoe+=rho_e[i];
+	}
+	averw/=nh;
+	averhoe/=nh;
+	if(spar->mh>0.){
+		fprintf(gfile->file,"%f %d %d %d %f %d %d %f\n",stime->Tnow,meas->numb,meas->numd,meas->nummh,averw,listh->usize,(int)(stime->Tnow/Dt_ref),averhoe);
+		printf("t=%f nb=%d nd=%d nm=%d <w>=%f nh=%d numsteps=%d <rhoe[i]>=%f\n",stime->Tnow,meas->numb,meas->numd,meas->nummh,averw,listh->usize,(int)(stime->Tnow/Dt_ref),averhoe);
+	}else{
+		fprintf(gfile->file,"%f %d %d %f %d %d %f\n",stime->Tnow,meas->numb,meas->numd,averw,listh->usize,(int)(stime->Tnow/Dt_ref),averhoe);
+		printf("t=%f nb=%d nd=%d <w>=%f nh=%d numsteps=%d <rhoe[i]>=%f\n",stime->Tnow,meas->numb,meas->numd,averw,listh->usize,(int)(stime->Tnow/Dt_ref),averhoe);
+	}
 
 	return;
 }
@@ -1082,6 +1141,96 @@ void spatialCorrXt(void){
 	printf("\n");
 
 	return;
+}
+/****************************************************************
+*       store spatial correlation for the idividual investment	*
+*       as a function of time and distance                      *
+*****************************************************************/
+void spatialInvestmentCorrXt(void){
+        int i,j,nh,idi,idj,maxd,wbi,wbj,npairs,*npairs_per_r,maxwdif;
+	int xi,xj,yi,yj,xmax,xmin,ymax,ymin,rx,ry,r;
+        double *corrw,averinv,tot_micr,*w,binsize;
+
+	maxd=(int)(round(L*sqrt(2.)/2.))+1;
+	binsize=0.01;
+	maxwdif=(int)((1.-spar->cost)/binsize);//maximum difference between 2 host investments
+
+        nh=listh->usize;
+	w=(double *)calloc(nh,sizeof(double));
+	corrw=(double *)malloc(sizeof(double)*maxd);
+	npairs_per_r=(int *)malloc(sizeof(int)*maxd);
+	for(i=0; i<maxd; ++i){
+		corrw[i]=0.;
+		npairs_per_r[i]=0;
+	}
+
+        if(stime->Tnow==0.){
+                if(gfile->file==NULL){
+                        printf("You are trying to write in a file that doesn't exist.\n");
+                        exit(1);
+                }else{
+                        fprintf(gfile->file,"#1:time 2:Distance 3:corrh 4:<w> 5:<npairs>[r,t] 6:ntot 7:nh\n");
+                        printf("#1:time 2:Distance 3:corrw 4:<w> 5:<npairs>[r,t] 6:ntot 7:nh\n");
+                }
+        }
+
+        nh=listh->usize;
+
+        tot_micr=0.;
+	averinv=0.;
+        for(i=0; i<nh; ++i){
+                idi=listh->vec[i];
+                tot_micr+=spar->micr[idi];
+		w[i]=calcAcumInvest(idi);
+		averinv+=w[i];
+        }
+	averinv/=nh;
+               
+	for(i=0; i<nh-1; ++i){
+		idi=listh->vec[i];
+
+		yi=(int)(idi/L);
+                xi=idi-yi*L;
+		wbi=(int)(w[i]/binsize);
+		for(j=i+1; j<nh; ++j){
+			idj=listh->vec[j];
+			yj=(int)(idj/L);
+			xj=idj-yj*L;
+
+			xmax=max(xi,xj);
+			xmin=xi+xj-xmax;
+			if((L-xmax+xmin)<(xmax-xmin)){//because of boundary conditions
+				rx=L-xmax+xmin;
+			}else{
+				rx=xmax-xmin;
+			}
+			ymax=max(yi,yj);
+			ymin=yi+yj-ymax;
+			if((L-ymax+ymin)<(ymax-ymin)){//because of boundary conditions
+				ry=L-ymax+ymin;
+			}else{
+				ry=ymax-ymin;
+			}
+                	r=(int)round(sqrt((rx*rx+ry*ry)));
+			wbj=(int)(w[j]/binsize);
+			corrw[r]+=(maxwdif-fabs(wbi-wbj))/maxwdif;
+			npairs_per_r[r]+=1;;
+		}
+        }
+
+	npairs=nh*(nh-1)/2;
+	for(i=1; i<maxd; ++i){
+		corrw[i]/=npairs;
+		fprintf(gfile->file,"%f %d %f %f %f %f %d\n",stime->Tnow,i,corrw[i],averinv,(double)npairs_per_r[i]/npairs,tot_micr,listh->usize);
+		printf("t=%f r=%d corrw=%f <w>=%f <npairs>[r,t]=%f ntot=%f nh=%d\n",stime->Tnow,i,corrw[i],averinv,(double)npairs_per_r[i]/npairs,tot_micr,listh->usize);
+	}
+	fprintf(gfile->file,"\n");
+	printf("\n");
+
+	free(w);
+	free(corrw);
+	free(npairs_per_r);
+        return;
 }
 /********************************************************
 *  	Measure average difference of hosts parents	* 
@@ -1810,7 +1959,7 @@ void averInvXcost(Event *event,Event *mevent){
         }
 
 	#if (NETWORK==0)
-	sprintf(gfile->fname,"CG_L%d_Ty%d_Kh%d_mu%s_mb%s",L,TYPES,spar->kh,nparam[0],nparam[1],spar->mh,spar->rmigh);
+	sprintf(gfile->fname,"CG_L%d_Ty%d_Kh%d_mu%s_mb%s",L,TYPES,spar->kh,nparam[0],nparam[1]);
 	#else
 	sprintf(gfile->fname,"SL_L%d_Ty%d_Kh%d_mu%s_mb%s_mh%0.1f_rmh%d_plr%0.2f_MT%d",L,TYPES,spar->kh,nparam[0],nparam[1],spar->mh,spar->rmigh,spar->plr,MIGRATION_TYPE);
 	#endif
@@ -1918,7 +2067,6 @@ void averInvXplr(Event *event,Event *mevent){
 	int i,idh,nh,steady;
         int ok=0,namelen,dnl;
 	double eps=0.05,tot_micr,stats[2],plrmax,dp;
-	double twind=stime->timewindow;	
 	int npar=2,mul,nf;
 	double param[npar],expo;
 	unsigned long id;
@@ -1980,6 +2128,7 @@ void averInvXplr(Event *event,Event *mevent){
 
 	avinv=malloc(sizeof(DynVec));
 	if (!avinv) { perror("malloc"); exit(1);}
+	stime->tinterval=1.;
 	avinv->sizef=stime->timewindow/stime->tinterval+1;
 	avinv->usizef=0;
 	avinv->vecf=(double *)calloc(avinv->sizef,sizeof(double));
@@ -1995,7 +2144,7 @@ void averInvXplr(Event *event,Event *mevent){
 		setCI();
 
 		stime->saveT=stime->transtime;
-		stime->Tf=stime->saveT+twind;
+		stime->Tf=stime->saveT+stime->timewindow;
 		steady=0;
 		do{
 			callSysDynamics(event,mevent);
@@ -2004,7 +2153,7 @@ void averInvXplr(Event *event,Event *mevent){
 			if(stats[1]<eps){
 				steady=1;
 			}else{
-				stime->Tf+=twind;
+				stime->Tf+=stime->timewindow;
 				stime->saveT=stime->Tnow;
 				avinv->usizef=0.;
 			}
@@ -2492,6 +2641,149 @@ void rhXmhXw(Event *event,Event *mevent){
 	free(name);
 	return;
 }
+/************************************************************************
+*               Store heatmap mhXplrX<w>asy                             *
+*               *mh=migration rate coefficient                          *
+*               *plr=frac. of long-range host migrations                *
+*               *<w>=asymptotic average investment                      *
+*************************************************************************/
+void mhXplrXw(Event *event,Event *mevent){
+	int i,nh,n,mhvalues[5];
+        int ok=0,namelen,dnl;
+	double dplr,stats[2];
+	int npar=2,mul,nf;
+	double expo,param[npar];
+	unsigned long id;
+        char nparam[npar][10];
+	
+	#if (LONG_RANGE_MIG!=1)
+	printf("This simulation uses long-range migrations. Please, turn them on by changing the value of the constant LONG_RANGE_MIG on includes/globals.\n");
+	exit(1);
+	#endif
+	#if (NETWORK==0)
+	printf("You are using a well-mixed network while trying to run a routine that measures migration effects on the average investment. Your attempt is futile!\n");
+	exit(1);
+	#endif
+       
+	/******seting file*************************************/ 
+        //generic file struct
+	gfile=malloc(sizeof(GenFile));
+	if (!gfile) { perror("malloc"); exit(1);}
+        gfile->fnsize=300;
+        gfile->fname=(char *)calloc(gfile->fnsize,sizeof(char));
+	gfile->fdatapath=(char *)malloc(sizeof(char)*50);
+        sprintf(gfile->fdatapath,"data_manipulation/");
+	
+	//file name components
+        param[0]=spar->mu;
+        param[1]=spar->mig;
+
+        for(i=0; i<npar; ++i){
+                if(param[i]==0.){
+                        sprintf(nparam[i],"0");
+                }else{
+			expo=floor(log10(param[i]));
+        		mul=ceil(param[i]/pow(10.,expo));
+			nf=0;
+			while(ceil(param[i]/pow(10.,expo))!=(int)(param[i]/pow(10.,expo))){
+				--expo;
+				mul=ceil(param[i]/pow(10.,expo));
+				++nf;
+			}
+                        sprintf(nparam[i],"%de%d",mul,(int)expo);
+                }
+        }
+	
+	sprintf(gfile->fname,"SL_L%d_Ty%d_cost%0.2f_mu%s_mb%s_rmh%d_MT%d",L,TYPES,spar->cost,nparam[0],nparam[1],spar->rmigh,MIGRATION_TYPE);
+
+        dnl=200;
+	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
+	char *name=(char *)calloc(namelen,sizeof(char));
+        id = (unsigned long)time(NULL);
+        
+        while(ok==0){
+                sprintf(name,"%smhXplrXaverW_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+                gfile->file=fopen(name,"r");
+                if(gfile->file!=NULL){
+                        ++id;
+                        fclose(gfile->file);
+                }else{
+                        ok=1;
+                }
+        }
+               
+        sprintf(name,"%smhXplrXaverW_%s_%ld.dat",gfile->fdatapath,gfile->fname,id);
+        gfile->file=fopen(name,"w");
+        if (gfile->file==NULL) { perror("malloc"); exit(1);}
+	
+	/****Allocate memory**********************************************/
+
+	avinv=malloc(sizeof(DynVec));
+	if (!avinv) { perror("malloc"); exit(1);}
+	avinv->sizef=stime->timewindow/stime->tinterval+1;
+	avinv->usizef=0;
+	avinv->vecf=(double *)calloc(avinv->sizef,sizeof(double));
+
+	/****Dynamics******************/
+
+	dplr=0.25;
+	spar->mh=1.;
+	mhvalues[0]=1.;
+	mhvalues[1]=50.;
+	mhvalues[2]=100.;
+	mhvalues[3]=500.;
+	mhvalues[4]=1000.;
+
+	n=0;
+
+	stime->Tf=stime->transtime+stime->timewindow;
+	while(n<5){
+		spar->mh=mhvalues[n];
+		spar->plr=0.;
+		while(spar->plr<=1.){
+			setCI();
+			stime->Tnow=0.;
+			stime->saveT=stime->transtime;
+			callSysDynamics(event,mevent);
+			calcRMSError(avinv->vecf,0,avinv->usizef,stats);
+			
+			nh=listh->usize;
+			fprintf(gfile->file,"%f %f %f %f %d %f\n",spar->mh,spar->plr,stats[0],stats[1],nh,stime->Tf);
+			fflush(gfile->file);
+			printf("Data Stored: mh=%f plr=%f <<w>(t)>>=%f std(<w>)=%f nh=%d Tf=%f\n",spar->mh,spar->plr,stats[0],stats[1],nh,stime->Tf);
+			avinv->usizef=0;
+
+			spar->plr+=dplr;
+		}
+			
+		fprintf(gfile->file,"\n");
+		++n;
+	}
+		
+	/***freeing memory*****/
+	free(avinv->vecf);
+	free(avinv);
+
+	if(gfile->file){
+		fclose(gfile->file);
+		gfile->file=NULL;
+	}
+	if(gfile->fname){
+		free(gfile->fname);
+		gfile->fname=NULL;
+	}
+	if(gfile->fdatapath){
+		free(gfile->fdatapath);
+		gfile->fdatapath=NULL;
+	}
+	if(gfile){
+		free(gfile);
+		gfile=NULL;
+	}
+	free(name);
+
+	return;
+}
 /////////////////////////////////////////////////////////////////////////////////////////
 /****************************************************************************************
  *		General measuring routines that decide which one to call		*
@@ -2540,9 +2832,15 @@ void timeMeasures(void){
 		stime->saveT=stime->Tnow+stime->tinterval;
 	}
         #endif
-	#ifdef CORRxT
+	#ifdef CORRHxT
 	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){
 		spatialCorrXt();
+		stime->saveT=stime->Tnow+stime->tinterval;
+	}
+        #endif
+	#ifdef CORRWxT
+	if((stime->Tnow>=stime->saveT-EPS)&&(stime->Tnow<=stime->saveT+EPS)){
+		spatialInvestmentCorrXt();
 		stime->saveT=stime->Tnow+stime->tinterval;
 	}
         #endif

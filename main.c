@@ -21,6 +21,10 @@ int main(void){
 	callSetSystem();
 	/**********/
         
+	if((spar->plr>0.)&&(LONG_RANGE_MIG==0)){
+		printf("\nWarning: you are trying to run a simulation with a fraction plr=%0.2f of long-range migration while the long-range migration option is turned off (LONG_RANGE_MIG is 0). To turn long-range migrations on the host level, change the value of the constant LONG_RANGE_MIG on includes/globals.h \n",spar->plr);
+		exit(1);
+	}
 #ifdef MULTIPLE_COSTS_WxT
 	averInvXtMultipleCosts(&event,&mevent);
 #endif
@@ -45,7 +49,12 @@ int main(void){
 	#ifdef INV_DIST
 	callSysDynamics(&event,&mevent);
 	#endif
-	#ifdef CORRxT
+	#ifdef CORRHxT
+        openFiles();
+	callSysDynamics(&event,&mevent);
+	closeFiles();
+	#endif
+	#ifdef CORRWxT
         openFiles();
 	callSysDynamics(&event,&mevent);
 	closeFiles();
@@ -106,6 +115,9 @@ int main(void){
 		#endif
 		#ifdef RHxMHxAVINV
 		rhXmhXw(&event,&mevent);
+		#endif
+		#ifdef MHxPLRxAVINV
+		mhXplrXw(&event,&mevent);
 		#endif
 		#ifdef COSTxMBxAVINV
 		costXmbXw(&event,&mevent);
@@ -198,6 +210,11 @@ void freeMemory(void){
 	if(sysmeas){
 		free(sysmeas);
 	}
+	#ifdef NUMHEVENTSxT
+	if(meas){
+		free(meas);
+	}
+	#endif
 
 	return;
 }

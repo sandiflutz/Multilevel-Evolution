@@ -126,6 +126,13 @@ void allocateMemory(void){
 	sysmeas->averw=0.;
 	sysmeas->averw2=0.;
 	sysmeas->nw=0;
+	#ifdef NUMHEVENTSxT
+	meas = malloc(sizeof(EvMeasures));
+        if(!meas){ 
+		printf("It wasn't possible to allocate memory for struct sysmeas.\n"); 
+		exit(1);
+	}
+	#endif
 
        	return;
 }
@@ -505,7 +512,7 @@ void setSystem(void){
 	#if(NETWORK==1)
 		squareLattice(neighbor,VIZ,L);//from tools
 	#elif(NETWORK==2)
-		int i,k,maxcon,*listviz;
+		int i,k,*listviz;
 		listviz=(int *)calloc(N*N,sizeof(int));
 		maxcon=setSmallWorld(L,Psw,con,listviz);
 
