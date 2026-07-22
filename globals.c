@@ -12,6 +12,7 @@ double *rho_e = NULL;
 double *bac = NULL;
 double **costvec;
 double *dtVec = NULL;
+double *averinvdistcl = NULL;
 DynList *listh = NULL;
 DynVec *offcomp = NULL;
 DynVec *avinv = NULL;

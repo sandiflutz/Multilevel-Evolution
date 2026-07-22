@@ -30,7 +30,11 @@ int main(void){
 #endif
 #ifdef TMEAS
 	allocateMemTM();
-	stime->saveT=0.;
+	if(NF==1){
+		stime->saveT=stime->Tf;
+	}else{
+		stime->saveT=0.;
+	}
 	stime->Tf=TF;
 	#ifdef AVERINVxT
 	int i;
@@ -69,13 +73,35 @@ int main(void){
 	callSysDynamics(&event,&mevent);
 	closeFiles();
 	#endif
-	#ifdef BESTCLUSTER_TIMES
+	#ifdef INV_LDIL_DISTxT
 	int i;
 	for(i=0; i<SAMPLE; ++i){
-        	openFiles();
+		openFiles();
 		callSysDynamics(&event,&mevent);
 		closeFiles();
 		stime->Tnow=0.;
+		stime->saveT=0.;
+		setCI();
+	}
+	#endif
+	#ifdef LARGESTCL_INVDIST
+        openFiles();
+	callSysDynamics(&event,&mevent);
+	closeFiles();
+	#endif
+	#ifdef HIST_PAIRS
+        openFiles();
+	callSysDynamics(&event,&mevent);
+	closeFiles();
+	#endif
+	#ifdef ISOLATED_HOSTS_INVxT
+	int i;
+	for(i=0; i<SAMPLE; ++i){
+		openFiles();
+		callSysDynamics(&event,&mevent);
+		closeFiles();
+		stime->Tnow=0.;
+		stime->saveT=0.;
 		setCI();
 	}
 	#endif
@@ -124,6 +150,9 @@ int main(void){
 		#endif
 		#ifdef COSTxPLRxAVINV
 		costXplrXw(&event,&mevent);
+		#endif
+		#ifdef INVDISTCLxPLR
+		clustersInvDistXplr(&event,&mevent);
 		#endif
 	}
 #endif

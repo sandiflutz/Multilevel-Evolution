@@ -1,0 +1,12 @@
+Run: ./runfindTtrans.sh
+
+Files used: 
+	-runfindttrans.txt //with: 
+		           //1st column: the name of the file with the main parameter used in the simulation 
+		           //2nd column: the corename of the sample files (first part of the file names) 
+		           //3nd column: maximum columns to calculate averages of the output file of @makeSampleFile_ttrans.sh (last columns may not be interesting) 
+	-parameters.txt //file with the main parameter used in the simulation
+	-applyFindTransToSample_createCostxTtrans.sh
+	-makeSampleFile_ttrans.sh //uses put the transition times for each sample file into a single file
+	-findfindTransition_minsquares.awk //find the transition times (right before and an right after)
+	-average_columns-transtimes.awk //calculate the average over the elements of each column

@@ -1,0 +1,14 @@
+How to create costXInvestment file: 
+	./runCreateCostxInvFile.sh <outputfile> <path to send a copy of the ouput file>
+
+Scripts used:
+	-runCreateCostxInvFile.sh (main):
+		-calls createCostxInvFile.sh
+		-needs a file name entry ("outputfile.dat" is the default) for the outputfile and a path for the outputfile (current directory is the default)
+	-createCostxInvFile.sh:
+		-called by runCreateCostxInvFile.sh 
+		-calls average_sample_wXt.awk and average_columns.awk
+		-it assumes that the files are separated in different directories inside the current one. The name of the directories are in the format "cost" followed by the value of the cost.
+	-average_sample_wXt.awk
+	-average_columns.awk	
+	

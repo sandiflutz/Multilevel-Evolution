@@ -17,17 +17,17 @@
 
 //host migration
 #define Mh        		1.			/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
-#define MIGRATION_TYPE		1			/*0: homogeneous type of migration (no local component): Mi=mh*beta(1+sb*<w>(t) )(1-<rho_e>(t) )/gh
+#define MIGRATION_TYPE		0			/*0: homogeneous type of migration (no local component): Mi=mh*beta(1+sb*<w>(t) )(1-<rho_e>(t) )/gh
 							 *1: local migration component depends on the host's neighborhood dilution: Mi=mh*beta(1+sb*<w>(t) )(1-rho_e[i](t) )/gh
 							 *2: local migration component depends on the host's investment: Mi=mh*beta(1+sb*wi(t) )(1-<rho_e>(t) )/gh
 							 *3: local migration component depends on the host's neighborhood dilution and its investment: Mi=mh*beta(1+sb*wi(t) )(1-rho_e[i](t) )/gh*/
 #define Rmh        		1			/*host migration distance host in number of steps (1 is for first neighbors)*/
 #if (NETWORK==1)//square lattice
 	#define Plr		0.			/*probability of choosing a long range migration jump, ignoring migration distance, for host migration*/
-	#define LONG_RANGE_MIG	0			/*0,if there are not random long-range migrations in the dynamics, 1 otherwise 
+	#define LONG_RANGE_MIG	1			/*0,if there are not random long-range migrations in the dynamics, 1 otherwise 
 							 *(@Plr sets a global value for the fraction long-range migrations, and spar->plr for using different values through simulations)*/
 #else//other networks
-	#define Plr		0.			
+	#define Plr		0.0			
 	#define LONG_RANGE_MIG	0			 
 #endif
 #define Rmin			5			/*minimum distance for long-range host migration*/
@@ -50,14 +50,21 @@
 #define Tpos            	(TYPES-1)		/*number of positive types of microbes: positively affect host reproduction success*/
 #define Tneg            	0			/*number of negative types of microbes: negatively affect host reproduction success*/
 
-#define Mu0			1e-2			/*mutation rate for TYPES=101 (if TYPES!=101, mutation rate is calculated based on this value)*/
+#define Mu0			1e-02			/*mutation rate for TYPES=101 (if TYPES!=101, mutation rate is calculated based on this value)*/
 
 #if (TYPES!=101)
-	#define Mu        	(Mu0*(TYPES-1.0)/100.0)	/*mutation rate (default for TYPES=101 is Mu=Mu0=1e-02)*/
+	#define Mu        	((Mu0*Mu0*1e-4*(TYPES-1.0)*(TYPES-1.0)))	/*mutation rate (default for TYPES=101 is Mu=Mu0=1e-02)*/
 #else
 	#define Mu		Mu0
 #endif
-#define Theta     		1e-06			/*migration rate (tab1:1e-06, tab2:1e-05)*/
+
+#define Theta0     		1e-06			/*migration rate (tab1:1e-06, tab2:1e-05)*/
+
+#if (TYPES!=101)
+	#define Theta        	(Theta0*(TYPES-1.0)/100.0)/*horizontal transmission rate (default for TYPES=101 is Theta=Theta0=1e-06)*/
+#else
+	#define Theta		Theta0
+#endif
 #define Bacv      		1e-03			/*density of vertically transmitted microbes in a new host (tab1:1e-04, tab2:1e-03)*/
 
 #define SIGMA     		0.05			/*standart deviation of the trucated normal distribution for the inheritance of helpful microbes*/
@@ -65,7 +72,7 @@
 						 	*paper uses 19 when TYPES=2 and 29 otherwise (??)*/
 
 /*****COST*******************************************************/
-#define Gamma     		0.16		/*cost for helping when the investment is 1*/
+#define Gamma     		0.01		/*cost for helping when the investment is 1*/
 /***Parameters for cases where there are negative types*******************/
 /*when there are negative types, the cost for positive and negative types can be influenced by the total frequency of the negative types (f⁻): 
  * for negative types: cost Gamma*investiment[type] is multiplied by CRnn0*exp(-CRnn1*d⁻/(1-f⁻)) 
@@ -100,8 +107,8 @@
 					 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 					 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			100000		/*host maximum time (measured using continuous values for the times steps)*/
-#define	Twin			10000		/*time window for measures*/
+#define TF			30000.		/*host maximum time (measured using continuous values for the times steps)*/
+#define	Twin			10000.		/*time window for measures*/
 #define Ttrans			(TF-Twin)	/*transient time (to a first trial)*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 					 	* 0:png (good for creating animations later)
@@ -110,7 +117,7 @@
 #define NInterv			1		/*Ninterv*Dt_ref=time interval between snapshots taken*/
 #define SAMPLE			100             /*general sample size of measures done within the program (during evolution or number of files produced with raw data)*/
 #define EPS			1e-8
-#define BestWtr			0.98		/*best investment threshold (used for keeping track of clusters with high investments)*/
+#define NBINSW			100		/*number of bins to use in measures involving investment distribution*/
 /********************************************************************************************************************************************************************/
 /*****Fixed Parameters**********/
 #define Beta      		1.		/*birth rate for neutral bacteria*/
@@ -133,10 +140,78 @@
 #define RightDown		6 /*label of the neighbor at the right-down diagonal (for the square lattice)*/
 #define LeftDown		7 /*label of the neighbor at the left-down diagonal (for the square lattice)*/
 /******defining a main MACRO for measures made during time evolution******/
-#if  defined(AVERINVxT)||defined(SAVE_CONFIG)||defined(INV_DIST)||defined(NUMHEVENTSxT)||defined(CORRHxT)||defined(CORRWxT)||defined(DIFBACOMPxT)||defined(CLUSTERSxT)||defined(CLUSTERS_DISTxT)||defined(BESTCLUSTER_TIMES)
+/*macros for measures over time */
+#ifdef AVERINVxT 
 	#define TMEAS
 #endif
-#if defined(COSTxPLRxAVINV)||defined(AVINVxRH)||defined(AVINVxGH)||defined(AVINVxMB)||defined(AVINVxCOST)||defined(AVINVxPlr)||defined(AVINVxMH)||defined(RHxMHxAVINV)||defined(MHxPLRxAVINV)||defined(COSTxMBxAVINV)
+#ifdef SAVE_CONFIG
+	#define TMEAS
+#endif
+#ifdef INV_DIST
+	#define TMEAS
+#endif
+#ifdef NUMHEVENTSxT
+	#define TMEAS
+#endif
+#ifdef CORRHxT
+	#define TMEAS
+#endif
+#ifdef CORRWxT
+	#define TMEAS
+#endif
+#ifdef DIFBACOMPxT
+	#define TMEAS
+#endif
+#ifdef CLUSTERSxT
+	#define TMEAS
+#endif
+#ifdef CLUSTERS_DISTxT
+	#define TMEAS
+#endif
+#ifdef INV_LDIL_DISTxT
+	#define TMEAS
+#endif
+#ifdef LARGESTCL_INVDIST
+	#define TMEAS
+#endif
+#ifdef HIST_PAIRS
+	#define TMEAS
+#endif
+#ifdef ISOLATED_HOSTS_INVxT
+	#define TMEAS
+#endif
+/*steady state macros**/
+#ifdef COSTxPLRxAVINV
+	#define STEADY_STATE_MEAS
+#endif
+#ifdef AVINVxRH
+	#define STEADY_STATE_MEAS
+#endif
+#ifdef AVINVxGH
+	#define STEADY_STATE_MEAS
+#endif
+#ifdef AVINVxMB
+	#define STEADY_STATE_MEAS
+#endif
+#ifdef AVINVxCOST
+	#define STEADY_STATE_MEAS
+#endif
+#ifdef AVINVxPlr
+	#define STEADY_STATE_MEAS
+#endif
+#ifdef AVINVxMH
+	#define STEADY_STATE_MEAS
+#endif
+#ifdef RHxMHxAVINV
+	#define STEADY_STATE_MEAS
+#endif
+#ifdef MHxPLRxAVINV
+	#define STEADY_STATE_MEAS
+#endif
+#ifdef COSTxMBxAVINV
+	#define STEADY_STATE_MEAS
+#endif
+#ifdef INVDISTCLxPLR
 	#define STEADY_STATE_MEAS
 #endif
 /********************************************
@@ -209,6 +284,7 @@ extern double *rho_e;
 extern double *bac;
 extern double **costvec;
 extern double *dtVec;
+extern double *averinvdistcl;
 extern DynList *listh;
 extern DynVec *offcomp;
 extern DynVec *avinv;

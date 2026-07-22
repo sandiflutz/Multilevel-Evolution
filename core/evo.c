@@ -965,26 +965,28 @@ void callSysDynamics(Event *event, Event *mevent){
 
         while((stime->Tnow<=stime->Tf)&&(finish==0)){
                 #ifdef TMEAS
-			#ifdef BESTCLUSTER_TIMES
-			lb=(int *)calloc(listh->usize,sizeof(int));
-			if(!lb){
-				printf("It wasn't possible to allocate memory for vector lb on callSysDynamics()\n");
-				exit(1);
-			}
-			memset(lb,-1,sizeof(int)*listh->usize);
-			maxclw->whichLBF=0;
-                        #endif
                 	timeMeasures();
                 #endif
                 #ifdef STEADY_STATE_MEAS
                         if((stime->Tnow>=stime->saveT-0.0001)&&(stime->Tnow<=stime->saveT+0.0001)){
+				#ifdef INVDISTCLxPLR
+				avinv->vecf[avinv->usizef]=calcAverInvDist(NBINSW,averinvdistcl);
+                                ++avinv->usizef;
+				#else
                                 avinv->vecf[avinv->usizef]=calcAverInv();
                                 ++avinv->usizef;
+				#endif
 				#ifdef AVINVxRH
 				printf("rh=%f time=%f avinv[%d]=%f\n",(double)spar->kh/N,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
 				#endif
 				#ifdef AVINVxGH
 				printf("gh=%d time=%f avinv[%d]=%f\n",spar->gh,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
+				#endif
+				#ifdef AVINVxMH
+				printf("mh=%f time=%f avinv[%d]=%f\n",spar->mh,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
+				#endif
+				#ifdef AVINVxPlr
+				printf("plr=%f time=%f avinv[%d]=%f\n",spar->plr,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
 				#endif
 				#ifdef AVINVxCOST
 				printf("cost=%f time=%f avinv[%d]=%f\n",spar->cost,stime->Tnow,avinv->usizef-1,avinv->vecf[avinv->usizef-1]);
@@ -999,6 +1001,11 @@ void callSysDynamics(Event *event, Event *mevent){
                         }else{
 				#ifdef MHxPLRxAVINV
 				printf("(Transient time) time=%f\n",stime->Tnow);
+				#endif
+				#ifdef AVINVxMH
+				if(stime->Tnow<Ttrans){
+					printf("(Transient time) time=%f\n",stime->Tnow);
+				}
 				#endif
 			}
                 #endif
@@ -1034,12 +1041,6 @@ void callSysDynamics(Event *event, Event *mevent){
                 evolveHostSL(dnumsteps,event);
 			
 		freeVecsEvent(event);
-		#ifdef BESTCLUSTER_TIMES
-		if(lb){
-			free(lb);
-			lb=NULL;
-		}
-		#endif
                 
 		#endif
 

@@ -10,19 +10,23 @@ MACRO = TMEAS
 # -------------------------------------------------------
 #  List if available macros (for choosing what to measure)                                    
 # -------------------------------------------------------
-MEASURE_MACROS = \
+TRANSIENT_MACROS = \
 	AVERINVxT \
 	MULTIPLE_COSTS_WxT \
 	INV_DIST \
-	NUMHEVENTSxT \
 	CORRHxT \
 	CORRWxT \
 	CLUSTERSxT \
 	CLUSTERS_DISTxT \
-	BESTCLUSTER_TIMES \
-	RVNxTxCORRBAC \
+	INV_LDIL_DISTxT \
+	LARGESTCL_INVDIST \
+	HIST_PAIRS \
+	ISOLATED_HOSTS_INVxT \
+	NUMHEVENTSxT \
 	DIFBACOMPxT \
 	SAVE_CONFIG \
+	
+EQUILIBRIUM_MACROS = \
 	AVINVxRH \
 	AVINVxGH \
 	AVINVxMB \
@@ -33,6 +37,8 @@ MEASURE_MACROS = \
 	MHxPLRxAVINV \
 	COSTxMBxAVINV \
 	COSTxPLRxAVINV \
+	INVDISTCLxPLR \
+
 # -------------------------------------------------------
 #  Compiler and flags
 # -------------------------------------------------------
@@ -106,8 +112,10 @@ cleanall:
 #  choose what to measure 
 # -------------------------------------------------------
 help:
-	@echo "\nAvailable measurement MACRO options:"
-	@$(foreach m,$(MEASURE_MACROS),echo "  - $(m)";)
+	@echo "\nAvailable MACRO options for  $(BOLD)transient$(RESET) measurements:"
+	@$(foreach mt,$(TRANSIENT_MACROS),echo "  - $(mt)";)
+	@echo "\nAvailable MACRO options for  $(BOLD)steady state$(RESET) measurements:"
+	@$(foreach me,$(EQUILIBRIUM_MACROS),echo "  - $(me)";)
 	@echo ""
 	@echo "Example:"
 	@echo "	make MACRO=AVERINVxT EXEC=invXt.out\n"
@@ -119,9 +127,17 @@ help:
 	@echo "  - clean objects: make cleanobj"
 	@echo "  - clean executables: make cleanexec"
 	@echo "  - clean all objects and executables: make cleanall"
+	@echo "  - see all available macros: make showmacros"
 	@echo "\nImportant:"
 	@echo "  - Choose executable names with $(BOLD).out$(RESET) as extention to make sure the options $(BOLD)cleanobj$(RESET) and $(BOLD)cleanall$(RESET) work properly"
 	@echo "  - Remember to erase old objects before compiling the system.\n"
+# -------------------------------------------------------
+#  Show the Available Macros on the .c files, used to
+#  choose what to measure 
+# -------------------------------------------------------
+showmacros:
+	@$(foreach mt,$(TRANSIENT_MACROS),echo "$(mt)";)
+	@$(foreach me,$(EQUILIBRIUM_MACROS),echo "$(me)";)
 # -------------------------------------------------------
 #  Phony targets
 # -------------------------------------------------------

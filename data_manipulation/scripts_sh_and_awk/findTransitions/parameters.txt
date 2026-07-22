@@ -1,0 +1,2 @@
+#Network L Types Kh Gh Bv mu mb mh rmh plr
+1 100 101 500 100 1e-3 1e-2 1e-6 4 1 0.00 

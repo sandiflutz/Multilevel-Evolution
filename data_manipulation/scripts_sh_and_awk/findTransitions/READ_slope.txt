@@ -1,0 +1,11 @@
+Run: ./runfindSlope.sh
+
+Files used: 
+	-runfindslope.txt //with: 
+		           //1st column: the name of the file with the main parameter used in the simulation 
+		           //2nd column: the corename of the sample files (first part of the file names) 
+	-parameters.txt //file with the main parameter used in the simulation
+	-applyFindTransToSample_createCostxSlope.sh
+	-makeSampleFile_slope.sh //put the slope of the transition (of wXt) for each sample file into a single file
+	-findfindTransition_minsquares.awk //find the slope of the transition
+	-average_columns.awk //calculate the average over the elements of each column

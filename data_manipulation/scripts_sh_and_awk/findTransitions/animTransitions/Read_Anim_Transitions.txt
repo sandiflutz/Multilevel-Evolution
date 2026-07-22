@@ -1,0 +1,10 @@
+To create an animation with all sample files of a specific cost value (files with wXt and a fit linear curve in the transition), run:
+	./makeTtransAnim_samplecost.sh <dir> <corename> //where <dir> is the name of the diretory with the sample files (cost0.01, for example) that have to be in inside the current diretory
+							//and <corename is the first part of the sample files (usually "averInvXt")
+
+Files used:
+	-makeTtransAnim_samplecost.sh
+	-createFilesForAnim_Transitions.sh
+	-makeavi.sh
+	-findTransition_minsquares.awk
+

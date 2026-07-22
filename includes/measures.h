@@ -42,6 +42,12 @@ double calcAverInv(void);
 *               calculate current average neighborhood vacancy (for hosts)	        *
 ****************************************************************************************/
 double calcAverNeighborhoodVacancy(void);
+/****************************************************************************************
+ *    calculate and store average investment and its distribution among clusters.       *
+ *    (make sure *averwdistcl is initialized before calling this routine for the        *
+ *    first time)                                                                       *
+ ****************************************************************************************/
+double calcAverInvDist(int nbins,double *averwdistcl);
 /****************************************************************
 *       Calculate the average investment in each cluster,       *
 *       the label of the cluster with the highest               *
@@ -97,17 +103,45 @@ void clustersXt(void);
 *         bin (int)(<w>/binsize)                        *
 *********************************************************/
 void clustersInvDistXt(void);
+/****************************************************************
+*       Stores the distribution of hosts over investment        *
+*       and local dilution                                      *
+*****************************************************************/
+void InvAndLocalDilutionDistXt(void);
+/********************************************************
+*       Stores transient investment distribution among  *
+*       hosts in the largest cluster                    *
+*       -> investment bins                              *
+*       ->fraction of hosts in each bin                 *
+*       ->number of hosts in the largest cluster        *
+*       ->average investment in the largest cluster     *
+*       ->average investment in the system              *
+*       ->number of hosts in the syste                  *
+*       ->amount of bacteria in the largest cluster     *
+*       ->amount of bacteria in the system              *
+*       -> time                                         *
+*       (this routine creates 1 data file and 1         *
+*       gnuplot script each time it is called so the    *
+*       output files can be used to build animations)   *
+*********************************************************/
+void largestClusterInvDistXt(void);
+/********************************************************
+*       stores an investment histogram for pairs        *
+*       of host investments from neighboring            *
+*       hosts                                           *
+********************************************************/
+void pairsInvHistogram(void);
+/********************************************************
+*  stores the average investment of the population      *
+*  of isolated hosts over time, as well as its          *
+*  standart deviation                                   *
+*********************************************************/
+void isolatedHostsInvXt(void);
 /***************************************************
 *  stores the number of host events per            *
 *  microbial time steps                            *
 ****************************************************/
 void numHostEventsPerDtXt(void);
-/****************************************************************
-*       store the von neuman distance, fraction of pair of      *
-*       hosts of the time distant at each von neumann distance, *
-*        average investment and time                            *
-*****************************************************************/
-void rvnXtXw(void);
 /****************************************************************
 *       store spatial correlation for lattice ocupation         *
 *       as a function of time and distance                      *
@@ -160,6 +194,14 @@ void averInvXmb(Event *event,Event *mevent,double mbmin,double mbmax);
 *  migration                                                            *
 *************************************************************************/
 void averInvXplr(Event *event,Event *mevent);
+/****************************************************************
+*       Stores average investment distribution among            *
+*       clusters over Plr (long-range migration fraction):      *
+*       -> all possible average investments, <w>                *
+*       ->fraction of clusters in each                          *
+*         bin (int)(<w>/binsize)                                *
+*****************************************************************/
+void clustersInvDistXplr(Event *event,Event *mevent);
 /************************************************************************
 *  Store in @SAMPLE files the average investment                        *
 *  in the system as a function of the cost factor payed by helpfull     *
