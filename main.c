@@ -152,6 +152,13 @@ int main(void){
 		costXplrXw(&event,&mevent);
 		#endif
 		#ifdef INVDISTCLxPLR
+		if(LONG_RANGE_MIG==0){
+			printf("\nWarning: you are trying to run a simulation that uses the fraction of host long-range migration (Plr or spar->plr)\ 
+					\n	 different than zero while the long-range migration option is turned off (LONG_RANGE_MIG is currently 0).\
+					\n	 To turn long-range migrations on the host level, change the value of the constant LONG_RANGE_MIG on 'includes/globals.h'.\n\n");
+			exit(1);
+		}
+
 		clustersInvDistXplr(&event,&mevent);
 		#endif
 	}

@@ -481,7 +481,7 @@ double calcAverInvDist(int nbins,double *averwdistcl){
 		if(id>idmax)id=idmax;
 		++hist[id];
 	}
-	for(i=0; i<nclusters;++i){
+	for(i=0; i<nbins;++i){
 		averwdistcl[i]+=((double)hist[i]/nclusters);
 	}
 
@@ -2637,7 +2637,8 @@ void clustersInvDistXplr(Event *event,Event *mevent){
 	double param[npar],expo;
 	unsigned long id;
         char nparam[npar][10];
-	
+	char *name=NULL;
+
 	nbins=NBINSW;
 	binsize=1./(double)nbins;//investment bin size
 
@@ -2679,7 +2680,7 @@ void clustersInvDistXplr(Event *event,Event *mevent){
         #endif
         dnl=200;
         namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
-        char *name=(char *)calloc(namelen,sizeof(char));
+        name=(char *)malloc(sizeof(char)*namelen);
 
         id = (unsigned long)time(NULL);
 
@@ -2742,16 +2743,30 @@ void clustersInvDistXplr(Event *event,Event *mevent){
 		fprintf(gfile->file,"\n");
 		printf("\n");
 		
+		/*****/
+
 		avinv->usizef=0;
-		memset(averinvdistcl,0.,sizeof(double));
+		for(i=0; i<nbins; ++i){
+			averinvdistcl[i]=0.;
+		}
 
 		spar->plr+=dp;
 	}
 	/***freeing memory*****/
-	free(avinv->vecf);
-	free(avinv);
-	free(averinvdistcl);
-
+	if(avinv->vecf){
+		free(avinv->vecf);
+		avinv->vecf=NULL;
+	}
+	if(avinv){
+		free(avinv);
+		avinv=NULL;
+	}
+	///
+	if(averinvdistcl){
+		free(averinvdistcl);
+		averinvdistcl=NULL;
+	}
+	///
 	if(gfile->file){
 		fclose(gfile->file);
 		gfile->file=NULL;
@@ -2763,6 +2778,11 @@ void clustersInvDistXplr(Event *event,Event *mevent){
 	if(gfile->fdatapath){
 		free(gfile->fdatapath);
 		gfile->fdatapath=NULL;
+	}
+	///
+	if(name){
+		free(name);
+		name=NULL;
 	}
 
 	return;
@@ -2841,7 +2861,7 @@ void averInvXmh(Event *event,Event *mevent){
 
 	avinv=malloc(sizeof(DynVec));
 	if (!avinv) { perror("malloc"); exit(1);}
-	avinv->sizef=10000.;
+	avinv->sizef=10000;
 	stime->tinterval=stime->timewindow/avinv->sizef;
 	if(stime->tinterval<Dt_ref)stime->tinterval=Dt_ref;
 	avinv->usizef=0;
@@ -2946,6 +2966,10 @@ void averInvXmh(Event *event,Event *mevent){
 	if(gfile){
 		free(gfile);
 		gfile=NULL;
+	}
+	if(name){
+		free(name);
+		name=NULL;
 	}
 	return;
 }
@@ -3095,6 +3119,10 @@ void costXmbXw(Event *event,Event *mevent){
 		free(gfile);
 		gfile=NULL;
 	}
+	if(name){
+		free(name);
+		name=NULL;
+	}
 	
 	return;
 }
@@ -3242,7 +3270,10 @@ void rhXmhXw(Event *event,Event *mevent){
 		free(gfile);
 		gfile=NULL;
 	}
-	free(name);
+	if(name){
+		free(name);
+		name=NULL;
+	}
 	return;
 }
 /************************************************************************
@@ -3384,7 +3415,10 @@ void mhXplrXw(Event *event,Event *mevent){
 		free(gfile);
 		gfile=NULL;
 	}
-	free(name);
+	if(name){
+		free(name);
+		name=NULL;
+	}
 
 	return;
 }
