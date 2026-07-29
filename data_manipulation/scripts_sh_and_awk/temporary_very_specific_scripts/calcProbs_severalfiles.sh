@@ -1,0 +1,4 @@
+awk -f calcTimeProbforHighW.awk clExtTimes_N10000_Ty101_Kh500_net1_Gh100_CI1_Bv1e-3_cost5e-2_mu1e-2_mb1e-6_mh4.0_GR0_1* > highInvProbXt_N10000_Ty101_Kh500_net1_Gh100_CI1_Bv1e-3_cost5e-2_mu1e-2_mb1e-6_mh4.0_GR0_hw0.85.dat
+awk -f calcTimeProbforHighW.awk clExtTimes_N10000_Ty101_Kh500_net1_Gh100_CI1_Bv1e-3_cost1e-1_mu1e-2_mb1e-6_mh4.0_GR0_1* > highInvProbXt_N10000_Ty101_Kh500_net1_Gh100_CI1_Bv1e-3_cost1e-1_mu1e-2_mb1e-6_mh4.0_GR0_hw0.85.dat
+awk -f calcTimeProbforHighW.awk clExtTimes_N10000_Ty101_Kh500_net1_Gh100_CI1_Bv1e-3_cost15e-2_mu1e-2_mb1e-6_mh4.0_GR0_1* > highInvProbXt_N10000_Ty101_Kh500_net1_Gh100_CI1_Bv1e-3_cost15e-2_mu1e-2_mb1e-6_mh4.0_GR0_hw0.85.dat
+awk -f calcTimeProbforHighW.awk clExtTimes_N10000_Ty101_Kh500_net1_Gh100_CI1_Bv1e-3_cost2e-1_mu1e-2_mb1e-6_mh4.0_GR0_1* > highInvProbXt_N10000_Ty101_Kh500_net1_Gh100_CI1_Bv1e-3_cost2e-1_mu1e-2_mb1e-6_mh4.0_GR0_hw0.85.dat

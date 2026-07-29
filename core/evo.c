@@ -1002,11 +1002,6 @@ void callSysDynamics(Event *event, Event *mevent){
 				#ifdef MHxPLRxAVINV
 				printf("(Transient time) time=%f\n",stime->Tnow);
 				#endif
-				#ifdef AVINVxMH
-				if(stime->Tnow<Ttrans){
-					printf("(Transient time) time=%f\n",stime->Tnow);
-				}
-				#endif
 			}
                 #endif
 		#ifdef MULTIPLE_COSTS_WxT

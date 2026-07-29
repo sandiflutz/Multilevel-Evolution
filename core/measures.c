@@ -2462,6 +2462,8 @@ void averInvXplr(Event *event,Event *mevent){
         char nparam[npar][10];
 	
        
+	plrmax=1.;
+	dp=0.01;
 	/******seting file*************************************/ 
         //generic file struct
 	gfile=malloc(sizeof(GenFile));
@@ -2531,8 +2533,6 @@ void averInvXplr(Event *event,Event *mevent){
 	/****Dynamics******************/
 
 	spar->plr=0.;
-	plrmax=1.;
-	dp=0.05;
 
 	//nih=number of isolated hosts
 	//nih_low=number of isolated low investment hosts (w<=0.2)
@@ -2596,7 +2596,11 @@ void averInvXplr(Event *event,Event *mevent){
 		printf("plr=%f <w>=%f std(w)=%f nih=%d nih_low=%d nih_high=%d nch=%d nch_low=%d nch_high=%d <rhoe>=%f nh=%d ntot=%f\n",spar->plr,stats[0],stats[1],nih,nih_low,nih_high,nch,nch_low,nch_high,aver_rhoe,nh,tot_micr);
 		
 		avinv->usizef=0;
-
+		if(spar->plr<0.05){
+			dp=0.025;
+		}else{
+			dp=0.05;
+		}
 		spar->plr+=dp;
 	}
 		
@@ -2800,6 +2804,7 @@ void averInvXmh(Event *event,Event *mevent){
 	unsigned long id;
         char nparam[npar][10];
 	
+	mhmax=5000.;
        
 	/******seting file*************************************/ 
         //generic file struct
@@ -2834,7 +2839,7 @@ void averInvXmh(Event *event,Event *mevent){
 	printf("You are using the well-mixed network while trying to measure the average investment over the coefficient of migration. Your attempt is futile!\n");
 	exit(1);
 	#else
-	sprintf(gfile->fname,"SL_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_rmh%d_plr%0.2f_MT%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],spar->rmigh,spar->plr,MIGRATION_TYPE);
+        sprintf(gfile->fname,"SL_L%d_Ty%d_Kh%d_cost%0.2f_mu%s_mb%s_mhmax%0.1f_plr%0.2f_MT%d",L,TYPES,spar->kh,spar->cost,nparam[0],nparam[1],mhmax,spar->plr,MIGRATION_TYPE);
 	#endif
         dnl=200;
 	namelen=strlen(gfile->fname)+strlen(gfile->fdatapath)+dnl;
@@ -2869,10 +2874,6 @@ void averInvXmh(Event *event,Event *mevent){
 
 	/****Dynamics******************/
 
-	spar->mh=1.;
-	mhmax=1000.;
-	dmh=10.;
-
 	//nih=number of isolated hosts
 	//nih_low=number of isolated low investment hosts (w<=0.2)
 	//nih_high=number of isolated high investment hosts (w>=0.8)
@@ -2885,6 +2886,8 @@ void averInvXmh(Event *event,Event *mevent){
 	//rho_e[i]=fraction of empty nodes in the neighborhood of node i
 	//<rhoe>=average of rho_e[i] over the system
 	//<w>=system average investment
+	
+	spar->mh=1.;
 	fprintf(gfile->file,"#1:mh 2:<w> 3:std(w) 4:nih 5:nih_low 6:nih_high 7:nch 8:nch_low 9:nch_high 10:<rhoe> 11:nh 12:ntot\n");
 	printf("#1:mh 2:<w> 3:std(w) 4:nih 5:nih_low 6:nih_high 7:nch 8:nch_low 9:nch_high 10:<rhoe> 11:nh 12:ntot\n");
 	while(spar->mh<=mhmax){
@@ -2936,14 +2939,17 @@ void averInvXmh(Event *event,Event *mevent){
 		
 		avinv->usizef=0;
 
-		if(spar->mh<50){
+		if(spar->mh<10.){
+			dmh=1.;
+		}else if(spar->mh<50.){
 			dmh=10.;
-		}else if(spar->mh<100){
-			dmh=75.;
-		}else{
+		}else if(spar->mh<100.){
+			dmh=25.;
+		}else if(spar->mh<1000.){
 			dmh=100.;
+		}else{
+			dmh=500.;
 		}
-
 		spar->mh+=dmh;
 	}
 		
