@@ -4,13 +4,25 @@
 projectpath="$(cd ../../../ && pwd)/"
 datamanippath="$(cd ../../ && pwd)/"
 currentdir="$(pwd)/"
-gpfilespath="$(cd ../ && pwd)/"
-scriptpath="${datamanippath}/scripts_sh_and_awk/averagesFilesWithDifferentFormats/"
+gpfilespath="${datamanippath}gp_scripts/"
+scriptspath="${datamanippath}scripts_sh_and_awk/"
+averscriptpath="${scriptspath}averagesFilesWithDifferentFormats/"
+protocolpath="${scriptspath}protocols/"
+awkfilterspath="${scriptspath}awkFilters/"
+creategpscrpath="${scriptspath}createGpscripts/"
+heatmapath="${gpfilespath}Files_clinvdistXplr/"
+averwXplrpath="${datamanippath}averInv_Plr/"
+plrpath="${averwXplrpath}allaverInvXplrfiles/"
 
 #script used
-script="./calcAver-clusterInvXplr.sh"
+averscript=calcAver-clusterInvXplr.sh
+lowinvscript=createLowInvClFracFiles.sh
+rungpscrip=rungp.sh
+sendfilesscript=sendfiles-clusterInvXplr.sh
 
-#entry is cost value (default is 0.1)
+lowinvscriptpath="${protocolpath}"
+
+#Entry is cost value (default is 0.1)
 
 if [ -n "$1" ]
 then
@@ -19,27 +31,37 @@ else
 	cost="0.10"
 fi
 
-#actions
-echo ""
+#File base names
+
+samplebasename="clusterInvXplr"
+
+#Actions
+
+echo "Running scpLab.sh"
+./scpLab.sh ${heatmapath} ${samplebasename}*
+
+echo "Bringing heat map sample files from ${datamanippath} "
+cp ${datamanippath}${samplebasename}* ${heatmapath}
 echo "Calculating averages for the heatmap of the fraction of clusters for each average investment bin and fraction of long-range migration Plr"
-$(cd $scriptpath && ./$script $datamanippath $currentdir ${cost})
+$(cd ${averscriptpath} && ./"${averscript}" ${heatmapath} ${heatmapath} ${cost} )
 echo ""
 echo "Running gnuplot scripts"
-./rungp.sh
+./"${rungpscrip}" ${heatmapath} ${cost}
 
 echo ""
 echo "Creating Low Investment against Plr files"
-./createLowInvClFracFiles.sh
+$( cd ${lowinvscriptpath} && ./"${lowinvscript}" ${heatmapath} ${cost} )
 echo ""
 echo "Running gnuplot scripts"
-gnuplot clusterInvXplr_MultipleMh_SL_L100_Ty101_Kh500_cost0.10_mu1e-2_mb1e-6_rmh1MT12.gp
-gnuplot lowinv_multipleMh_clfracXplr_SL_L100_Ty101_Kh500_cost0.10_mu1e-2_mb1e-6_rmh1_MT1.gp
-gnuplot lowinv_multipleMh_clfracXplr_SL_L100_Ty101_Kh500_cost0.10_mu1e-2_mb1e-6_rmh1_MT2.gp
-echo ""
+gpscr_clInvXplr="clusterInvXplr_MultipleMh_SL_L100_Ty101_Kh500_cost${cost}_mu1e-2_mb1e-6_rmh1_MT12.gp"
+gpscr_lowinvMT1="lowinv_multipleMh_clfracXplr_SL_L100_Ty101_Kh500_cost${cost}_mu1e-2_mb1e-6_rmh1_MT1.gp"
+gpscr_lowinvMT2="lowinv_multipleMh_clfracXplr_SL_L100_Ty101_Kh500_cost${cost}_mu1e-2_mb1e-6_rmh1_MT2.gp"
+
+$( cd ${heatmapath} && gnuplot ${gpscr_clInvXplr} ) 
+$( cd ${heatmapath} && gnuplot ${gpscr_lowinvMT1} ) 
+$( cd ${heatmapath} && gnuplot ${gpscr_lowinvMT2} )
 echo "Running fragmaster"
-fragmaster
+$(  cd ${heatmapath} ; export PATH=$PATH:/usr/bin/ fragmaster )
 
-echo ""
 echo "Copying final files to the main images directory"
-./copyeps_to_figures.sh
-
+./"${sendfilesscript}" ${heatmapath} ${cost}

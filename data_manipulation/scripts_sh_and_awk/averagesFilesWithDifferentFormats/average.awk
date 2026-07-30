@@ -45,8 +45,10 @@ END {
 # are neglected):
      for(i=0; i< maximo/colunas; ++i){
           for(j=0; j < colunas; ++j){
-		media = coluna[i*colunas+j]/sets[i*colunas+j];
-		printf("%.8f ",media);
+		if(sets[i*colunas+j]!=0){
+			media = coluna[i*colunas+j]/sets[i*colunas+j];
+			printf("%.8f ",media);
+		}
 	  }
 	  printf("%d\n",sets[i*colunas]);
      }

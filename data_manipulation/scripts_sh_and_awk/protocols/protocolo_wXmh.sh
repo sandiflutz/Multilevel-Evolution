@@ -5,7 +5,11 @@ projectpath="$(cd ../../../ && pwd)/"
 datamanippath="$(cd ../../ && pwd)/"
 gpfilespath="${datamanippath}gp_scripts/"
 currentdir="$(pwd)/"
-scriptpath="${datamanippath}scripts_sh_and_awk/averagesFilesWithDifferentFormats/"
+scriptspath="${datamanippath}scripts_sh_and_awk/"
+averscriptpath="${scriptspath}averagesFilesWithDifferentFormats/"
+protocolpath="${scriptspath}protocols/"
+awkfilterspath="${scriptspath}awkFilters/"
+creategpscrpath="${scriptspath}createGpscripts/"
 pathimg="$(cd ${projectpath} && cd ../Figures/main_images/ && pwd)/"
 pathimgdata="${pathimg}data_and_script_files/"
 
@@ -33,7 +37,7 @@ echo "Running scpLab.sh"
 
 echo ""
 echo "Calculating averages"
-$(cd $scriptpath && ./calcAverages_wXmh.sh $mhpath $mhpath $cost)
+$(cd $averscriptpath && ./calcAverages_wXmh.sh $mhpath $mhpath $cost)
 echo "Bringing output files to the current directory"
 cp ${mhpath}averavInvXmh*.dat $mhgpdatapath
 

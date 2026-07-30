@@ -11,53 +11,64 @@
 projectpath="$(cd ../../../ && pwd)/"
 datamanippath="$(cd ../../ && pwd)/"
 currentdir="$(pwd)/"
-gpfilespath="$(cd ../ && pwd)/"
+gpfilespath="${datamanippath}gp_scripts/"
 scriptspath="${datamanippath}/scripts_sh_and_awk/"
+averscriptpath="${scriptspath}averagesFilesWithDifferentFormats/"
+protocolpath="${scriptspath}protocols/"
+awkfilterspath="${scriptspath}awkFilters/"
+creategpscrpath="${scriptspath}createGpscripts/"
+heatmapath="${gpfilespath}Files_clinvdistXplr/"
+averwXplrpath="${datamanippath}averInv_Plr/"
+plrpath="${averwXplrpath}allaverInvXplrfiles/"
 
 #awk scripts used
-scriptAverage="average.awk"
-scriptSpace="createSpaceWhenFirstColumnChange.awk"
+scriptAverage=average.awk
+scriptSpace=createSpaceWhenFirstColumnChange.awk
 
 #base file name
 basesamplename="clusterInvXplr"
 
-#entries
-if [ -n "$1" ]
-then
+#Entries
+if [ -n "$1" ] ; then
 	samplepath="$1"
 else
-	samplepath="${datamanippath}/"
+	samplepath="${heatmapath}"
 fi
-if [ -n "$2" ]
-then
+
+if [ -n "$2" ] ; then
 	outputpath="$2"
 else
-	outputpath="${datamanippath}/"
+	outputpath="${heatmapath}"
 fi
-if [ -n "$3" ]
-then
+
+if [ -n "$3" ] ; then
 	cost="$3"
 else
 	cost="0.10"
 fi
 
-if [ -n "$4" ]
-then
+if [ -n "$4" ] ; then
 	mh="$4"
-	if  [ -n "$5" ]
-	then
+
+	if  [ -n "$5" ] ; then
 		mt="$5"
-		awk -f $scriptAverage ${samplepath}${basesamplename}*cost${cost}*mh${mh}.0*MT${mt}_1* > ${samplepath}tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
-		awk -f ${scriptspath}${scriptSpace} ${samplepath}tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat > ${outputpath}aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
-		rm ${samplepath}tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
-		awk 'BEGIN{printf("#Plr <w> sample\n");}{if($2==0.){printf("%f %f %d\n",$1,$4,$8);}}' ${outputpath}aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat > ${outputpath}averinv_aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
+		tmpfile="tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat"
+		output="aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat"
+		outputspinoff="averinv_${outputbase}"
+		awk -f $averscriptpath$scriptAverage $samplepath${basesamplename}*cost${cost}*mh${mh}.0*MT${mt}_1* > $outputpath$tmpfile
+		awk -f $scriptspath$scriptSpace $outputpath$tmpfile > $outputpath$output
+		rm ${outputpath}${tmpfile}
+		awk 'BEGIN{printf("#Plr <w> sample\n");}{if($2==0.){printf("%f %f %d\n",$1,$4,$8);}}' $outputpath$output > $outputpath$outputspinoff
 	else
 		for mt in 0 1 2 3
 		do
-			awk -f $scriptAverage ${samplepath}${basesamplename}*cost${cost}*mh${mh}.0*MT${mt}_1* > ${samplepath}tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
-			awk -f ${scriptspath}${scriptSpace} ${samplepath}tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat > ${outputpath}aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
-			rm ${samplepath}tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
-			awk 'BEGIN{printf("#Plr <w> sample\n");}{if($2==0.){printf("%f %f %d\n",$1,$4,$8);}}' ${outputpath}aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat > ${outputpath}averinv_aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
+			tmpfile="tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat"
+			output="aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat"
+			outputspinoff="averinv_${output}"
+			awk -f $averscriptpath$scriptAverage $samplepath${basesamplename}*cost${cost}*mh${mh}.0*MT${mt}_1* > $outputpath$tmpfile
+			awk -f $scriptspath$scriptSpace $outputpath$tmpfile > $outputpath$output
+			rm $outputpath$tmpfile
+			awk 'BEGIN{printf("#Plr <w> sample\n");}{if($2==0.){printf("%f %f %d\n",$1,$4,$8);}}' $outputpath$output > $outputpath$outputspinoff
 		done
 	fi
 else
@@ -66,10 +77,13 @@ else
         do
                 for mh in 1 50 100 500
                 do
-                        awk -f $scriptAverage ${samplepath}${basesamplename}*cost${cost}*mh${mh}.0*MT${mt}_1* > ${samplepath}tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
-                        awk -f ${scriptspath}${scriptSpace} ${samplepath}tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat > ${outputpath}aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
-                        rm ${samplepath}tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
-			awk 'BEGIN{printf("#Plr <w> sample\n");}{if($2==0.){printf("%f %f %d\n",$1,$4,$8);}}' ${outputpath}aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat > ${outputpath}averinv_aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat
+			tmpfile="tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat"
+			output="aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat"
+			outputspinoff="averinv_${output}"
+			awk -f $averscriptpath$scriptAverage $samplepath${basesamplename}*cost${cost}*mh${mh}.0*MT${mt}_1* > $outputpath$tmpfile
+			awk -f $scriptspath$scriptSpace $outputpath$tmpfile > $outputpath$output
+			rm $outputpath$tmpfile
+			awk 'BEGIN{printf("#Plr <w> sample\n");}{if($2==0.){printf("%f %f %d\n",$1,$4,$8);}}' ${outputpath}${output} > ${outputpath}${outputspinoff}
                 done
 
         done
