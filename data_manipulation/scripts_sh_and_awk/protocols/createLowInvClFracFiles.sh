@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin
 
 #Important Paths
 projectpath="$(cd ../../../ && pwd)/"
@@ -14,13 +14,13 @@ heatmapath="${gpfilespath}Files_clinvdistXplr/"
 
 #awk script used
 
-awkscript=createClFracXplr_for_a_InvBIN.awk
-scriptpath="${awkfilterspath}"
+awkscript="createClFracXplr_for_a_InvBIN.awk"
+scriptpath=$awkfilterspath
 
 #Entries (1: path for the data files used in the gnuplot script; 2: cost)
 
 if [ -n "$1" ] ; then
-        aversamplepath="$1"
+        aversamplepath=$1
 else
         aversamplepath=$heatmapath
 fi
@@ -39,6 +39,7 @@ for mt in 1 2
 do
 	for mh in 1 50 100 500
 	do
+		echo "${mt}"
 		samplename="${samplebasename}_mh${mh}.0_rmh1_MT${mt}.dat"
 		output="${outputbasename}_mh${mh}.0_rmh1_MT${mt}.dat"
 		awk -v INVBIN=0.01 -f $scriptpath$awkscript $aversamplepath$samplename > $aversamplepath$output

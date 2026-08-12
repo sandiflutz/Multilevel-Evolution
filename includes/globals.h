@@ -16,14 +16,14 @@
 #define Psw			0.01			/*rewiring fraction*/
 
 //host migration
-#define Mh        		100.			/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
-#define MIGRATION_TYPE		2			/*0: homogeneous type of migration (no local component): Mi=mh*beta(1+sb*<w>(t) )(1-<rho_e>(t) )/gh
+#define Mh        		1.			/*host migration coeficient (>=0.): if Mh=0., there is no host migration*/
+#define MIGRATION_TYPE		3			/*0: homogeneous type of migration (no local component): Mi=mh*beta(1+sb*<w>(t) )(1-<rho_e>(t) )/gh
 							 *1: local migration component depends on the host's neighborhood dilution: Mi=mh*beta(1+sb*<w>(t) )(1-rho_e[i](t) )/gh
 							 *2: local migration component depends on the host's investment: Mi=mh*beta(1+sb*wi(t) )(1-<rho_e>(t) )/gh
 							 *3: local migration component depends on the host's neighborhood dilution and its investment: Mi=mh*beta(1+sb*wi(t) )(1-rho_e[i](t) )/gh*/
 #define Rmh        		1			/*host migration distance host in number of steps (1 is for first neighbors)*/
 #if (NETWORK==1)//square lattice
-	#define Plr		0.9			/*probability of choosing a long range migration jump, ignoring migration distance, for host migration*/
+	#define Plr		0.1			/*probability of choosing a long range migration jump, ignoring migration distance, for host migration*/
 	#define LONG_RANGE_MIG	1			/*0,if there are not random long-range migrations in the dynamics, 1 otherwise 
 							 *(@Plr sets a global value for the fraction long-range migrations, and spar->plr for using different values through simulations)*/
 #else//other networks
@@ -107,8 +107,8 @@
 					AVINVxPlr	 *0: measure of parent-offspring mean diff. in microbial composition (sample comes from the last @SAMPLE reproductions)
 						 *1: measure of mean offspring accumulated investment (sample comes from the last @SAMPLE reproductions)*/
 /****parameters for measures/sampling and related things*************************************************************/
-#define TF			80000.		/*host maximum time (measured using continuous values for the times steps)*/
-#define	Twin			40000.		/*time window for measures*/
+#define TF			100000.		/*host maximum time (measured using continuous values for the times steps)*/
+#define	Twin			60000.		/*time window for measures*/
 #define Ttrans			(TF-Twin)	/*transient time (to a first trial)*/
 #define FIG_EXT			0               /*Extension of the image files that are gonna be used in gnuplot scripts:
 					 	* 0:png (good for creating animations later)

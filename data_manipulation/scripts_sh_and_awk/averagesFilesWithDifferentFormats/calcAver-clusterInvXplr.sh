@@ -65,6 +65,7 @@ if [ -n "$4" ] ; then
 			tmpfile="tmpaver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat"
 			output="aver${basesamplename}_cost${cost}_mh${mh}.0_MT${mt}.dat"
 			outputspinoff="averinv_${output}"
+			:q
 			awk -f $averscriptpath$scriptAverage $samplepath${basesamplename}*cost${cost}*mh${mh}.0*MT${mt}_1* > $outputpath$tmpfile
 			awk -f $scriptspath$scriptSpace $outputpath$tmpfile > $outputpath$output
 			rm $outputpath$tmpfile
